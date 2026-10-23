@@ -745,11 +745,11 @@ impl Enemy {
         if self.hp <= 0 || self.base.removed || hit.source == Faction::Enemy || self.spawn_fade > 0.2 || self.phase == Phase::Burrowed {
             return false;
         }
-        if self.is_flying() && hit.kind == HitKind::Environment {
-            return false;
-        }
         if let Some(result) = boss::with_brain(self, |brain, e| brain.before_hit(e, world, hit)).flatten() {
             return result;
+        }
+        if self.is_flying() && hit.kind == HitKind::Environment {
+            return false;
         }
 
         let element = if hit.element == Element::Aether { self.best_element_against(world) } else { hit.element };
