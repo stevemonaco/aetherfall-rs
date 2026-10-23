@@ -1,12 +1,12 @@
 //! The player: movement, jumping and falling, taking damage and ailments, melee combos, bolts, dodges, guards, element
-//! modes and Arts (ported from Player.cs, Player.Combat.cs and Player.Draw.cs).
+//! modes and skills (ported from Player.cs, Player.Combat.cs and Player.Draw.cs).
 
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use bevy::math::Vec2;
 
-use super::art_actions::ArtAction;
-use super::combat_effects::{Afterimage, ArtBanner, Shockwave, SlashEffect};
+use super::skill_actions::SkillAction;
+use super::combat_effects::{Afterimage, SkillBanner, Shockwave, SlashEffect};
 use super::companion::Companion;
 use super::effects::{DamageNumber, FloatingText, Particle};
 use super::entity::{Entity, EntityBase, EntityId, PLAYER_ID};
@@ -23,7 +23,7 @@ use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::arts::{ArtDef, ArtSlot};
+use crate::gameplay::skills::{self, SkillDef};
 use crate::gameplay::combat::{self, CombatStats, DamageResult, Faction, Hit, HitKind};
 use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::pacts;
@@ -94,12 +94,20 @@ pub struct Player {
     overheat: f32,
     reflect_time: f32,
     mirror_time: f32,
+    mirror_charges: i32,
+    mirror_nova: bool,
     static_time: f32,
     static_tick: f32,
+    static_radius: f32,
+    static_power: f32,
     counter_time: f32,
     aegis_time: f32,
-    last_art: Option<&'static ArtDef>,
-    art: Option<Box<ArtAction>>,
+    ward_time: f32,
+    /// Real seconds the skill button has been held, or negative when not charging.
+    skill_held: f32,
+    skill_level_reached: i32,
+    last_skill: Option<(&'static SkillDef, i32)>,
+    skill: Option<Box<SkillAction>>,
     hook: Option<EntityId>,
     released_hook: Option<EntityId>,
     zipping: bool,
@@ -163,12 +171,19 @@ impl Player {
             overheat: 0.0,
             reflect_time: 0.0,
             mirror_time: 0.0,
+            mirror_charges: 0,
+            mirror_nova: false,
             static_time: 0.0,
             static_tick: 0.0,
+            static_radius: 40.0,
+            static_power: 0.35,
             counter_time: 0.0,
             aegis_time: 0.0,
-            last_art: None,
-            art: None,
+            ward_time: 0.0,
+            skill_held: -1.0,
+            skill_level_reached: 0,
+            last_skill: None,
+            skill: None,
             hook: None,
             released_hook: None,
             zipping: false,
@@ -254,7 +269,7 @@ impl Player {
     }
 
     fn can_act(&self) -> bool {
-        self.stun_time <= 0.0 && self.art.is_none() && !self.dodging && self.hook.is_none() && !self.zipping
+        self.stun_time <= 0.0 && self.skill.is_none() && !self.dodging && self.hook.is_none() && !self.zipping
     }
 
     fn movement_allowed(&self) -> bool {
@@ -262,7 +277,16 @@ impl Player {
     }
 
     fn faces_aim(&self) -> bool {
-        self.aiming() || self.guarding() || self.attack_time >= 0.0
+        self.aiming() || self.guarding() || self.attack_time >= 0.0 || self.charging_skill()
+    }
+
+    pub fn charging_skill(&self) -> bool {
+        self.skill_held >= 0.0
+    }
+
+    /// The level the skill being charged has reached, or 0 when not charging.
+    pub fn skill_charge_level(&self) -> i32 {
+        if self.charging_skill() { self.skill_level_reached } else { 0 }
     }
 
     fn mode(world: &World) -> Element {
@@ -298,7 +322,7 @@ impl Player {
         if !self.airborne() && under == Terrain::Shallows {
             speed *= 0.8;
         }
-        if self.aiming() {
+        if self.aiming() || self.charging_skill() {
             speed *= 0.55;
         }
         if self.guarding() {
@@ -524,7 +548,11 @@ impl Player {
         if hit.kind == HitKind::Environment && self.airborne() {
             return false;
         }
-        if (self.dodging && self.dodge_invulnerable > 0.0) || self.invulnerable > 0.0 || self.zipping {
+        if (self.dodging && self.dodge_invulnerable > 0.0)
+            || self.invulnerable > 0.0
+            || self.zipping
+            || self.ward_time > 0.0
+        {
             if self.dodging && !self.near_missed && hit.kind != HitKind::Environment {
                 self.near_miss(world);
             }
@@ -645,6 +673,7 @@ impl Player {
         self.mirror_time = (self.mirror_time - dt).max(0.0);
         self.counter_time = (self.counter_time - dt).max(0.0);
         self.aegis_time = (self.aegis_time - dt).max(0.0);
+        self.ward_time = (self.ward_time - dt).max(0.0);
 
         if self.combo_reset > 0.0 {
             self.combo_reset -= dt;
@@ -690,8 +719,9 @@ impl Player {
             if self.static_tick <= 0.0 {
                 self.static_tick = 0.5;
                 let center = self.center();
-                self.strike_area(world, center, 40.0, None, |p, w| {
-                    p.make_hit(w, 0.35, HitKind::Art, Some(Element::Thunder), 0.5, 1.5, 30.0)
+                let (radius, power) = (self.static_radius, self.static_power);
+                self.strike_area(world, center, radius, None, move |p, w| {
+                    p.make_hit(w, power, HitKind::Skill, Some(Element::Thunder), 0.5, 1.5, 30.0)
                 });
                 if world.rng.next_f32() < 0.5 {
                     audio::play(Sound::Clink, 0.3, 0.8);
@@ -750,10 +780,10 @@ impl Player {
         if self.stun_time > 0.0 {
             return true;
         }
-        if let Some(mut art) = self.art.take() {
-            let done = art.update(self, world, dt);
-            if !done && self.art.is_none() {
-                self.art = Some(art);
+        if let Some(mut skill) = self.skill.take() {
+            let done = skill.update(self, world, dt);
+            if !done && self.skill.is_none() {
+                self.skill = Some(skill);
             }
             return true;
         }
@@ -769,25 +799,15 @@ impl Player {
             return true;
         }
 
+        if self.charging_skill() {
+            self.update_skill_charge(world);
+            return false;
+        }
+
         self.update_mode_switch(world);
 
-        if input::held(GameAction::Art) && !self.airborne() {
-            let slot = if input::pressed(GameAction::Attack) {
-                Some(ArtSlot::Melee)
-            } else if input::pressed(GameAction::Throw) {
-                Some(ArtSlot::Throw)
-            } else if input::pressed(GameAction::Dodge) {
-                Some(ArtSlot::Dodge)
-            } else if input::pressed(GameAction::Guard) {
-                Some(ArtSlot::Guard)
-            } else {
-                None
-            };
-            if let Some(s) = slot
-                && self.try_art(world, s)
-            {
-                return true;
-            }
+        if input::pressed(GameAction::Skill) && !self.airborne() && self.begin_skill_charge(world) {
+            return false;
         }
 
         if input::pressed(GameAction::Dodge)
@@ -1213,7 +1233,7 @@ impl Player {
         world.add(SlashEffect::new(self.center(), self.aim, Self::mode(world), 34.0, true, false));
         for (id, faction, hurtbox) in world.damageables() {
             if faction != Faction::Player && self.in_arc(&hurtbox, 40.0, 110.0) {
-                let h = self.make_hit(world, 3.0, HitKind::Art, None, 6.0, 2.0, 260.0);
+                let h = self.make_hit(world, 3.0, HitKind::Skill, None, 6.0, 2.0, 260.0);
                 self.strike_target(world, id, h);
             }
         }
@@ -1232,7 +1252,7 @@ impl Player {
             HitKind::Finisher => 6.0,
             HitKind::Bolt => 2.5,
             HitKind::ChargedBolt => 7.0,
-            HitKind::Art => 12.0,
+            HitKind::Skill => 12.0,
             _ => 2.0,
         };
         let resonance = if world.state.resonates(mode) { 0.75 } else { 1.0 };
@@ -1255,33 +1275,76 @@ impl Player {
         world.add(FloatingText::new(self.center() - Vec2::new(0.0, 16.0), "OVERHEAT", was.glow()));
     }
 
-    fn try_art(&mut self, world: &mut World, slot: ArtSlot) -> bool {
-        let Some(art) = world.state.equipped_art(Self::mode(world), slot) else { return false };
-        let cost = art.cost as f32 * 100.0;
-        if world.state.sp < cost {
+    /// The highest level the equipped skill can reach right now: limited by unlocked levels and SP.
+    fn skill_cap(world: &World) -> i32 {
+        let affordable = (world.state.sp / 100.0).floor() as i32;
+        world.state.skill_level(Self::mode(world)).min(affordable).min(skills::MAX_LEVEL)
+    }
+
+    /// Starts charging the equipped skill; returns false if there is nothing to charge.
+    fn begin_skill_charge(&mut self, world: &mut World) -> bool {
+        if world.state.equipped_skill(Self::mode(world)).is_none() {
+            return false;
+        }
+        if Self::skill_cap(world) < 1 {
             audio::sfx(Sound::MenuCancel);
             world.add(FloatingText::new(self.center() - Vec2::new(0.0, 16.0), "Not enough SP", palette::TEXT_DIM));
-            return true;
+            return false;
         }
         self.cancel_actions();
-        world.state.sp -= cost;
-        self.art = Some(Box::new(ArtAction::create(art)));
-        self.last_art = Some(art);
-        world.add(ArtBanner::new(self.base.pos, art));
-        self.add_overload(world, HitKind::Art);
+        self.skill_held = 0.0;
+        self.skill_level_reached = 1;
         true
     }
 
-    /// The Echo soul performs the last Art again for free.
-    pub fn replay_last_art(&mut self, world: &mut World) -> bool {
-        let Some(art) = self.last_art else { return false };
+    fn update_skill_charge(&mut self, world: &mut World) {
+        self.skill_held += world.frame_delta;
+        let cap = Self::skill_cap(world).max(1);
+        let reached = skills::level_for_hold(self.skill_held).min(cap);
+        if reached > self.skill_level_reached {
+            self.skill_level_reached = reached;
+            audio::play(Sound::ChargeLevel, 0.8, 0.15 * reached as f32);
+            Particle::burst(world, self.center(), Self::mode(world).glow(), 6 * reached, 50.0, 0.3, true);
+        }
+        if self.skill_held >= skills::TAP_WINDOW && cap > 1 {
+            world.slow_motion(0.05, 0.3);
+        }
+        if !input::held(GameAction::Skill) || self.skill_held >= skills::MAX_HOLD {
+            let level = self.skill_level_reached;
+            self.skill_held = -1.0;
+            self.fire_skill(world, level);
+        }
+    }
+
+    fn fire_skill(&mut self, world: &mut World, level: i32) {
+        let Some(skill) = world.state.equipped_skill(Self::mode(world)) else { return };
+        let level = level.min(Self::skill_cap(world));
+        if level < 1 {
+            return;
+        }
+        self.cancel_actions();
+        world.state.sp -= level as f32 * 100.0;
+        self.skill = Some(Box::new(SkillAction::create(skill, level)));
+        self.last_skill = Some((skill, level));
+        world.add(SkillBanner::new(self.base.pos, skill, level));
+        self.add_overload(world, HitKind::Skill);
+    }
+
+    /// The Echo soul performs the last skill again, at the same level, for free.
+    pub fn replay_last_skill(&mut self, world: &mut World) -> bool {
+        let Some((skill, level)) = self.last_skill else { return false };
         if !self.can_act() || self.airborne() {
             return false;
         }
         self.cancel_actions();
-        self.art = Some(Box::new(ArtAction::create(art)));
-        world.add(ArtBanner::new(self.base.pos, art));
+        self.skill = Some(Box::new(SkillAction::create(skill, level)));
+        world.add(SkillBanner::new(self.base.pos, skill, level));
         true
+    }
+
+    /// Wards the player from all harm for a while (Sanctum).
+    pub fn ward(&mut self, seconds: f32) {
+        self.ward_time = seconds;
     }
 
     pub fn begin_aegis(&mut self, seconds: f32) {
@@ -1292,12 +1355,17 @@ impl Player {
         self.reflect_time = seconds;
     }
 
-    pub fn begin_mirror(&mut self, seconds: f32) {
+    /// An ice shell that absorbs `charges` hits; with `nova`, each break also chills everything nearby.
+    pub fn begin_mirror(&mut self, seconds: f32, charges: i32, nova: bool) {
         self.mirror_time = seconds;
+        self.mirror_charges = charges;
+        self.mirror_nova = nova;
     }
 
-    pub fn begin_static(&mut self, seconds: f32) {
+    pub fn begin_static(&mut self, seconds: f32, radius: f32, power: f32) {
         self.static_time = seconds;
+        self.static_radius = radius;
+        self.static_power = power;
     }
 
     pub fn begin_counter(&mut self, seconds: f32) {
@@ -1312,11 +1380,21 @@ impl Player {
         if self.mirror_time <= 0.0 || hit.kind == HitKind::Environment {
             return false;
         }
-        self.mirror_time = 0.0;
+        self.mirror_charges -= 1;
+        if self.mirror_charges <= 0 {
+            self.mirror_time = 0.0;
+        }
+        if self.mirror_nova {
+            let center = self.center();
+            self.strike_area(world, center, 48.0, None, |p, w| {
+                p.make_hit(w, 0.8, HitKind::Skill, Some(Element::Water), 1.5, 3.0, 160.0)
+            });
+            world.add(Shockwave::new(self.base.pos, 48.0, Element::Water.glow()));
+        }
         audio::play(Sound::Break, 0.7, 0.5);
         Particle::burst(world, self.center(), Rgba::rgb(200, 240, 255), 24, 80.0, 0.5, true);
         if let Some(owner) = hit.owner {
-            let counter = self.make_hit(world, 0.8, HitKind::Art, Some(Element::Water), 1.0, 4.0, 120.0);
+            let counter = self.make_hit(world, 0.8, HitKind::Skill, Some(Element::Water), 1.0, 4.0, 120.0);
             let mut counter = counter;
             world.hit(owner, &mut counter);
         }
@@ -1396,13 +1474,13 @@ impl Player {
             HitKind::Finisher => 15.0,
             HitKind::Bolt => 5.0,
             HitKind::ChargedBolt => 12.0,
-            HitKind::Art => 3.0,
+            HitKind::Skill => 3.0,
             _ => 2.0,
         };
         world.add_sp(sp);
         if hit.result.element_mod > 1.0 {
             world.add_resonance(match hit.kind {
-                HitKind::Melee | HitKind::Bolt | HitKind::Art => 3.0,
+                HitKind::Melee | HitKind::Bolt | HitKind::Skill => 3.0,
                 _ => 5.0,
             });
         }
@@ -1414,7 +1492,7 @@ impl Player {
     /// The Meteor Art's landing: a fiery burst where the shot comes down.
     pub fn meteor_burst(&mut self, world: &mut World, at: Vec2) {
         self.strike_area(world, at - Vec2::new(0.0, 4.0), 30.0, None, |p, w| {
-            p.make_hit(w, 2.3, HitKind::Art, Some(Element::Fire), 4.0, 2.5, 200.0)
+            p.make_hit(w, 2.3, HitKind::Skill, Some(Element::Fire), 4.0, 2.5, 200.0)
         });
         ignite_around(world, at, 1);
         world.add(Shockwave::new(at, 30.0, Element::Fire.glow()));
@@ -1457,7 +1535,8 @@ impl Player {
         self.combo_buffered = false;
         self.throw_held = -1.0;
         self.guard_time = -1.0;
-        self.art = None;
+        self.skill = None;
+        self.skill_held = -1.0;
         if let Some(hook) = self.hook.take() {
             self.released_hook = Some(hook);
         }
@@ -1539,8 +1618,11 @@ impl Player {
                 },
             );
         }
-        if self.art.is_some() {
+        if self.skill.is_some() {
             return (HeroPose::Slash, 1);
+        }
+        if self.charging_skill() {
+            return (HeroPose::Guard, 0);
         }
         if self.hook.is_some() {
             return (HeroPose::Throw, 1);
@@ -1628,6 +1710,23 @@ impl Player {
             let a = t * (6.0 + charge * 8.0) + i as f32 * TAU / sparks as f32;
             let r = 6.0 - charge * 2.0;
             batch.draw(props::spark(), snap(center + Vec2::new(a.cos(), a.sin()) * r - Vec2::ONE), color);
+        }
+    }
+
+    /// Pips circling the hero while a skill charges: one per level it can reach, lit as each is reached.
+    fn draw_skill_charge(&self, world: &World, batch: &mut Batch, lift: Vec2) {
+        let glow = Self::mode(world).glow();
+        let cap = Self::skill_cap(world).max(1);
+        let center = self.center() + lift;
+        let spin = world.time as f32 * 4.0;
+        for i in 0..cap {
+            let a = spin + i as f32 * TAU / cap as f32;
+            let lit = i < self.skill_level_reached;
+            let color = if lit { glow.lerp(Rgba::WHITE, 0.35) } else { glow.mul(0.35) };
+            let at = snap(center + Vec2::new(a.cos() * 14.0, a.sin() * 9.0));
+            let size = if lit { 3.0 } else { 2.0 };
+            batch.fill_rect(at.x - 1.0, at.y - 1.0, size + 2.0, size + 2.0, palette::OUTLINE);
+            batch.fill_rect(at.x, at.y, size, size, color);
         }
     }
 
@@ -1787,6 +1886,12 @@ impl Entity for Player {
         }
         if self.counter_time > 0.0 {
             self.draw_orbit(world, batch, lift, Rgba::WHITE, 14.0, self.counter_time);
+        }
+        if self.ward_time > 0.0 {
+            self.draw_orbit(world, batch, lift, Element::Aether.light(), 18.0, self.ward_time);
+        }
+        if self.charging_skill() {
+            self.draw_skill_charge(world, batch, lift);
         }
 
         let max = world.state.dodge_charges();

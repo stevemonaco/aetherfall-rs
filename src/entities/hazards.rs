@@ -1,4 +1,4 @@
-//! Lingering hazards: the Cyclone and fire patches left by Arts, decoys, steam and mist, and drifting gas.
+//! Lingering hazards: the Cyclone and fire patches left by skills, decoys, steam and mist, and drifting gas.
 
 use bevy::math::Vec2;
 
@@ -26,6 +26,8 @@ pub struct Cyclone {
     age: f32,
     tick: f32,
     burning: bool,
+    life: f32,
+    scale: f32,
 }
 
 impl Cyclone {
@@ -36,7 +38,16 @@ impl Cyclone {
             age: 0.0,
             tick: 0.0,
             burning: false,
+            life: 2.6,
+            scale: 1.0,
         }
+    }
+
+    /// A larger tornado that pulls from further away and lasts longer.
+    pub fn great(mut self) -> Cyclone {
+        self.life = 4.0;
+        self.scale = 1.35;
+        self
     }
 }
 
@@ -51,7 +62,7 @@ impl Entity for Cyclone {
         self.age += dt;
         self.base.pos += self.velocity * dt;
         let (tx, ty) = self.base.tile_pos();
-        if self.age > 2.6 || world.map.blocks_flying(tx, ty) {
+        if self.age > self.life || world.map.blocks_flying(tx, ty) {
             self.base.removed = true;
             Particle::burst(
                 world,
@@ -81,7 +92,7 @@ impl Entity for Cyclone {
                     return;
                 }
                 let pull = eye - enemy.base().pos;
-                if pull.length() > 4.0 && pull.length() < 48.0 {
+                if pull.length() > 4.0 && pull.length() < 48.0 * self.scale {
                     let flying = enemy.is_flying();
                     w.move_entity(enemy.base_mut(), pull.normalize() * 70.0 * dt, flying, false, false);
                 }
@@ -100,8 +111,8 @@ impl Entity for Cyclone {
             self.tick = 0.35;
             let element = if self.burning { Element::Fire } else { Element::Wind };
             world.with_player(|p, w| {
-                p.strike_area(w, eye - Vec2::new(0.0, 8.0), 20.0, None, move |p, w| {
-                    p.make_hit(w, 0.45, HitKind::Art, Some(element), 1.0, 1.2, 30.0)
+                p.strike_area(w, eye - Vec2::new(0.0, 8.0), 20.0 * self.scale, None, move |p, w| {
+                    p.make_hit(w, 0.45, HitKind::Skill, Some(element), 1.0, 1.2, 30.0)
                 })
             });
         }
@@ -113,12 +124,12 @@ impl Entity for Cyclone {
         let src = IRect::new(frame * 16, 0, 16, 22);
         batch.draw_ex(
             props::tornado(),
-            snap(self.base.pos - Vec2::new(16.0, 40.0)),
+            snap(self.base.pos - Vec2::new(16.0, 40.0) * self.scale),
             Some(src),
             tint,
             0.0,
             Vec2::ZERO,
-            Vec2::splat(2.0),
+            Vec2::splat(2.0 * self.scale),
             false,
             false,
         );
@@ -163,7 +174,7 @@ impl Entity for FirePatch {
         self.tick = 0.4;
         let at = self.base.pos - Vec2::new(0.0, 4.0);
         world.with_player(|p, w| {
-            p.strike_area(w, at, 9.0, None, |p, w| p.make_hit(w, 0.3, HitKind::Art, Some(Element::Fire), 0.3, 1.0, 0.0))
+            p.strike_area(w, at, 9.0, None, |p, w| p.make_hit(w, 0.3, HitKind::Skill, Some(Element::Fire), 0.3, 1.0, 0.0))
         });
     }
 
@@ -184,11 +195,17 @@ impl Entity for FirePatch {
 pub struct Decoy {
     base: EntityBase,
     age: f32,
+    bursts: bool,
 }
 
 impl Decoy {
     pub fn new(at: Vec2) -> Decoy {
-        Decoy { base: EntityBase::at(at), age: 0.0 }
+        Decoy { base: EntityBase::at(at), age: 0.0, bursts: false }
+    }
+
+    /// A decoy that explodes when it fades.
+    pub fn bursting(at: Vec2) -> Decoy {
+        Decoy { bursts: true, ..Decoy::new(at) }
     }
 }
 
@@ -207,6 +224,16 @@ impl Entity for Decoy {
                 world.decoy = None;
             }
             Particle::burst(world, self.base.pos - Vec2::new(0.0, 8.0), Rgba::rgb(200, 220, 255), 10, 40.0, 0.4, false);
+            if self.bursts {
+                let at = self.base.pos;
+                world.with_player(|p, w| {
+                    p.strike_area(w, at - Vec2::new(0.0, 6.0), 40.0, None, |p, w| {
+                        p.make_hit(w, 1.6, HitKind::Skill, Some(Element::None), 2.0, 1.0, 220.0)
+                    })
+                });
+                world.add(Shockwave::new(at, 40.0, Rgba::rgb(200, 220, 255)));
+                audio::play(Sound::Break, 0.8, 0.1);
+            }
         }
     }
 

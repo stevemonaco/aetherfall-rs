@@ -255,7 +255,7 @@ impl Entity for TileObstacle {
             }
             ObstacleKind::IceWall => {
                 if matches!(hit.element, Element::Fire | Element::Aether) {
-                    self.melt += if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher) {
+                    self.melt += if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher) {
                         1.0
                     } else {
                         0.34
@@ -300,7 +300,7 @@ impl Entity for TileObstacle {
             }
             ObstacleKind::Rock => {
                 let strong =
-                    matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher | HitKind::Environment);
+                    matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher | HitKind::Environment);
                 let windy = matches!(hit.element, Element::Wind | Element::Aether);
                 if (windy && strong) || (hit.kind == HitKind::Environment && hit.power >= 1.0) {
                     self.clear(world, Sound::Break, Rgba::rgb(170, 130, 90));
@@ -651,7 +651,7 @@ impl Entity for Crate {
         self.shake = 0.15;
         audio::play(Sound::Hit, 0.6, 0.3);
         self.hp -= 1;
-        if self.hp <= 0 || matches!(hit.kind, HitKind::Finisher | HitKind::ChargedBolt | HitKind::Art) {
+        if self.hp <= 0 || matches!(hit.kind, HitKind::Finisher | HitKind::ChargedBolt | HitKind::Skill) {
             self.smash(world);
         }
         true

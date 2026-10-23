@@ -21,7 +21,7 @@ use crate::entities::entity::{Entity, EntityId, PLAYER_ID};
 use crate::entities::pickup::Pickup;
 use crate::entities::player::Player;
 use crate::entities::puzzles::SpanBridge;
-use crate::gameplay::arts;
+use crate::gameplay::skills;
 use crate::gameplay::blight_areas::{self, BlightAreaDef};
 use crate::gameplay::combat::{self, Faction, Hit};
 use crate::gameplay::element::Element;
@@ -1032,7 +1032,7 @@ impl World {
                     audio::sfx(Sound::Heal);
                 }
                 "spell" | "art" => {
-                    if arts::get(arg).is_some() {
+                    if skills::get(arg).is_some() {
                         self.give_item(arg, 1);
                     }
                 }
@@ -1105,14 +1105,13 @@ impl World {
                 input::glyph(GameAction::PrevMode),
                 input::glyph(GameAction::NextMode)
             ));
-        } else if let Some(art) = arts::get(id) {
+        } else if let Some(skill) = skills::get(id) {
             text = format!(
-                "Learned the Combat Art {}!\n{} (Hold {} and {} in {} mode.)",
-                art.name,
-                art.description,
-                input::glyph(GameAction::Art),
-                art.slot.key(),
-                art.element.label()
+                "Learned the skill {}!\n{} (Equip it in {} mode from the Skills menu, then press {}.)",
+                skill.name,
+                skill.description,
+                skill.element.label(),
+                input::glyph(GameAction::Skill)
             );
         }
         self.show_message(&text);

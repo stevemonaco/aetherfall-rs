@@ -12,7 +12,6 @@ use crate::core::palette;
 use crate::entities::companion::Companion;
 use crate::entities::enemy::Enemy;
 use crate::entities::player::Player;
-use crate::gameplay::arts::ArtSlot;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::data;
 use crate::gameplay::game_state::GameState;
@@ -137,7 +136,7 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
         bar(batch, bx, y + 25, 118, 1, state.exp as f32 / state.exp_to_next() as f32, palette::EXPERIENCE);
     }
 
-    if player.mode_flash() > 0.0 || input::held(GameAction::Art) {
+    if player.mode_flash() > 0.0 {
         let mut mx = x;
         for m in state.available_modes() {
             let tint = if m == mode { Rgba::WHITE } else { Rgba::WHITE.mul(0.4) };
@@ -154,10 +153,8 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
             );
             mx += 15;
         }
-        if input::held(GameAction::Art) {
-            draw_art_hints(batch, state, mode, x, y + 48);
-        }
     }
+    draw_skill_hint(batch, state, player, mode, bx, y + 28);
 }
 
 fn draw_soul(batch: &mut Batch, world: &World) {
@@ -215,26 +212,27 @@ fn draw_quest(batch: &mut Batch, state: &GameState) {
     }
 }
 
-fn draw_art_hints(batch: &mut Batch, state: &GameState, mode: Element, x: i32, mut y: i32) {
-    let slots = [
-        (ArtSlot::Melee, GameAction::Attack),
-        (ArtSlot::Throw, GameAction::Throw),
-        (ArtSlot::Dodge, GameAction::Dodge),
-        (ArtSlot::Guard, GameAction::Guard),
-    ];
-    for (slot, action) in slots {
-        let Some(art) = state.equipped_art(mode, slot) else { continue };
-        let affordable = state.sp >= art.cost as f32 * 100.0;
-        let text = format!("{}: {} ({})", input::glyph(action), art.name, art.cost);
-        font::draw(
-            batch,
-            &text,
-            Vec2::new(x as f32, y as f32),
-            if affordable { mode.light() } else { palette::TEXT_DIM },
-            Some(palette::TEXT_SHADOW),
-        );
-        y += 10;
+/// The equipped skill's name, with one pip per unlocked level: lit when affordable, bright while charged.
+fn draw_skill_hint(batch: &mut Batch, state: &GameState, player: &Player, mode: Element, x: i32, y: i32) {
+    let Some(skill) = state.equipped_skill(mode) else { return };
+    let levels = state.skill_level(mode);
+    let charged = player.skill_charge_level();
+    for i in 0..levels {
+        let rect = IRect::new(x + i * 5, y + 2, 3, 3);
+        let affordable = state.sp >= (i + 1) as f32 * 100.0;
+        let color = if i < charged {
+            Rgba::WHITE
+        } else if affordable {
+            mode.glow()
+        } else {
+            mode.dark()
+        };
+        batch.fill(rect.inflate(1, 1), palette::OUTLINE);
+        batch.fill(rect, color);
     }
+    let color = if state.sp >= 100.0 { mode.light() } else { palette::TEXT_DIM };
+    let label = format!("{} {}", input::glyph(GameAction::Skill), skill.name);
+    font::draw(batch, &label, Vec2::new((x + levels * 5 + 3) as f32, y as f32), color, Some(palette::TEXT_SHADOW));
 }
 
 pub fn bar(batch: &mut Batch, x: i32, y: i32, width: i32, height: i32, fraction: f32, color: Rgba) {

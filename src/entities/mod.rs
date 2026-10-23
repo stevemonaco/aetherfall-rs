@@ -1,4 +1,4 @@
-pub mod art_actions;
+pub mod skill_actions;
 pub mod blight_hazards;
 pub mod blocks;
 pub mod boss;

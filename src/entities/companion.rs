@@ -195,7 +195,7 @@ impl Companion {
                 let at = self.base.pos - Vec2::new(0.0, 6.0);
                 world.with_player(|p, w| {
                     p.strike_area(w, at, 36.0 * power, None, move |p, w| {
-                        p.make_hit(w, 1.5 * power, HitKind::Art, Some(Element::Fire), 2.0, 2.0, 160.0)
+                        p.make_hit(w, 1.5 * power, HitKind::Skill, Some(Element::Fire), 2.0, 2.0, 160.0)
                     })
                 });
                 world.add(Shockwave::new(self.base.pos, 36.0 * power, Element::Fire.glow()));
@@ -214,14 +214,14 @@ impl Companion {
                     let pos = world.get(id).map(|e| e.base().pos).unwrap_or_default();
                     world.add(LightningStrike::new(pos));
                     world.with_player(|p, w| {
-                        let hit = p.make_hit(w, 2.0 * power, HitKind::Art, Some(Element::Thunder), 3.0, 2.5, 60.0);
+                        let hit = p.make_hit(w, 2.0 * power, HitKind::Skill, Some(Element::Thunder), 3.0, 2.5, 60.0);
                         p.strike_target(w, id, hit);
                     });
                     audio::play(Sound::Break, 0.7, 0.5);
                 }
             }
             "echo" => {
-                used = world.with_player(|p, w| p.replay_last_art(w)).unwrap_or(false);
+                used = world.with_player(|p, w| p.replay_last_skill(w)).unwrap_or(false);
             }
             _ => {}
         }
@@ -244,7 +244,7 @@ impl Companion {
         if to.length() < 10.0 {
             let power = self.power();
             world.with_player(|p, w| {
-                let hit = p.make_hit(w, 1.3 * power, HitKind::Art, Some(Element::None), 3.0, 0.0, 220.0);
+                let hit = p.make_hit(w, 1.3 * power, HitKind::Skill, Some(Element::None), 3.0, 0.0, 220.0);
                 p.strike_target(w, prey_id, hit);
             });
             world.add(ClawEffect::new(prey_center, safe_normalize(to + Vec2::splat(0.01)), Rgba::WHITE));

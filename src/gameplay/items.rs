@@ -353,7 +353,7 @@ pub fn name_of(id: &str) -> String {
     if let Some(s) = sigil(id) {
         return s.name.to_string();
     }
-    if let Some(a) = super::arts::get(id) {
+    if let Some(a) = super::skills::get(id) {
         return a.name.to_string();
     }
     id.to_string()

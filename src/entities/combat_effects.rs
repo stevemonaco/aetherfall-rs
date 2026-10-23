@@ -11,7 +11,7 @@ use crate::core::gfx::{self, Batch};
 use crate::core::{font, noise, palette};
 use crate::entities::entity::{Entity, EntityBase};
 use crate::entity_base;
-use crate::gameplay::arts::ArtDef;
+use crate::gameplay::skills::SkillDef;
 use crate::gameplay::element::Element;
 use crate::scenes::world::World;
 
@@ -156,20 +156,21 @@ impl Entity for Afterimage {
     }
 }
 
-/// The Art's name flashing above the player as it is performed.
-pub struct ArtBanner {
+/// The skill's name and level flashing above the player as it is performed.
+pub struct SkillBanner {
     base: EntityBase,
-    art: &'static ArtDef,
+    skill: &'static SkillDef,
+    level: i32,
     age: f32,
 }
 
-impl ArtBanner {
-    pub fn new(at: Vec2, art: &'static ArtDef) -> ArtBanner {
-        ArtBanner { base: simple(at), art, age: 0.0 }
+impl SkillBanner {
+    pub fn new(at: Vec2, skill: &'static SkillDef, level: i32) -> SkillBanner {
+        SkillBanner { base: simple(at), skill, level, age: 0.0 }
     }
 }
 
-impl Entity for ArtBanner {
+impl Entity for SkillBanner {
     entity_base!();
 
     fn layer(&self) -> i32 {
@@ -186,11 +187,16 @@ impl Entity for ArtBanner {
     fn draw(&self, world: &World, batch: &mut Batch) {
         let alpha = ((0.9 - self.age) * 4.0).min(1.0);
         let at = world.hero.pos - Vec2::new(0.0, 36.0 + (self.age * 30.0).min(6.0));
+        let text = match self.level {
+            1 => self.skill.name.to_string(),
+            2 => format!("{} II", self.skill.name),
+            _ => format!("{} III", self.skill.name),
+        };
         font::draw_centered(
             batch,
-            self.art.name,
+            &text,
             snap(at),
-            self.art.element.light().mul(alpha),
+            self.skill.element.light().mul(alpha),
             Some(palette::TEXT_SHADOW.mul(alpha)),
         );
     }

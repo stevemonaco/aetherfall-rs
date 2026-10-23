@@ -250,7 +250,7 @@ impl BossBrain for GolemBrain {
     fn before_hit(&mut self, enemy: &mut Enemy, world: &mut World, hit: &mut Hit) -> Option<bool> {
         if hit.is_player() && hit.element == Element::Water && self.step != Step::Seized {
             self.water +=
-                if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher) { 3.0 } else { 1.0 };
+                if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher) { 3.0 } else { 1.0 };
             if self.water >= 10.0 {
                 self.water = 0.0;
                 self.next(Step::Seized, 4.0);

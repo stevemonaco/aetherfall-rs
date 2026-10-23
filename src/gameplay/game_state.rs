@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use bevy::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-use super::arts::{self, ArtDef, ArtSlot};
+use super::skills::{self, SkillDef};
 use super::circuit::{self, CircuitMods, CircuitNode};
 use super::combat::{self, CombatStats};
 use super::element::{BASIC, Element, MODES};
@@ -45,8 +45,9 @@ pub struct GameState {
     pub armor: Option<String>,
     pub shield: Option<String>,
     pub accessories: [Option<String>; 2],
-    pub learned_arts: BTreeSet<String>,
-    pub art_slots: BTreeMap<String, String>,
+    pub learned_skills: BTreeSet<String>,
+    /// The skill equipped in each mode, by mode key.
+    pub equipped_skills: BTreeMap<String, String>,
     pub flags: BTreeSet<String>,
     pub circuit_nodes: BTreeSet<String>,
     pub souls_owned: Vec<String>,
@@ -94,8 +95,8 @@ impl Default for GameState {
             armor: None,
             shield: None,
             accessories: [None, None],
-            learned_arts: BTreeSet::new(),
-            art_slots: BTreeMap::new(),
+            learned_skills: BTreeSet::new(),
+            equipped_skills: BTreeMap::new(),
             flags: BTreeSet::new(),
             circuit_nodes: BTreeSet::new(),
             souls_owned: Vec::new(),
@@ -224,6 +225,19 @@ impl GameState {
         self.resonance >= 100.0
     }
 
+    /// Every mode the blade can take, whether or not it can be entered right now.
+    pub fn owned_modes(&self) -> Vec<Element> {
+        MODES
+            .iter()
+            .copied()
+            .filter(|&m| match m {
+                Element::None => true,
+                Element::Aether => self.aether_awakened(),
+                e => self.has_sigil(e),
+            })
+            .collect()
+    }
+
     /// Modes the player can switch to now. Aether only appears while its burst is ready or running.
     pub fn available_modes(&self) -> Vec<Element> {
         MODES
@@ -300,6 +314,9 @@ impl GameState {
 
     pub fn new_game(slot: i32) -> GameState {
         let mut state = GameState { slot, ..GameState::default() };
+        if let Some(whirl) = skills::starter(Element::None) {
+            state.learn(whirl.id);
+        }
         state.hp = state.max_hp();
         state
     }
@@ -360,10 +377,8 @@ impl GameState {
             if !self.has_sigil(sigil.element) {
                 self.sigils.push(sigil.element.key().to_string());
             }
-            let melee: Vec<&str> =
-                arts::for_element(sigil.element).filter(|a| a.slot == ArtSlot::Melee).map(|a| a.id).collect();
-            for art in melee {
-                self.learn(art);
+            if let Some(starter) = skills::starter(sigil.element) {
+                self.learn(starter.id);
             }
             self.mode = sigil.element;
             return 1;
@@ -377,7 +392,7 @@ impl GameState {
             }
             return 1;
         }
-        if arts::get(id).is_some() {
+        if skills::get(id).is_some() {
             self.learn(id);
             return 1;
         }
@@ -415,15 +430,40 @@ impl GameState {
         count
     }
 
-    pub fn learn(&mut self, art_id: &str) {
-        let Some(art) = arts::get(art_id) else { return };
-        if !self.learned_arts.insert(art_id.to_string()) {
+    /// Learns a skill, equipping it if its mode has none yet.
+    pub fn learn(&mut self, skill_id: &str) {
+        let Some(skill) = skills::get(skill_id) else { return };
+        if !self.learned_skills.insert(skill_id.to_string()) {
             return;
         }
-        self.art_slots.entry(arts::slot_key(art.element, art.slot)).or_insert_with(|| art_id.to_string());
+        self.equipped_skills.entry(skill.element.key().to_string()).or_insert_with(|| skill_id.to_string());
     }
 
-    /// Unlocks a Circuit node and applies its effect (learning Arts immediately).
+    pub fn equipped_skill(&self, mode: Element) -> Option<&'static SkillDef> {
+        self.equipped_skills.get(mode.key()).and_then(|id| skills::get(id))
+    }
+
+    /// The highest level the given mode's skills can be charged to.
+    pub fn skill_level(&self, mode: Element) -> i32 {
+        if self.flags.contains("debug:skills") {
+            return skills::MAX_LEVEL;
+        }
+        self.mods().skill_level(mode)
+    }
+
+    /// Equips the next learned skill of a mode, wrapping around.
+    pub fn cycle_skill(&mut self, mode: Element) {
+        let learned: Vec<&str> =
+            skills::for_element(mode).filter(|s| self.learned_skills.contains(s.id)).map(|s| s.id).collect();
+        if learned.is_empty() {
+            return;
+        }
+        let current = self.equipped_skills.get(mode.key()).and_then(|id| learned.iter().position(|l| l == id));
+        let next = current.map_or(0, |i| (i + 1) % learned.len());
+        self.equipped_skills.insert(mode.key().to_string(), learned[next].to_string());
+    }
+
+    /// Unlocks a Circuit node and applies its effect (learning skills immediately).
     pub fn unlock(&mut self, node_id: &str) {
         let Some(node) = circuit::by_id(node_id) else { return };
         if !self.circuit_nodes.insert(node_id.to_string()) {
@@ -431,8 +471,8 @@ impl GameState {
         }
         *self.mods.borrow_mut() = None;
         for effect in node.effect.split(',') {
-            if let Some(art) = effect.strip_prefix("art:") {
-                self.learn(art);
+            if let Some(skill) = effect.strip_prefix("skill:") {
+                self.learn(skill);
             }
         }
     }
@@ -460,10 +500,6 @@ impl GameState {
         }
     }
 
-    pub fn equipped_art(&self, mode: Element, slot: ArtSlot) -> Option<&'static ArtDef> {
-        self.art_slots.get(&arts::slot_key(mode, slot)).and_then(|id| arts::get(id))
-    }
-
     pub fn take(&mut self, id: &str, count: i32) -> bool {
         if self.count(id) < count {
             return false;
@@ -481,7 +517,7 @@ impl GameState {
         self.count(id) > 0
             || items::sigil(id).is_some_and(|s| self.has_sigil(s.element))
             || self.equipment.iter().any(|e| e == id)
-            || self.learned_arts.contains(id)
+            || self.learned_skills.contains(id)
             || id.strip_prefix("soul_").is_some_and(|s| self.souls_owned.iter().any(|o| o == s))
     }
 

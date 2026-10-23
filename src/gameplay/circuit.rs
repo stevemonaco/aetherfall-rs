@@ -4,7 +4,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
-use super::arts;
+use super::skills;
 use super::element::{BASIC, Element};
 
 #[derive(Clone, Debug)]
@@ -37,6 +37,7 @@ pub struct CircuitMods {
     pub overload: HashMap<Element, f32>,
     pub buildup: HashMap<Element, f32>,
     pub passives: HashSet<String>,
+    pub skill_levels: HashMap<Element, i32>,
 }
 
 impl Default for CircuitMods {
@@ -55,6 +56,7 @@ impl Default for CircuitMods {
             overload: HashMap::new(),
             buildup: HashMap::new(),
             passives: HashSet::new(),
+            skill_levels: HashMap::new(),
         }
     }
 }
@@ -70,6 +72,10 @@ impl CircuitMods {
 
     pub fn has(&self, passive: &str) -> bool {
         self.passives.contains(passive)
+    }
+
+    pub fn skill_level(&self, mode: Element) -> i32 {
+        self.skill_levels.get(&mode).copied().unwrap_or(1)
     }
 }
 
@@ -112,7 +118,7 @@ fn element_tree(
     melee_art: &str,
 ) -> Vec<CircuitNode> {
     let (k, label) = (e.key(), e.label());
-    let art_name = |id: &str| arts::get(id).map(|a| a.name).unwrap_or(id).to_string();
+    let art_name = |id: &str| skills::get(id).map(|a| a.name).unwrap_or(id).to_string();
     vec![
         node(
             &format!("{k}_attune1"),
@@ -513,6 +519,11 @@ pub fn compute<'a>(unlocked: impl Iterator<Item = &'a String>) -> CircuitMods {
                         let v = mods.buildup_for(e) * value(2);
                         mods.buildup.insert(e, v);
                     }
+                }
+                "skill_level" => {
+                    let e = Element::parse(Some(p[1]));
+                    let level = mods.skill_level(e).max(value(2) as i32);
+                    mods.skill_levels.insert(e, level);
                 }
                 "mode_atk" => {
                     mods.passives.insert(format!("mode_atk:{}", p[1]));

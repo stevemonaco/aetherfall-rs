@@ -239,7 +239,7 @@ impl Projectile {
                 ((p.y - self.velocity.y * 0.02 - 2.0) / t).floor() as i32,
             );
         }
-        world.chem_apply(tile.0, tile.1, self.element, matches!(self.kind, HitKind::ChargedBolt | HitKind::Art));
+        world.chem_apply(tile.0, tile.1, self.element, matches!(self.kind, HitKind::ChargedBolt | HitKind::Skill));
         let color = if self.trail_color.a > 0 { self.trail_color } else { self.tint };
         Particle::burst(world, p - Vec2::new(0.0, self.z), color, 5, 30.0, 0.25, false);
         if self.hook == ProjectileHook::Meteor {

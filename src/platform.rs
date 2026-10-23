@@ -31,7 +31,7 @@ use crate::core::settings;
 use crate::entities::boss;
 use crate::gameplay::element::MODES;
 use crate::gameplay::game_data::{IMAGE_FILES, data};
-use crate::gameplay::mastery;
+use crate::gameplay::{mastery, skills};
 use crate::gameplay::game_state::{self, GameState};
 use crate::scenes::scene::SceneManager;
 use crate::scenes::title::TitleScene;
@@ -56,6 +56,8 @@ pub struct LaunchOptions {
     pub mastery: Option<i32>,
     /// Starts with a full Aether Resonance gauge.
     pub resonance: bool,
+    /// Learns every skill and unlocks all three levels.
+    pub all_skills: bool,
     pub flags: Vec<String>,
     pub script: Option<String>,
     pub fuzz: Option<u64>,
@@ -86,6 +88,7 @@ impl LaunchOptions {
             options.level = value("--level").and_then(|v| v.parse().ok());
             options.mastery = value("--mastery").and_then(|v| v.parse().ok());
             options.resonance = args.iter().any(|a| a == "--resonance");
+            options.all_skills = value("--skills").as_deref() == Some("all");
             options.flags = list("--flags");
             options.script = value("--script");
             options.fuzz = value("--fuzz").and_then(|v| v.parse().ok());
@@ -367,6 +370,12 @@ fn finish_loading(world: &mut bevy::prelude::World) {
         if options.resonance {
             state.resonance = 100.0;
         }
+        if options.all_skills {
+            for skill in skills::ALL {
+                state.learn(skill.id);
+            }
+            state.flags.insert("debug:skills".into());
+        }
         for flag in &options.flags {
             match flag.strip_prefix("pact:") {
                 Some(pact) => state.pacts.insert(pact.to_string()),
@@ -410,7 +419,7 @@ fn gather_input(
         (Guard, &[KeyCode::ShiftLeft, KeyCode::ShiftRight]),
         (Jump, &[KeyCode::KeyC, KeyCode::KeyL]),
         (Tether, &[KeyCode::KeyF, KeyCode::KeyI]),
-        (Art, &[KeyCode::KeyR, KeyCode::KeyU]),
+        (Skill, &[KeyCode::KeyR, KeyCode::KeyU]),
         (PrevMode, &[KeyCode::KeyQ]),
         (NextMode, &[KeyCode::KeyE]),
         (Mode1, &[KeyCode::Digit1]),
@@ -437,7 +446,7 @@ fn gather_input(
         (Guard, &[GamepadButton::LeftTrigger2]),
         (Jump, &[GamepadButton::North]),
         (Tether, &[GamepadButton::West]),
-        (Art, &[GamepadButton::RightTrigger]),
+        (Skill, &[GamepadButton::RightTrigger]),
         (NextMode, &[GamepadButton::LeftTrigger]),
         (Confirm, &[GamepadButton::South]),
         (Cancel, &[GamepadButton::East]),
@@ -486,7 +495,7 @@ fn gather_input(
     if window.focused {
         raw.actions[Throw as usize] |= mouse.pressed(MouseButton::Left);
         raw.actions[Attack as usize] |= mouse.pressed(MouseButton::Right);
-        raw.actions[Art as usize] |= mouse.pressed(MouseButton::Middle);
+        raw.actions[Skill as usize] |= mouse.pressed(MouseButton::Middle);
         raw.mouse_buttons = mouse.pressed(MouseButton::Left) || mouse.pressed(MouseButton::Right);
         let steps: f32 = wheel.read().map(|w| w.y).sum();
         raw.wheel = if steps > 0.0 {

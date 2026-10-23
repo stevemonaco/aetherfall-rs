@@ -19,7 +19,7 @@ pub enum HitKind {
     Finisher,
     Bolt,
     ChargedBolt,
-    Art,
+    Skill,
     Contact,
     Attack,
     Environment,

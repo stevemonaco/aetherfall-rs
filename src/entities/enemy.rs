@@ -842,7 +842,7 @@ impl Enemy {
 
         self.last_element = element;
         self.last_weak = hit.is_player() && element_mod > 1.0;
-        self.last_art = hit.kind == HitKind::Art;
+        self.last_art = hit.kind == HitKind::Skill;
         self.damage(world, resolved.amount, element, resolved.crit, if element_mod > 1.0 { "!" } else { "" });
         self.flash = 0.12;
         audio::play(Sound::Hit, 1.0, if resolved.crit { -0.2 } else { 0.0 });

@@ -1,4 +1,4 @@
-pub mod arts;
+pub mod skills;
 pub mod blight_areas;
 pub mod circuit;
 pub mod combat;

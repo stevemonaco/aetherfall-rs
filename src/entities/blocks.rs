@@ -148,7 +148,7 @@ impl Entity for IceBlock {
             }
             return true;
         }
-        if matches!(hit.kind, HitKind::Melee | HitKind::Finisher | HitKind::ChargedBolt | HitKind::Art)
+        if matches!(hit.kind, HitKind::Melee | HitKind::Finisher | HitKind::ChargedBolt | HitKind::Skill)
             || hit.element == Element::Wind
         {
             self.push(safe_dir(self.base.pos - hit.from, Vec2::Y));

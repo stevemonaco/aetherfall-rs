@@ -24,7 +24,7 @@ const CONTROLS: [(&str, &str, &str); 11] = [
     ("Guard (tap early to parry)", "Shift", "LT"),
     ("Jump", "C or L", "Y"),
     ("Tether", "F or I", "X"),
-    ("Combat Art", "Hold R + action", "Hold RB + action"),
+    ("Skill", "R (hold to charge)", "RB (hold to charge)"),
     ("Element mode", "Q / E, wheel, 1-6", "LB"),
     ("Menu", "Esc / Tab", "Start"),
 ];

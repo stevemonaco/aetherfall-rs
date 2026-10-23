@@ -140,7 +140,7 @@ impl Entity for Cannon {
         if self.hp <= 0 || !hit.is_player() {
             return false;
         }
-        self.hp -= if matches!(hit.kind, HitKind::Finisher | HitKind::Art) { 2 } else { 1 };
+        self.hp -= if matches!(hit.kind, HitKind::Finisher | HitKind::Skill) { 2 } else { 1 };
         self.flash = 0.12;
         audio::play(Sound::Clink, 0.8, -0.2);
         if self.hp <= 0 {

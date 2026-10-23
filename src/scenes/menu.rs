@@ -22,7 +22,6 @@ use crate::core::geom::IRect;
 use crate::core::gfx::{Batch, TexId};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
-use crate::gameplay::arts::{self, ArtSlot};
 use crate::gameplay::mastery;
 use crate::gameplay::combat;
 use crate::gameplay::element::Element;
@@ -32,13 +31,12 @@ use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::{pacts, souls};
 use crate::scene_any;
 
-const TABS: [&str; 9] = ["Items", "Gear", "Arts", "Souls", "Circuit", "Quests", "Foes", "Status", "System"];
+const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Souls", "Circuit", "Quests", "Foes", "Status", "System"];
 const TAB_BOX: IRect = IRect::new(12, 12, 92, 120);
 const CONTENT_BOX: IRect = IRect::new(110, 12, 358, 246);
 const VISIBLE_ROWS: usize = 14;
 /// Leaves room under the gear picker for a three-line description inside the content window.
 const VISIBLE_GEAR_ROWS: usize = 8;
-const ART_SLOTS: [ArtSlot; 4] = [ArtSlot::Melee, ArtSlot::Throw, ArtSlot::Dodge, ArtSlot::Guard];
 
 /// Quests in the order the data file lists them.
 static QUESTS: LazyLock<Vec<&'static QuestDef>> = LazyLock::new(|| {
@@ -56,7 +54,8 @@ struct Row {
     icon: Option<TexId>,
     marked: bool,
     header: bool,
-    art: Option<(Element, ArtSlot)>,
+    /// The mode whose skill this row picks.
+    mode: Option<Element>,
 }
 
 impl Row {
@@ -66,15 +65,6 @@ impl Row {
 
     fn header(label: impl Into<String>) -> Row {
         Row { label: label.into(), header: true, ..Row::default() }
-    }
-}
-
-fn slot_name(slot: ArtSlot) -> &'static str {
-    match slot {
-        ArtSlot::Melee => "Melee",
-        ArtSlot::Throw => "Throw",
-        ArtSlot::Dodge => "Dodge",
-        ArtSlot::Guard => "Guard",
     }
 }
 
@@ -145,7 +135,7 @@ impl MenuScene {
         match self.tab_name() {
             "Items" => item_rows(state),
             "Gear" => gear_rows(state),
-            "Arts" => art_rows(state),
+            "Skills" => skill_rows(state),
             "Souls" => state
                 .souls_owned
                 .iter()
@@ -191,9 +181,10 @@ impl MenuScene {
                 self.gear_scroll = 0;
                 audio::sfx(Sound::MenuSelect);
             }
-            "Arts" => {
-                if let Some((mode, slot)) = row.art {
-                    cycle_art(state, mode, slot);
+            "Skills" => {
+                if let Some(mode) = row.mode {
+                    state.cycle_skill(mode);
+                    audio::sfx(Sound::MenuSelect);
                 }
             }
             "Souls" => {
@@ -291,14 +282,22 @@ impl MenuScene {
                 None => String::new(),
             },
             "Foes" => data().enemies.get(&row.id).map(|foe| describe_foe(state, foe)).unwrap_or_default(),
-            "Circuit" => "Spend Circuit Points on stats, passives and Combat Arts.".into(),
-            "Arts" => match row.art.and_then(|(mode, slot)| state.equipped_art(mode, slot)) {
-                Some(art) => format!(
-                    "{} Hold {} and press {}. Confirm to swap.",
-                    art.description,
-                    input::glyph(GameAction::Art),
-                    row.label.to_lowercase()
-                ),
+            "Circuit" => "Spend Circuit Points on stats, skills and passives.".into(),
+            "Skills" => match row.mode.and_then(|mode| state.equipped_skill(mode).map(|s| (mode, s))) {
+                Some((mode, skill)) => {
+                    let unlocked = state.skill_level(mode);
+                    let levels: Vec<String> = skill.levels[..unlocked as usize]
+                        .iter()
+                        .enumerate()
+                        .map(|(i, text)| format!("Lv{} {text}", i + 1))
+                        .collect();
+                    format!(
+                        "{} {} Tap {} for Lv1; hold to charge. Confirm to swap.",
+                        skill.description,
+                        levels.join(" "),
+                        input::glyph(GameAction::Skill)
+                    )
+                }
                 None => String::new(),
             },
             _ => String::new(),
@@ -489,21 +488,26 @@ fn gear_rows(state: &GameState) -> Vec<Row> {
     ]
 }
 
-fn art_rows(state: &GameState) -> Vec<Row> {
+fn skill_rows(state: &GameState) -> Vec<Row> {
     let mut rows = Vec::new();
-    for mode in state.available_modes() {
-        rows.push(Row { icon: Some(combat_art::emblem(mode)), ..Row::header(format!("{} mode", mode.label())) });
-        for slot in ART_SLOTS {
-            if !arts::for_element(mode).any(|a| a.slot == slot && state.learned_arts.contains(a.id)) {
-                continue;
+    for mode in state.owned_modes() {
+        let heading = if mastery::trains(mode) {
+            let xp = state.mastery_xp(mode);
+            let level = mastery::level(xp);
+            if level >= mastery::MAX_MASTERY {
+                format!("{} mode - mastered", mode.label())
+            } else {
+                format!("{} mode - mastery {level} ({}%)", mode.label(), (mastery::progress(xp) * 100.0) as i32)
             }
-            let detail = match state.equipped_art(mode, slot) {
-                Some(art) => format!("{} ({} SP)", art.name, art.cost),
-                None => "-".into(),
-            };
-            let id = format!("{}|{}", mode.name(), slot_name(slot));
-            rows.push(Row { art: Some((mode, slot)), ..Row::new(id, slot_name(slot), detail) });
-        }
+        } else {
+            format!("{} mode", mode.label())
+        };
+        rows.push(Row { icon: Some(combat_art::emblem(mode)), ..Row::header(heading) });
+        let detail = match state.equipped_skill(mode) {
+            Some(skill) => format!("{}  Lv {}", skill.name, state.skill_level(mode)),
+            None => "-".into(),
+        };
+        rows.push(Row { mode: Some(mode), ..Row::new(format!("skill|{}", mode.key()), "Skill", detail) });
     }
     rows
 }
@@ -547,19 +551,6 @@ fn describe_foe(state: &GameState, foe: &EnemyDef) -> String {
         text.push_str(&format!(" Immune: {immune}."));
     }
     text
-}
-
-fn cycle_art(state: &mut GameState, mode: Element, slot: ArtSlot) {
-    let options: Vec<&str> =
-        arts::for_element(mode).filter(|a| a.slot == slot && state.learned_arts.contains(a.id)).map(|a| a.id).collect();
-    if options.is_empty() {
-        return;
-    }
-    let key = arts::slot_key(mode, slot);
-    let index = state.art_slots.get(&key).and_then(|current| options.iter().position(|o| o == current));
-    let next = index.map_or(0, |i| (i + 1) % options.len());
-    state.art_slots.insert(key, options[next].to_string());
-    audio::sfx(Sound::MenuSelect);
 }
 
 fn use_item(world: &mut World, id: &str, in_list: &mut bool) {
