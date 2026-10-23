@@ -5,22 +5,20 @@
 use bevy::math::Vec2;
 
 use super::boss::{self, BossBrain, BossCore};
-use super::combat_effects::{Beam, GroundMarker, LightningStrike, LineMarker, Shockwave};
+use super::combat_effects::{Beam, GroundMarker, LineMarker, Shockwave};
 use super::effects::{FloatingText, Particle};
 use super::enemy::Enemy;
-use super::entity::{Entity, EntityBase};
+use super::golem::StrikeMarker;
 use crate::art::{combat as art, props};
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
 use crate::core::geom::{Box2, IRect, rotate, safe_normalize, snap};
 use crate::core::gfx::{self, Batch};
 use crate::core::palette;
-use crate::entity_base;
 use crate::gameplay::combat::Hit;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::data;
 use crate::scenes::world::World;
-use crate::world::chemistry::conductive;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Step {
@@ -333,72 +331,6 @@ impl BossBrain for WardenBrain {
                 "Its shield fails!",
                 palette::HIGHLIGHT,
             ));
-        }
-    }
-}
-
-const STRIKE_RADIUS: f32 = 14.0;
-
-/// A glowing ring on the ground that calls down lightning when its timer runs out.
-pub struct StrikeMarker {
-    base: EntityBase,
-    delay: f32,
-    hit: Hit,
-    age: f32,
-}
-
-impl StrikeMarker {
-    pub fn new(at: Vec2, delay: f32, hit: Hit) -> StrikeMarker {
-        StrikeMarker { base: EntityBase::at(at), delay, hit, age: 0.0 }
-    }
-}
-
-impl Entity for StrikeMarker {
-    entity_base!();
-
-    fn layer(&self) -> i32 {
-        0
-    }
-
-    fn update(&mut self, world: &mut World, dt: f32) {
-        self.age += dt;
-        if self.age < self.delay {
-            return;
-        }
-        self.base.removed = true;
-        world.add(LightningStrike::new(self.base.pos));
-        audio::play(Sound::Clink, 1.0, -0.7);
-        world.camera.shake(0.12, 1.0);
-        if world.hero.pos.distance(self.base.pos) < STRIKE_RADIUS + 4.0 {
-            let mut hit = self.hit.clone();
-            world.hit_player(&mut hit);
-            if hit.parried
-                && let Some(owner) = hit.owner
-            {
-                world.with_as::<Enemy, _>(owner, |e, w| e.parried(w));
-            }
-        }
-        let (tx, ty) = self.base.tile_pos();
-        if conductive(world.map.at(tx, ty)) {
-            world.chem_electrify(tx, ty, None);
-        }
-    }
-
-    fn draw(&self, _world: &World, batch: &mut Batch) {
-        let t = self.age / self.delay;
-        let blink = ((self.age * (6.0 + t * 14.0)) as i32 % 2) as f32;
-        let color = Rgba::rgb(255, 240, 120).lerp(Rgba::WHITE, t).mul(0.4 + 0.6 * blink);
-        let p = self.base.pos;
-        let mut a = 0.0f32;
-        while a < std::f32::consts::TAU {
-            batch.fill_rect(p.x + a.cos() * STRIKE_RADIUS, p.y + a.sin() * STRIKE_RADIUS * 0.5, 1.0, 1.0, color);
-            a += 0.2;
-        }
-        let inner = STRIKE_RADIUS * t;
-        let mut a = 0.0f32;
-        while a < std::f32::consts::TAU {
-            batch.fill_rect(p.x + a.cos() * inner, p.y + a.sin() * inner * 0.5, 1.0, 1.0, color.mul(0.7));
-            a += 0.35;
         }
     }
 }
