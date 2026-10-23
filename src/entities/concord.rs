@@ -6,23 +6,21 @@ use std::f32::consts::TAU;
 use bevy::math::Vec2;
 
 use super::boss::{self, BossBrain, BossCore};
-use super::combat_effects::{Beam, GroundMarker, LightningStrike, LineMarker};
+use super::combat_effects::{Beam, GroundMarker, LineMarker};
 use super::effects::{FloatingText, Particle};
 use super::enemy::Enemy;
-use super::entity::{Entity, EntityBase, EntityId};
+use super::entity::{EntityBase, EntityId};
+use super::golem::StrikeMarker;
 use super::warlock::EmberPillar;
 use crate::art::{bosses, combat as combat_art, props};
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
 use crate::core::geom::{Box2, rotate, safe_normalize, snap};
 use crate::core::gfx::{self, Batch};
-use crate::entity_base;
 use crate::gameplay::combat::Hit;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::data;
 use crate::scenes::world::World;
-use crate::world::chemistry;
-use crate::world::map::{Terrain, tile_center};
 
 const CYCLE: [Element; 4] = [Element::Fire, Element::Water, Element::Wind, Element::Thunder];
 
@@ -236,7 +234,7 @@ impl ConcordBrain {
         world.add(GroundMarker::new(world.hero.pos, 30.0, 0.8, Rgba::rgb(170, 80, 220)));
         for y in -1..=1 {
             for x in -1..=1 {
-                blight(world, tx + x, ty + y);
+                world.chem_blight(tx + x, ty + y);
             }
         }
         let cap = if self.enraged(enemy) { 4 } else { 2 };
@@ -421,83 +419,5 @@ fn shot_for(element: Element) -> &'static str {
         Element::Thunder => "spark",
         Element::Wind => "gust",
         _ => "aether",
-    }
-}
-
-/// Spreads blight onto open ground, as the First Concord does beneath the player.
-fn blight(world: &mut World, x: i32, y: i32) {
-    use Terrain::*;
-    if !world.map.in_bounds(x, y)
-        || !matches!(world.map.at(x, y), Grass | Flowers | Path | Sand | Floor | Cobble | Snow | TallGrass)
-    {
-        return;
-    }
-    world.map.set_terrain(x, y, Blight);
-    Particle::burst(world, tile_center(x, y), Rgba::rgb(170, 80, 220), 4, 30.0, 0.4, false);
-}
-
-/// A glowing ring on the ground that calls down lightning when its timer runs out.
-struct StrikeMarker {
-    base: EntityBase,
-    delay: f32,
-    hit: Hit,
-    age: f32,
-}
-
-impl StrikeMarker {
-    const RADIUS: f32 = 14.0;
-
-    fn new(at: Vec2, delay: f32, hit: Hit) -> StrikeMarker {
-        StrikeMarker { base: EntityBase::at(at), delay, hit, age: 0.0 }
-    }
-}
-
-impl Entity for StrikeMarker {
-    entity_base!();
-
-    fn layer(&self) -> i32 {
-        0
-    }
-
-    fn update(&mut self, world: &mut World, dt: f32) {
-        self.age += dt;
-        if self.age < self.delay {
-            return;
-        }
-        self.base.removed = true;
-        world.add(LightningStrike::new(self.base.pos));
-        audio::play(Sound::Clink, 1.0, -0.7);
-        world.camera.shake(0.12, 1.0);
-        if world.hero.pos.distance(self.base.pos) < Self::RADIUS + 4.0 {
-            let mut hit = self.hit.clone();
-            world.hit_player(&mut hit);
-            if hit.parried
-                && let Some(owner) = hit.owner
-            {
-                world.with_as::<Enemy, _>(owner, |e, w| e.parried(w));
-            }
-        }
-        let (tx, ty) = self.base.tile_pos();
-        if chemistry::conductive(world.map.at(tx, ty)) {
-            world.chem_electrify(tx, ty, None);
-        }
-    }
-
-    fn draw(&self, _world: &World, batch: &mut Batch) {
-        let t = self.age / self.delay;
-        let blink = (self.age * (6.0 + t * 14.0)) as i32 % 2;
-        let color = Rgba::rgb(255, 240, 120).lerp(Rgba::WHITE, t).mul(0.4 + 0.6 * blink as f32);
-        let pos = self.base.pos;
-        let mut a = 0.0f32;
-        while a < TAU {
-            batch.fill_rect(pos.x + a.cos() * Self::RADIUS, pos.y + a.sin() * Self::RADIUS * 0.5, 1.0, 1.0, color);
-            a += 0.2;
-        }
-        let inner = Self::RADIUS * t;
-        let mut a = 0.0f32;
-        while a < TAU {
-            batch.fill_rect(pos.x + a.cos() * inner, pos.y + a.sin() * inner * 0.5, 1.0, 1.0, color.mul(0.7));
-            a += 0.35;
-        }
     }
 }

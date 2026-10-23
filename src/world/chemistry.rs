@@ -173,16 +173,27 @@ impl World {
             Element::Water if strong => {
                 self.chem_freeze(x, y);
             }
-            Element::Water
-                if self.is_burning(x, y) => {
-                    self.chem_douse(x, y);
-                }
+            Element::Water if self.is_burning(x, y) => {
+                self.chem_douse(x, y);
+            }
             _ => {}
         }
     }
 
     fn flammables_on(&self, x: i32, y: i32) -> impl Iterator<Item = EntityId> + '_ {
         self.entities().filter(move |e| e.flammable() && e.base().tile_pos() == (x, y)).map(|e| e.base().id)
+    }
+
+    /// Spreads blight onto open ground, as the First Concord does beneath the player.
+    pub fn chem_blight(&mut self, x: i32, y: i32) {
+        use Terrain::*;
+        if !self.map.in_bounds(x, y)
+            || !matches!(self.map.at(x, y), Grass | Flowers | Path | Sand | Floor | Cobble | Snow | TallGrass)
+        {
+            return;
+        }
+        self.map.set_terrain(x, y, Blight);
+        Particle::burst(self, tile_center(x, y), Rgba::rgb(170, 80, 220), 4, 30.0, 0.4, false);
     }
 
     pub fn chem_ignite(&mut self, x: i32, y: i32) {
@@ -259,7 +270,8 @@ impl World {
             tiles.push(p);
             for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
                 let (nx, ny) = (p.0 + dx, p.1 + dy);
-                if self.map.in_bounds(nx, ny) && conductive(self.map.at(nx, ny)) && seen.insert(self.chem.index(nx, ny)) {
+                if self.map.in_bounds(nx, ny) && conductive(self.map.at(nx, ny)) && seen.insert(self.chem.index(nx, ny))
+                {
                     queue.push_back((nx, ny));
                 }
             }
@@ -436,19 +448,39 @@ impl World {
                     }
                     let variant = (noise::hash(x, y, 9) % 3) as i32 * 16;
                     if cut > 0.0 && fire <= 0.0 && scorched <= 0.0 {
-                        batch.draw_src(art_combat::tall_grass(), at + Vec2::new(0.0, 8.0), Some(IRect::new(variant, 14, 16, 6)), Rgba::WHITE);
+                        batch.draw_src(
+                            art_combat::tall_grass(),
+                            at + Vec2::new(0.0, 8.0),
+                            Some(IRect::new(variant, 14, 16, 6)),
+                            Rgba::WHITE,
+                        );
                     } else if fire <= 0.0 && scorched <= 0.0 {
                         let sway = ((time as f32 * 2.2 + x as f32 * 0.7 + y as f32 * 0.3).sin() * 1.2) as i32;
-                        batch.draw_src(art_combat::tall_grass(), at + Vec2::new(sway as f32, -4.0), Some(IRect::new(variant, 0, 16, 20)), Rgba::WHITE);
+                        batch.draw_src(
+                            art_combat::tall_grass(),
+                            at + Vec2::new(sway as f32, -4.0),
+                            Some(IRect::new(variant, 0, 16, 20)),
+                            Rgba::WHITE,
+                        );
                     }
                 }
                 if fire > 0.0 {
                     let frame = ((time * 10.0) as u32).wrapping_add(noise::hash(x, y, 3)) % 4;
-                    batch.draw_src(art_combat::flames(), at + Vec2::new(0.0, -6.0), Some(IRect::new(frame as i32 * 16, 0, 16, 22)), Rgba::WHITE);
+                    batch.draw_src(
+                        art_combat::flames(),
+                        at + Vec2::new(0.0, -6.0),
+                        Some(IRect::new(frame as i32 * 16, 0, 16, 22)),
+                        Rgba::WHITE,
+                    );
                 }
                 if map.at(x, y) == Terrain::Blight {
                     let frame = ((time * 4.0) as u32).wrapping_add(noise::hash(x, y, 5)) % 4;
-                    batch.draw_src(bosses::blight_tile(), at, Some(IRect::new(frame as i32 * 16, 0, 16, 16)), Rgba::WHITE);
+                    batch.draw_src(
+                        bosses::blight_tile(),
+                        at,
+                        Some(IRect::new(frame as i32 * 16, 0, 16, 16)),
+                        Rgba::WHITE,
+                    );
                 }
                 if chem.shock[i] > 0.0 && (time * 30.0) as i32 + x + y >= 0 && ((time * 30.0) as i32 + x + y) % 3 == 0 {
                     batch.draw(art_combat::spark_tile(), at, Rgba::WHITE.mul((chem.shock[i] * 2.0).min(1.0)));
