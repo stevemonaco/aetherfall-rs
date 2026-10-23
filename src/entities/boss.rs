@@ -9,14 +9,14 @@ use super::effects::{DamageNumber, FloatingText, Particle};
 use super::enemy::Enemy;
 use super::entity::{Entity, EntityBase, EntityId};
 use super::pickup::Pickup;
-use super::warlock::WarlockState;
+use super::projectile::Projectile;
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
-use crate::core::geom::{Box2, snap};
+use crate::core::geom::{Box2, safe_normalize, snap};
 use crate::core::gfx::{self, Batch, TexId};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::combat::{self, Faction, Hit};
+use crate::gameplay::combat::{self, Faction, Hit, HitKind};
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::EnemyDef;
 use crate::scenes::world::World;
@@ -28,25 +28,72 @@ pub fn debug_hp_scale() -> f32 {
     f32::from_bits(DEBUG_HP_SCALE.load(Ordering::Relaxed))
 }
 
-/// Per-boss behaviour.
-pub enum BossKind {
-    None,
-    Warlock(Box<WarlockState>),
-}
+/// One boss's behaviour. The boss itself is an [`Enemy`] carrying a [`BossCore`]; the brain is taken out of the core
+/// while it runs, so `enemy.boss` is still readable (time, echo, dying) from inside these calls.
+pub trait BossBrain {
+    /// Called once the boss joins the world (after the shared setup); add parts here.
+    fn added(&mut self, _enemy: &mut Enemy, _world: &mut World) {}
 
-impl BossKind {
-    pub fn think(&mut self, enemy: &mut Enemy, world: &mut World, dt: f32) {
-        match self {
-            BossKind::Warlock(state) => state.think(enemy, world, dt),
-            BossKind::None => {}
-        }
+    fn think(&mut self, enemy: &mut Enemy, world: &mut World, dt: f32);
+
+    fn draw(&self, enemy: &Enemy, boss: &BossCore, world: &World, batch: &mut Batch);
+
+    fn hurtbox(&self, enemy: &Enemy) -> Box2;
+
+    /// False while the boss is submerged, teleporting, or otherwise not physically present.
+    fn tangible(&self) -> bool {
+        true
     }
 
-    pub fn draw(&self, enemy: &Enemy, boss: &BossCore, world: &World, batch: &mut Batch) {
-        if let BossKind::Warlock(state) = self {
-            state.draw(enemy, boss, world, batch);
-        }
+    /// How visible the boss is apart from dying (parts follow it).
+    fn fade(&self) -> f32 {
+        1.0
     }
+
+    fn death_color(&self) -> Rgba {
+        Rgba::rgb(255, 200, 140)
+    }
+
+    fn death_duration(&self) -> f32 {
+        2.2
+    }
+
+    /// Whether ground hazards reach the boss even though it is a flier (bosses that rise out of water or lava).
+    fn touches_ground(&self) -> bool {
+        false
+    }
+
+    fn light(&self, _enemy: &Enemy) -> Option<(f32, Rgba)> {
+        None
+    }
+
+    fn sort_y(&self, enemy: &Enemy) -> Option<f32> {
+        let _ = enemy;
+        None
+    }
+
+    /// Overrides the boss bar's fill (a boss whose first phase is measured some other way).
+    fn health_fraction(&self, _enemy: &Enemy) -> Option<f32> {
+        None
+    }
+
+    /// Runs before the shared hit handling. Adjust `hit` and return `None` to continue, or `Some(result)` to finish
+    /// the hit here.
+    fn before_hit(&mut self, _enemy: &mut Enemy, _world: &mut World, _hit: &mut Hit) -> Option<bool> {
+        None
+    }
+
+    /// Runs when the boss's life runs out; return true to stay alive (a phase change instead of death).
+    fn on_die(&mut self, _enemy: &mut Enemy, _world: &mut World) -> bool {
+        false
+    }
+
+    /// Where part `index` sits right now.
+    fn part_anchor(&self, _index: usize, enemy: &Enemy) -> Vec2 {
+        enemy.base.pos
+    }
+
+    fn part_broken(&mut self, _index: usize, _enemy: &mut Enemy, _world: &mut World) {}
 }
 
 pub struct BossCore {
@@ -57,12 +104,47 @@ pub struct BossCore {
     pub home: Vec2,
     pub time: f32,
     pub dying_time: f32,
-    pub kind: BossKind,
+    brain: Option<Box<dyn BossBrain>>,
+    death_duration: f32,
+    death_color: Rgba,
+    tangible: bool,
+    fade: f32,
 }
 
 impl BossCore {
-    pub fn new(flag: String, defeat_actions: Vec<String>, home: Vec2, kind: BossKind) -> BossCore {
-        BossCore { flag, defeat_actions, echo: false, home, time: 0.0, dying_time: -1.0, kind }
+    pub fn new(flag: String, defeat_actions: Vec<String>, home: Vec2, brain: Box<dyn BossBrain>) -> BossCore {
+        let mut core = BossCore {
+            flag,
+            defeat_actions,
+            echo: false,
+            home,
+            time: 0.0,
+            dying_time: -1.0,
+            death_duration: 2.2,
+            death_color: Rgba::WHITE,
+            tangible: true,
+            fade: 1.0,
+            brain: None,
+        };
+        core.put_brain(brain);
+        core
+    }
+
+    /// Takes the brain out so it can borrow the enemy mutably; always pair with [`BossCore::put_brain`].
+    pub fn take_brain(&mut self) -> Option<Box<dyn BossBrain>> {
+        self.brain.take()
+    }
+
+    pub fn put_brain(&mut self, brain: Box<dyn BossBrain>) {
+        self.death_duration = brain.death_duration();
+        self.death_color = brain.death_color();
+        self.tangible = brain.tangible();
+        self.fade = brain.fade();
+        self.brain = Some(brain);
+    }
+
+    pub fn brain(&self) -> Option<&dyn BossBrain> {
+        self.brain.as_deref()
     }
 
     pub fn dying(&self) -> bool {
@@ -70,50 +152,28 @@ impl BossCore {
     }
 
     pub fn death_duration(&self) -> f32 {
-        2.2
+        self.death_duration
     }
 
     pub fn death_color(&self) -> Rgba {
-        Rgba::rgb(255, 200, 140)
+        self.death_color
     }
 
     pub fn death_fade(&self) -> f32 {
-        if self.dying() { (1.0 - self.dying_time / self.death_duration()).max(0.0) } else { 1.0 }
+        if self.dying() { (1.0 - self.dying_time / self.death_duration).max(0.0) } else { 1.0 }
     }
 
-    /// False while the boss is submerged, teleporting, or otherwise not physically present.
     pub fn tangible(&self) -> bool {
-        match &self.kind {
-            BossKind::Warlock(state) => state.tangible(),
-            BossKind::None => true,
-        }
+        self.tangible
     }
 
     /// How visible the boss is right now (fading while teleporting or dying); parts follow it.
     pub fn fade(&self) -> f32 {
-        match &self.kind {
-            BossKind::Warlock(state) => state.fade() * self.death_fade(),
-            BossKind::None => self.death_fade(),
-        }
+        self.fade * self.death_fade()
     }
 
     pub fn tint(&self) -> Rgba {
         if self.echo { Rgba::rgb(205, 165, 255) } else { Rgba::WHITE }
-    }
-
-    pub fn hurtbox(&self, enemy: &Enemy) -> Option<Box2> {
-        match &self.kind {
-            BossKind::Warlock(_) => Some(Box2::new(enemy.base.pos.x - 10.0, enemy.base.pos.y - 34.0 - enemy.z, 20.0, 32.0)),
-            BossKind::None => None,
-        }
-    }
-
-    pub fn accepts_hit(&self, _hit: &Hit) -> bool {
-        true
-    }
-
-    pub fn damage_scale(&self, _element: Element) -> f32 {
-        1.0
     }
 
     pub fn display_name(&self, def: &EnemyDef) -> String {
@@ -121,13 +181,29 @@ impl BossCore {
     }
 }
 
+/// Runs `f` with the boss's brain taken out of the enemy, then puts it back.
+pub fn with_brain<R>(enemy: &mut Enemy, f: impl FnOnce(&mut dyn BossBrain, &mut Enemy) -> R) -> Option<R> {
+    let mut brain = enemy.boss.as_mut()?.take_brain()?;
+    let result = f(brain.as_mut(), enemy);
+    if let Some(core) = enemy.boss.as_mut() {
+        core.put_brain(brain);
+    }
+    Some(result)
+}
+
 /// Builds a boss of the given kind from its map entry.
 pub fn create(def: &'static EnemyDef, pos: Vec2, flag: String, defeat: Vec<String>, echo: bool) -> Enemy {
     let mut enemy = Enemy::new(def, pos, None);
-    let kind = match def.id.as_str() {
-        _ => BossKind::Warlock(Box::new(WarlockState::new(pos))),
+    let brain: Box<dyn BossBrain> = match def.id.as_str() {
+        "golem" => Box::new(super::golem::GolemBrain::new(&mut enemy)),
+        "serpent" => Box::new(super::serpent::SerpentBrain::new(&mut enemy)),
+        "warden" => Box::new(super::warden::WardenBrain::new(&mut enemy)),
+        "wyrm" => Box::new(super::wyrm::WyrmBrain::new(&mut enemy)),
+        "sovereign" => Box::new(super::sovereign::SovereignBrain::new(&mut enemy)),
+        "concord" => Box::new(super::concord::ConcordBrain::new(&mut enemy)),
+        _ => Box::new(super::warlock::WarlockState::new(pos)),
     };
-    let mut core = BossCore::new(flag, defeat, pos, kind);
+    let mut core = BossCore::new(flag, defeat, pos, brain);
     core.echo = echo;
     enemy.boss = Some(Box::new(core));
     enemy
@@ -145,23 +221,70 @@ pub fn added(enemy: &mut Enemy, world: &mut World) {
     let echo = if boss.echo { 1.6 } else { 1.0 };
     enemy.max_hp = ((enemy.max_hp as f32 * echo * debug_hp_scale()) as i32).max(1);
     enemy.hp = enemy.max_hp;
-    if matches!(boss.kind, BossKind::Warlock(_)) {
-        let hp = ((enemy.max_hp as f32 * 0.14) as i32).max(20);
-        let part = BossPart::new(enemy.base.id, "Staff gem", hp, PartAnchor::WarlockGem, crate::art::combat::boss_gem(Rgba::rgb(255, 140, 60)), Vec2::new(10.0, 10.0), Some("ember_shard"));
-        world.add(part);
+    with_brain(enemy, |brain, enemy| brain.added(enemy, world));
+}
+
+/// Adds breakable part `index` to the boss, with a share of the boss's life (at least 20).
+#[allow(clippy::too_many_arguments)]
+pub fn add_part(
+    enemy: &Enemy,
+    world: &mut World,
+    index: usize,
+    name: &str,
+    hp_share: f32,
+    art: TexId,
+    size: Vec2,
+    drop: Option<&str>,
+) -> EntityId {
+    let hp = ((enemy.max_hp as f32 * hp_share) as i32).max(20);
+    world.add(BossPart::new(enemy.base.id, name, hp, index, art, size, drop))
+}
+
+/// Sets a part's armour (hits clink off) or hides it entirely.
+pub fn set_part(world: &mut World, part: EntityId, shielded: bool, hidden: bool) {
+    world.with_as::<BossPart, _>(part, |p, _| {
+        p.shielded = shielded;
+        p.hidden = hidden;
+    });
+}
+
+pub fn part_broken(world: &World, part: EntityId) -> bool {
+    world.get_as::<BossPart>(part).is_none_or(|p| p.broken())
+}
+
+/// An enemy projectile from the boss, aimed along `direction`.
+pub fn shoot(enemy: &Enemy, world: &mut World, kind: &str, from: Vec2, direction: Vec2, speed_scale: f32, power: f32) {
+    world.add(Projectile::enemy_shot(kind, from, safe_normalize(direction), enemy.stats(), power, speed_scale));
+}
+
+/// `count` shots spread evenly around a circle, starting at angle `offset`.
+#[allow(clippy::too_many_arguments)]
+pub fn ring(enemy: &Enemy, world: &mut World, kind: &str, from: Vec2, count: i32, offset: f32, speed_scale: f32, power: f32) {
+    for i in 0..count {
+        let a = offset + i as f32 * std::f32::consts::TAU / count as f32;
+        shoot(enemy, world, kind, from, Vec2::new(a.cos(), a.sin()), speed_scale, power);
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum PartAnchor {
-    WarlockGem,
+/// A direct hit from the boss (slams, charges, beams).
+pub fn boss_hit(enemy: &Enemy, power: f32, element: Element, from: Vec2, unblockable: bool) -> Hit {
+    Hit {
+        power,
+        element,
+        from,
+        owner: Some(enemy.base.id),
+        kind: HitKind::Attack,
+        unblockable,
+        knockback: 180.0,
+        ..Hit::new(Faction::Enemy, enemy.stats())
+    }
 }
 
-impl PartAnchor {
-    fn at(self, owner: &Enemy) -> Vec2 {
-        match self {
-            PartAnchor::WarlockGem => owner.base.pos - Vec2::new(-11.0, 33.0 + owner.z),
-        }
+/// Hits the player with a boss attack, letting a parry stagger the boss.
+pub fn hit_player(enemy: &mut Enemy, world: &mut World, mut hit: Hit) {
+    world.hit_player(&mut hit);
+    if hit.parried {
+        enemy.parried(world);
     }
 }
 
@@ -173,7 +296,7 @@ pub struct BossPart {
     name: String,
     max_hp: i32,
     hp: i32,
-    anchor: PartAnchor,
+    index: usize,
     art: TexId,
     drop: Option<String>,
     flash: f32,
@@ -185,14 +308,14 @@ pub struct BossPart {
 }
 
 impl BossPart {
-    pub fn new(owner: EntityId, name: &str, hp: i32, anchor: PartAnchor, art: TexId, size: Vec2, drop: Option<&str>) -> BossPart {
+    pub fn new(owner: EntityId, name: &str, hp: i32, index: usize, art: TexId, size: Vec2, drop: Option<&str>) -> BossPart {
         BossPart {
             base: EntityBase { width: size.x, height: size.y, ..EntityBase::default() },
             owner,
             name: name.to_string(),
             max_hp: hp,
             hp,
-            anchor,
+            index,
             art,
             drop: drop.map(str::to_string),
             flash: 0.0,
@@ -210,8 +333,11 @@ impl BossPart {
 
     fn refresh(&mut self, world: &World) -> bool {
         let Some(owner) = world.get_as::<Enemy>(self.owner) else { return false };
-        self.center = self.anchor.at(owner);
-        self.fade = owner.boss.as_ref().map(|b| b.fade()).unwrap_or(1.0);
+        let Some(core) = owner.boss.as_ref() else { return false };
+        if let Some(brain) = core.brain() {
+            self.center = brain.part_anchor(self.index, owner);
+        }
+        self.fade = core.fade();
         self.owner_y = owner.base.pos.y;
         self.base.pos = self.center + Vec2::new(0.0, self.base.height / 2.0);
         true
@@ -228,17 +354,9 @@ impl BossPart {
         if let Some(drop) = &self.drop {
             world.add(Pickup::item(center + Vec2::new(0.0, 10.0), drop));
         }
-        let anchor = self.anchor;
+        let index = self.index;
         world.with_as::<Enemy, _>(self.owner, |e, w| {
-            if let Some(boss) = e.boss.as_mut() {
-                let mut kind = std::mem::replace(&mut boss.kind, BossKind::None);
-                if let (BossKind::Warlock(state), PartAnchor::WarlockGem) = (&mut kind, anchor) {
-                    state.gem_broken(e, w);
-                }
-                if let Some(b) = e.boss.as_mut() {
-                    b.kind = kind;
-                }
-            }
+            with_brain(e, |brain, e| brain.part_broken(index, e, w));
         });
     }
 }

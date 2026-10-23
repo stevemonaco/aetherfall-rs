@@ -8,7 +8,7 @@ use std::f32::consts::{PI, TAU};
 
 use bevy::math::Vec2;
 
-use super::boss::{BossCore, BossKind};
+use super::boss::{self, BossCore};
 use super::combat_effects::{ClawEffect, Exclaim, GroundMarker, LightningArc, LineMarker, Shockwave, Beam};
 use super::obstacles::{ObstacleKind, TileObstacle};
 use super::effects::{DamageNumber, FloatingText, Particle, Puff};
@@ -748,10 +748,8 @@ impl Enemy {
         if self.is_flying() && hit.kind == HitKind::Environment {
             return false;
         }
-        if let Some(boss) = &self.boss
-            && !boss.accepts_hit(hit)
-        {
-            return false;
+        if let Some(result) = boss::with_brain(self, |brain, e| brain.before_hit(e, world, hit)).flatten() {
+            return result;
         }
 
         let element = if hit.element == Element::Aether { self.best_element_against(world) } else { hit.element };
@@ -792,7 +790,7 @@ impl Enemy {
         defender.def *= self.status.defense_factor();
         let mut probe = hit.clone();
         probe.element = element;
-        let resolved = combat::resolve(&probe, defender, element_mod, mods * self.boss_damage_scale(element), &world.rng);
+        let resolved = combat::resolve(&probe, defender, element_mod, mods, &world.rng);
         hit.result = resolved;
         self.hp_bar_time = 2.5;
 
@@ -838,9 +836,7 @@ impl Enemy {
         true
     }
 
-    fn boss_damage_scale(&self, element: Element) -> f32 {
-        self.boss.as_ref().map(|b| b.damage_scale(element)).unwrap_or(1.0)
-    }
+
 
     fn apply_ailments(&mut self, world: &mut World, hit: &Hit, element: Element, element_mod: f32) {
         let resonance = if hit.is_player() && world.state.resonates(element) { 1.3 } else { 1.0 };
@@ -1048,7 +1044,9 @@ impl Enemy {
             return;
         }
         if self.boss.is_some() {
-            self.boss_die(world);
+            if !boss::with_brain(self, |brain, e| brain.on_die(e, world)).unwrap_or(false) {
+                self.boss_die(world);
+            }
             return;
         }
         if self.blighted && !self.revived && !self.last_art && self.last_element != self.blight_mark {
@@ -1094,12 +1092,8 @@ impl Enemy {
         if !boss.dying() {
             self.invulnerable = !boss.tangible();
             let step = if boss.echo { dt * 1.25 } else { dt };
-            let mut kind = std::mem::replace(&mut boss.kind, BossKind::None);
             self.boss = Some(boss);
-            kind.think(self, world, step);
-            if let Some(b) = self.boss.as_mut() {
-                b.kind = kind;
-            }
+            boss::with_brain(self, |brain, e| brain.think(e, world, step));
             return;
         }
         boss.dying_time += dt;
@@ -1166,6 +1160,12 @@ impl Enemy {
     }
 
     pub fn health_fraction(&self) -> f32 {
+        let own = || self.raw_health_fraction();
+        self.boss.as_ref().and_then(|b| b.brain()).and_then(|b| b.health_fraction(self)).unwrap_or_else(own)
+    }
+
+    /// Life left as a fraction, ignoring any boss-specific measure.
+    pub fn raw_health_fraction(&self) -> f32 {
         self.hp.max(0) as f32 / self.max_hp as f32
     }
 
@@ -1340,8 +1340,8 @@ impl Entity for Enemy {
     }
 
     fn hurtbox(&self) -> Box2 {
-        if let Some(b) = self.boss.as_ref().and_then(|b| b.hurtbox(self)) {
-            return b;
+        if let Some(brain) = self.boss.as_ref().and_then(|b| b.brain()) {
+            return brain.hurtbox(self);
         }
         let scale = self.def.scale;
         Box2::new(
@@ -1353,7 +1353,15 @@ impl Entity for Enemy {
     }
 
     fn grounded(&self) -> bool {
-        !self.is_flying()
+        !self.is_flying() || self.boss.as_ref().and_then(|b| b.brain()).is_some_and(|b| b.touches_ground())
+    }
+
+    fn light(&self, _world: &World) -> Option<(f32, Rgba)> {
+        self.boss.as_ref().and_then(|b| b.brain()).and_then(|b| b.light(self))
+    }
+
+    fn sort_y(&self) -> f32 {
+        self.boss.as_ref().and_then(|b| b.brain()).and_then(|b| b.sort_y(self)).unwrap_or(self.base.pos.y)
     }
 
     fn tether_box(&self) -> Option<Box2> {
@@ -1386,7 +1394,7 @@ impl Entity for Enemy {
             self.hp = self.max_hp;
         }
         if self.boss.is_some() {
-            super::boss::added(self, world);
+            boss::added(self, world);
         }
     }
 
@@ -1434,8 +1442,10 @@ impl Entity for Enemy {
     }
 
     fn draw(&self, world: &World, batch: &mut Batch) {
-        if let Some(boss) = &self.boss {
-            boss.kind.draw(self, boss, world, batch);
+        if let Some(core) = &self.boss {
+            if let Some(brain) = core.brain() {
+                brain.draw(self, core, world, batch);
+            }
         } else {
             self.draw_enemy(world, batch);
         }

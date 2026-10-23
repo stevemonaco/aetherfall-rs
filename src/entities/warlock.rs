@@ -3,7 +3,7 @@
 
 use bevy::math::Vec2;
 
-use super::boss::BossCore;
+use super::boss::{self, BossBrain, BossCore};
 use super::combat_effects::{GroundMarker, LineMarker};
 use super::effects::{FloatingText, Particle};
 use super::enemy::Enemy;
@@ -12,7 +12,7 @@ use super::projectile::Projectile;
 use crate::art::props;
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
-use crate::core::geom::{IRect, safe_normalize, snap};
+use crate::core::geom::{Box2, IRect, safe_normalize, snap};
 use crate::core::gfx::{Batch, FrameStrip};
 use crate::core::palette;
 use crate::entity_base;
@@ -64,13 +64,6 @@ impl WarlockState {
         }
     }
 
-    pub fn tangible(&self) -> bool {
-        !matches!(self.step, Step::FadeOut | Step::FadeIn | Step::Intro)
-    }
-
-    pub fn fade(&self) -> f32 {
-        self.fade
-    }
 
     fn strip() -> FrameStrip {
         FrameStrip::new(props::warlock(), 32, 40)
@@ -85,7 +78,7 @@ impl WarlockState {
         self.timer = time;
     }
 
-    pub fn gem_broken(&mut self, enemy: &mut Enemy, world: &mut World) {
+    fn gem_broken(&mut self, enemy: &mut Enemy, world: &mut World) {
         self.grounded = true;
         self.next(Step::Stagger, 3.0);
         self.fade = 1.0;
@@ -96,7 +89,7 @@ impl WarlockState {
         world.add(Projectile::enemy_shot("fire", from, safe_normalize(direction), enemy.stats(), 1.0, speed_scale));
     }
 
-    pub fn think(&mut self, enemy: &mut Enemy, world: &mut World, dt: f32) {
+    fn think_step(&mut self, enemy: &mut Enemy, world: &mut World, dt: f32) {
         self.timer -= dt;
         let time = enemy.boss.as_ref().map(|b| b.time).unwrap_or(0.0);
         enemy.z = if self.grounded { 0.0 } else { 4.0 + (time * 2.2).sin() * 2.0 };
@@ -241,7 +234,7 @@ impl WarlockState {
         }
     }
 
-    pub fn draw(&self, enemy: &Enemy, boss: &BossCore, world: &World, batch: &mut Batch) {
+    fn draw_boss(&self, enemy: &Enemy, boss: &BossCore, world: &World, batch: &mut Batch) {
         let fade = self.fade * boss.death_fade();
         if fade <= 0.02 {
             return;
@@ -260,6 +253,41 @@ impl WarlockState {
         let staggered = self.step == Step::Stagger && (time * 10.0) as i32 % 2 == 0;
         let flash = (enemy.flashing() || boss.dying() || staggered) && (time * 20.0) as i32 % 2 == 0;
         strip.draw(batch, feet, frame, boss.tint().mul(fade), world.hero.pos.x < enemy.base.pos.x, flash, 1.0);
+    }
+}
+
+impl BossBrain for WarlockState {
+    fn added(&mut self, enemy: &mut Enemy, world: &mut World) {
+        let gem = crate::art::combat::boss_gem(Rgba::rgb(255, 140, 60));
+        boss::add_part(enemy, world, 0, "Staff gem", 0.14, gem, Vec2::new(10.0, 10.0), Some("ember_shard"));
+    }
+
+    fn think(&mut self, enemy: &mut Enemy, world: &mut World, dt: f32) {
+        self.think_step(enemy, world, dt);
+    }
+
+    fn draw(&self, enemy: &Enemy, boss: &BossCore, world: &World, batch: &mut Batch) {
+        self.draw_boss(enemy, boss, world, batch);
+    }
+
+    fn hurtbox(&self, enemy: &Enemy) -> Box2 {
+        Box2::new(enemy.base.pos.x - 10.0, enemy.base.pos.y - 34.0 - enemy.z, 20.0, 32.0)
+    }
+
+    fn tangible(&self) -> bool {
+        !matches!(self.step, Step::FadeOut | Step::FadeIn | Step::Intro)
+    }
+
+    fn fade(&self) -> f32 {
+        self.fade
+    }
+
+    fn part_anchor(&self, _index: usize, enemy: &Enemy) -> Vec2 {
+        enemy.base.pos - Vec2::new(-11.0, 33.0 + enemy.z)
+    }
+
+    fn part_broken(&mut self, _index: usize, enemy: &mut Enemy, world: &mut World) {
+        self.gem_broken(enemy, world);
     }
 }
 
