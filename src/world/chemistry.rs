@@ -128,7 +128,7 @@ impl World {
         Particle::burst(self, tile_center(x, y), Rgba::rgb(240, 230, 255), 6, 40.0, 0.4, false);
     }
 
-    /// Applies an element to a tile, as when a shot lands or an Art strikes the ground.
+    /// Applies an element to a tile, as when a shot lands or a skill strikes the ground.
     pub fn chem_apply(&mut self, x: i32, y: i32, element: Element, strong: bool) {
         if !self.map.in_bounds(x, y) {
             return;

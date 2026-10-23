@@ -1,7 +1,7 @@
 {
   // Each id lists entries; the first whose "if" condition holds is used.
   // Conditions: flag, !flag, has:item, count:item:n, level:n, gold:n, crystals:n, restored:town:percent (comma = AND).
-  // Actions: give:item[*n], take:item[*n], flag:, unflag:, gold:+n/-n, heal, art:, quest:, shop:, smith:max, circuit,
+  // Actions: give:item[*n], take:item[*n], flag:, unflag:, gold:+n/-n, heal, skill:, quest:, shop:, smith:max, circuit,
   //          save, say:, music:, warp:map,x,y[,facing], ending
 
   // ---- Act 1: Leafhollow -----------------------------------------------------------------------------------------

@@ -159,7 +159,7 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
 
 fn draw_soul(batch: &mut Batch, world: &World) {
     let Some(companion) = world.companion.and_then(|id| world.get_as::<Companion>(id)) else { return };
-    let at = Vec2::new(166.0, 10.0);
+    let at = Vec2::new(186.0, 10.0);
     batch.draw_ex(
         art::disc(),
         at + Vec2::splat(7.0),

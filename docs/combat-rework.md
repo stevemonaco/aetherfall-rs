@@ -9,14 +9,14 @@ Design notes for the skill system rework. Save compatibility is not kept (save v
   chest), Sigil of Water (Sunken Temple), Sigil of Thunder (Storm Spire). Owning a sigil unlocks its mode.
 - Forgemaster Corvin no longer fuses four swords; with all four sigils set, his forge awakens the blade
   (flag `aether_awakened`), which unlocks the Aether burst.
-- Blade power is per mode: `(4 + level) * (1 + 0.08 * mastery(mode))`, times the smith bonus. No sword outranks
+- Blade power is per mode: `(6 + 1.2 * level) * (1 + 0.08 * mastery(mode))`, times the smith bonus. No sword outranks
   another.
 
 ## Mastery
 
 - Each mode (Neutral and the four elements) has mastery 0-5, earned from kill EXP while fighting in that mode.
   A kill landed on a weakness counts 1.5x. The Mentor's Ribbon accessory adds 50%.
-- Thresholds (cumulative): 500, 3000, 10000, 30000, 70000.
+- Thresholds (cumulative): 800, 4500, 15000, 45000, 100000.
 - Mastery raises that mode's blade power, opens the second support socket of each group at mastery 3, and lets
   Aether strike that element's weakness at mastery 3.
 
@@ -33,6 +33,7 @@ Design notes for the skill system rework. Save compatibility is not kept (save v
 - One skill button. Each mode equips one skill from that element's pool of three.
 - Tap: level 1 (1 SP pip). Hold: the whole world slows to 30%; level 2 at 0.4s, level 3 at 0.9s (real time),
   auto-release at 1.5s. Level N costs N pips, paid on release, capped by unlocked level and SP. A hit cancels.
+  Higher levels build more overload (1x, 1.5x, 2x).
 - The first skill of each element comes with the sigil; the other two are web notables. Levels 2 and 3 are
   element notables ("Technique" and "Apex").
 

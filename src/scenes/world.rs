@@ -1047,7 +1047,7 @@ impl World {
                     }
                     audio::sfx(Sound::Heal);
                 }
-                "spell" | "art" => {
+                "skill" => {
                     if skills::get(arg).is_some() {
                         self.give_item(arg, 1);
                     }

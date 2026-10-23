@@ -59,7 +59,7 @@ impl TrainingDummy {
     }
 
     fn dps(&self) -> f32 {
-        let span = self.time.min(WINDOW).max(1.0);
+        let span = self.time.clamp(1.0, WINDOW);
         self.hits.iter().map(|h| h.1).sum::<i32>() as f32 / span
     }
 

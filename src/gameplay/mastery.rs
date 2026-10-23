@@ -3,7 +3,7 @@
 use super::element::Element;
 
 pub const MAX_MASTERY: i32 = 5;
-const THRESHOLDS: [i32; MAX_MASTERY as usize] = [500, 3000, 10000, 30000, 70000];
+const THRESHOLDS: [i32; MAX_MASTERY as usize] = [800, 4500, 15000, 45000, 100000];
 /// The mastery at which a mode's second support sockets open and Aether can strike that element's weakness.
 pub const ADEPT: i32 = 3;
 
@@ -33,5 +33,5 @@ pub fn trains(mode: Element) -> bool {
 
 /// The blade's base power in a mode before the smith's work.
 pub fn blade_power(player_level: i32, mastery: i32) -> f32 {
-    (4.0 + player_level as f32) * (1.0 + 0.08 * mastery as f32)
+    (6.0 + 1.2 * player_level as f32) * (1.0 + 0.08 * mastery as f32)
 }

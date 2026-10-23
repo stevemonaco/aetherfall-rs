@@ -1325,18 +1325,23 @@ impl Player {
     // ---- Overload, SP and skills --------------------------------------------------------------------------------
 
     fn add_overload(&mut self, world: &mut World, kind: HitKind) {
+        self.add_overload_scaled(world, kind, 1.0);
+    }
+
+    fn add_overload_scaled(&mut self, world: &mut World, kind: HitKind, scale: f32) {
         let mode = Self::mode(world);
         if matches!(mode, Element::None | Element::Aether) {
             return;
         }
-        let amount = match kind {
-            HitKind::Melee => 3.5,
-            HitKind::Finisher => 6.0,
-            HitKind::Bolt => 2.5,
-            HitKind::ChargedBolt => 7.0,
-            HitKind::Skill => 12.0,
-            _ => 2.0,
-        };
+        let amount = scale
+            * match kind {
+                HitKind::Melee => 3.5,
+                HitKind::Finisher => 6.0,
+                HitKind::Bolt => 2.5,
+                HitKind::ChargedBolt => 7.0,
+                HitKind::Skill => 12.0,
+                _ => 2.0,
+            };
         let resonance = if world.state.resonates(mode) { 0.75 } else { 1.0 }
             * Group::of(kind).map_or(1.0, |g| Self::supports(world, g).overload);
         let volatile = if pacts::active(&world.state, "volatility") { 2.0 } else { 1.0 };
@@ -1433,7 +1438,7 @@ impl Player {
         self.skill = Some(Box::new(SkillAction::create(skill, level)));
         self.last_skill = Some((skill, level));
         world.add(SkillBanner::new(self.base.pos, skill, level));
-        self.add_overload(world, HitKind::Skill);
+        self.add_overload_scaled(world, HitKind::Skill, 0.5 + 0.5 * level as f32);
         if level >= skills::MAX_LEVEL {
             self.trigger(world, Trigger::GreatSkill, None);
         }

@@ -8,8 +8,21 @@ submodule (licensed sprites and music; keep this repository private).
 ## Status
 
 The whole game is ported: all acts and side zones, all seven bosses (including the Echo remixes), the Memory Lens
-eras, the Aether Tether puzzles, the Blighted expeditions with their grades, and the Hollow Below. Gameplay data in
-`assets/data` is identical to the C# game's.
+eras, the Aether Tether puzzles, the Blighted expeditions with their grades, and the Hollow Below.
+
+Since the port, the combat systems have been reworked here (the C# game stays at 2.0); see
+[docs/combat-rework.md](docs/combat-rework.md):
+
+- The hero wakes with the dormant Aether Blade. Sigils set into its hilt unlock the element modes, and Corvin's forge
+  awakens the blade for timed Aether bursts fuelled by a Resonance gauge.
+- Each mode grows its own mastery from fighting in it.
+- One skill per mode on a single button: tap for level 1, hold (the world slows) for levels 2 and 3.
+- The Circuit is a single web of passives, triggers and keystones, reset for free at save crystals.
+- Support gems socket into each mode's attack, ranged and special groups; they come from golden Trial Rifts.
+- The Hall of Echoes (an Echo Stone by the Leafhollow shrine) has training dummies that show damage per second.
+
+Map and dialogue data in `assets/data` started identical to the C# game's and now differs where the rework needed
+it (sigils, the trials, the training hall).
 
 ## Running
 
@@ -24,8 +37,13 @@ Test switches (native only), matching the C# game:
 
 ```text
 --map <id> [--at x,y]        start on a map, optionally at a tile
---give wind,fire             give items, swords or keys
+--give wind_sigil,cleave_gem give items, sigils, gems or keys
 --level <n> --flags a,b      set level / story flags (pact:<id> enables a Pact)
+--mastery <n>                set every mode's mastery
+--skills all                 learn every skill and unlock all three levels
+--tree all                   learn every Circuit node whose arm is open
+--supports all               give every support gem and fill the open sockets
+--resonance                  start with a full Aether Resonance gauge
 --script "right:20;attack:9" scripted input (action[+action]:frames; ...)
 --fuzz <seed>                random input for crash testing
 --boss-hp <scale>            scale boss life to reach late phases quickly
@@ -57,7 +75,8 @@ almost line for line. Bevy is the platform: window, input, audio, assets, GPU re
   mapping and scripts, synthesized sound effects and music control, settings and storage.
 - `world/` – map data, the per-pixel terrain baker, themes, water, chemistry, lighting, weather, camera.
 - `art/` – procedural sprites (props, combat effects, bosses) and the person rig used by the hero and villagers.
-- `gameplay/` – the save state, combat formulas, items, Arts, the Circuit, souls, pacts, enemy and dialogue data.
+- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Circuit, souls, pacts, and
+  enemy and dialogue data.
 - `entities/` – the player, enemies and bosses, projectiles, effects, props, puzzles, rifts, souls. Entities are
   updated one at a time with exclusive access to the rest of the world; reactions to an entity mid-update (a parry,
   a reflected shot) travel back through the `Hit` it passed.

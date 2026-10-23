@@ -85,7 +85,7 @@ pub struct Enemy {
     aura: bool,
     marked: f32,
     revived: bool,
-    last_art: bool,
+    last_skill: bool,
     last_element: Element,
     last_weak: bool,
     blight_mark: Element,
@@ -140,7 +140,7 @@ impl Enemy {
             aura: aura.is_some(),
             marked: 0.0,
             revived: false,
-            last_art: false,
+            last_skill: false,
             last_element: Element::None,
             last_weak: false,
             blight_mark: Element::None,
@@ -839,7 +839,7 @@ impl Enemy {
 
         self.last_element = element;
         self.last_weak = hit.is_player() && element_mod > 1.0;
-        self.last_art = hit.kind == HitKind::Skill;
+        self.last_skill = hit.kind == HitKind::Skill;
         self.damage(world, resolved.amount, element, resolved.crit, if element_mod > 1.0 { "!" } else { "" });
         self.flash = 0.12;
         audio::play(Sound::Hit, 1.0, if resolved.crit { -0.2 } else { 0.0 });
@@ -1100,7 +1100,7 @@ impl Enemy {
             }
             return;
         }
-        if self.blighted && !self.revived && !self.last_art && self.last_element != self.blight_mark {
+        if self.blighted && !self.revived && !self.last_skill && self.last_element != self.blight_mark {
             self.revive(world);
             return;
         }

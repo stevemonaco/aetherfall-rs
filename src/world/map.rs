@@ -125,7 +125,7 @@ pub struct MapData {
     pub heat: f32,
     /// Pits here are lava: falling in burns badly.
     pub lava: bool,
-    /// A Blighted expedition: its foes revive once unless finished by their marked element or an Art.
+    /// A Blighted expedition: its foes revive once unless finished by their marked element or a skill.
     pub blighted: bool,
     /// Foes here are only visible near the player.
     pub cloaked: bool,
