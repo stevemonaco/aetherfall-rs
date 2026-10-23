@@ -1,4 +1,3 @@
-pub mod skill_actions;
 pub mod blight_hazards;
 pub mod blocks;
 pub mod boss;
@@ -18,6 +17,7 @@ pub mod props;
 pub mod puzzles;
 pub mod rift;
 pub mod serpent;
+pub mod skill_actions;
 pub mod sovereign;
 pub mod tether;
 pub mod tide;

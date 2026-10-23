@@ -1,4 +1,3 @@
-pub mod skills;
 pub mod blight_areas;
 pub mod circuit;
 pub mod combat;
@@ -6,8 +5,9 @@ pub mod element;
 pub mod game_data;
 pub mod game_state;
 pub mod items;
-pub mod pacts;
 pub mod mastery;
+pub mod pacts;
 pub mod rank;
+pub mod skills;
 pub mod souls;
 pub mod status;

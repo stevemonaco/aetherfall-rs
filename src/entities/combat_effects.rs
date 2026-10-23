@@ -11,8 +11,8 @@ use crate::core::gfx::{self, Batch};
 use crate::core::{font, noise, palette};
 use crate::entities::entity::{Entity, EntityBase};
 use crate::entity_base;
-use crate::gameplay::skills::SkillDef;
 use crate::gameplay::element::Element;
+use crate::gameplay::skills::SkillDef;
 use crate::scenes::world::World;
 
 fn simple(pos: Vec2) -> EntityBase {

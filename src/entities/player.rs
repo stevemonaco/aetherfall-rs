@@ -1,16 +1,18 @@
 //! The player: movement, jumping and falling, taking damage and ailments, melee combos, bolts, dodges, guards, element
 //! modes and skills (ported from Player.cs, Player.Combat.cs and Player.Draw.cs).
 
+use std::collections::HashMap;
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use bevy::math::Vec2;
 
-use super::skill_actions::SkillAction;
-use super::combat_effects::{Afterimage, SkillBanner, Shockwave, SlashEffect};
+use super::combat_effects::{Afterimage, Shockwave, SkillBanner, SlashEffect};
 use super::companion::Companion;
 use super::effects::{DamageNumber, FloatingText, Particle};
 use super::entity::{Entity, EntityBase, EntityId, PLAYER_ID};
+use super::hazards::FirePatch;
 use super::projectile::{Projectile, ProjectileHook};
+use super::skill_actions::SkillAction;
 use super::tether::TetherHook;
 use crate::art::combat as art;
 use crate::art::hero::{HeroPose, hero_sprite};
@@ -23,13 +25,16 @@ use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::skills::{self, SkillDef};
+use crate::gameplay::circuit::Trigger;
 use crate::gameplay::combat::{self, CombatStats, DamageResult, Faction, Hit, HitKind};
 use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::pacts;
+use crate::gameplay::skills::{self, SkillDef};
 use crate::gameplay::status::{Ailment, StatusSet};
 use crate::scenes::world::{HeroInfo, World};
 use crate::world::map::{TILE, Terrain, tile_center};
+
+mod triggers;
 
 const BASE_SPEED: f32 = 92.0;
 const HURT_INVULNERABLE: f32 = 0.6;
@@ -39,7 +44,6 @@ const FALL_DURATION: f32 = 0.7;
 const SWING_DELAY: f32 = 0.12;
 const FULL_CHARGE: f32 = 0.55;
 const SWING_LENGTH: [f32; 3] = [0.24, 0.24, 0.34];
-const AETHER_BURST: f32 = 8.0;
 
 pub struct Player {
     base: EntityBase,
@@ -88,6 +92,11 @@ pub struct Player {
     dodge_speed: f32,
     dodge_charges: f32,
     dodge_dir: Vec2,
+    /// Set by Circuit triggers for the current dodge: leave fire behind, or shock what it passes.
+    dodge_trail: bool,
+    dodge_shock: bool,
+    dodge_rammed: Vec<EntityId>,
+    trigger_cooldowns: HashMap<String, f32>,
 
     guard_time: f32,
     overload_idle: f32,
@@ -100,7 +109,6 @@ pub struct Player {
     static_tick: f32,
     static_radius: f32,
     static_power: f32,
-    counter_time: f32,
     aegis_time: f32,
     ward_time: f32,
     /// Real seconds the skill button has been held, or negative when not charging.
@@ -166,6 +174,10 @@ impl Player {
             dodge_speed: 0.0,
             dodge_charges: 0.0,
             dodge_dir: Vec2::ZERO,
+            dodge_trail: false,
+            dodge_shock: false,
+            dodge_rammed: Vec::new(),
+            trigger_cooldowns: HashMap::new(),
             guard_time: -1.0,
             overload_idle: 0.0,
             overheat: 0.0,
@@ -177,7 +189,6 @@ impl Player {
             static_tick: 0.0,
             static_radius: 40.0,
             static_power: 0.35,
-            counter_time: 0.0,
             aegis_time: 0.0,
             ward_time: 0.0,
             skill_held: -1.0,
@@ -229,7 +240,7 @@ impl Player {
     }
 
     pub fn guarding(&self) -> bool {
-        self.guard_time >= 0.0 || self.counter_time > 0.0
+        self.guard_time >= 0.0
     }
 
     pub fn overheated(&self) -> bool {
@@ -312,6 +323,7 @@ impl Player {
 
     fn move_speed(&self, world: &World) -> f32 {
         let mut speed = BASE_SPEED
+            * world.state.mods().speed
             * combat::mode_mods(Self::mode(world)).speed
             * world.state.acc().speed
             * self.status.speed_factor();
@@ -348,6 +360,7 @@ impl Player {
         }
 
         self.frame_dt = dt;
+        self.tick_triggers(world, dt);
         self.invulnerable = (self.invulnerable - dt).max(0.0);
         self.since_hurt += dt;
         self.update_status(world, dt);
@@ -613,6 +626,9 @@ impl Player {
         self.invulnerable = HURT_INVULNERABLE;
         self.since_hurt = 0.0;
         world.rank.player_hurt();
+        if !self.is_dead() {
+            self.trigger(world, Trigger::Hurt, Some(hit));
+        }
         if hit.kind != HitKind::Environment && hit.power >= 0.4 {
             self.cancel_actions();
             let time = if self.airborne() { 0.0 } else { 0.14 };
@@ -671,7 +687,6 @@ impl Player {
         self.mode_flash = (self.mode_flash - dt).max(0.0);
         self.reflect_time = (self.reflect_time - dt).max(0.0);
         self.mirror_time = (self.mirror_time - dt).max(0.0);
-        self.counter_time = (self.counter_time - dt).max(0.0);
         self.aegis_time = (self.aegis_time - dt).max(0.0);
         self.ward_time = (self.ward_time - dt).max(0.0);
 
@@ -702,7 +717,7 @@ impl Player {
         }
         if Self::mode(world) == Element::Aether && !world.input_locked() {
             world.state.burst_time -= dt;
-            world.state.resonance = (100.0 * world.state.burst_time / AETHER_BURST).max(0.0);
+            world.state.resonance = (100.0 * world.state.burst_time / world.state.burst_duration()).max(0.0);
             if world.state.burst_time <= 0.0 {
                 self.end_burst(world);
             }
@@ -818,6 +833,7 @@ impl Player {
             let movement = input::movement();
             let dir = if movement != Vec2::ZERO { movement.normalize() } else { self.facing.to_vec() };
             self.start_dodge(world, dir, 0.2, 235.0, true);
+            self.trigger(world, Trigger::Dodge, None);
             return true;
         }
 
@@ -907,7 +923,7 @@ impl Player {
             world.state.burst_time = 0.0;
             world.state.resonance = 0.0;
         } else if mode == Element::Aether {
-            world.state.burst_time = AETHER_BURST;
+            world.state.burst_time = world.state.burst_duration();
             world.state.burst_return = from;
             world.flash(Element::Aether.glow(), 0.25);
         }
@@ -1103,6 +1119,9 @@ impl Player {
         self.cancel_actions();
         self.dodging = true;
         self.near_missed = false;
+        self.dodge_trail = false;
+        self.dodge_shock = false;
+        self.dodge_rammed.clear();
         self.dodge_dir = dir;
         self.dodge_time = 0.0;
         let wind = if Self::mode(world) == Element::Wind { 1.1 } else { 1.0 };
@@ -1138,6 +1157,24 @@ impl Player {
         if world.rng.next_f32() < 0.7 {
             world.add(Afterimage::new(self.base.pos - Vec2::new(0.0, self.z), self.facing, Self::mode(world)));
         }
+        if self.dodge_trail {
+            let (tx, ty) = self.tile_pos();
+            if !world.entities_of::<FirePatch>().any(|f| f.base().tile_pos() == (tx, ty)) {
+                world.add(FirePatch::new(self.base.pos, 2.5));
+                world.chem_ignite(tx, ty);
+            }
+        }
+        if self.dodge_shock {
+            let center = self.center();
+            let mut rammed = std::mem::take(&mut self.dodge_rammed);
+            self.strike_area(world, center, 16.0, Some(&mut rammed), |p, w| {
+                p.make_hit(w, 1.0, HitKind::Skill, Some(Element::Thunder), 1.5, 2.0, 120.0)
+            });
+            self.dodge_rammed = rammed;
+            if world.rng.next_f32() < 0.5 {
+                Particle::burst(world, center, Element::Thunder.glow(), 2, 30.0, 0.2, true);
+            }
+        }
         if self.dodge_time < self.dodge_length {
             return;
         }
@@ -1147,6 +1184,7 @@ impl Player {
 
     fn near_miss(&mut self, world: &mut World) {
         self.near_missed = true;
+        self.trigger(world, Trigger::CloseCall, None);
         world.add_sp(30.0);
         world.slow_motion(0.35, 0.35);
         world.add(FloatingText::new(self.center() - Vec2::new(0.0, 16.0), "Close call!", palette::HIGHLIGHT));
@@ -1177,12 +1215,15 @@ impl Player {
     }
 
     fn perfect_window(&self, world: &World) -> f32 {
-        0.15 + world.state.acc().perfect_window + world.state.mods().perfect_window
+        let mods = world.state.mods();
+        let window = 0.15 + world.state.acc().perfect_window + mods.perfect_window;
+        if mods.has("stillwater") { window * 2.0 } else { window }
     }
 
     fn block(&mut self, world: &mut World, hit: &mut Hit) -> bool {
         let perfect = !pacts::active(&world.state, "brittle")
-            && (self.counter_time > 0.0 || (self.guard_time >= 0.0 && self.guard_time < self.perfect_window(world)));
+            && self.guard_time >= 0.0
+            && self.guard_time < self.perfect_window(world);
         if perfect {
             hit.result = DamageResult::blocked(true);
             world.add_sp(50.0);
@@ -1191,17 +1232,12 @@ impl Player {
             audio::play(Sound::Clink, 1.0, 0.6);
             Particle::burst(world, self.center() + self.aim * 8.0, Rgba::WHITE, 12, 70.0, 0.3, true);
             world.add(FloatingText::new(self.center() - Vec2::new(0.0, 16.0), "PERFECT", palette::HIGHLIGHT));
-            if world.state.mods().has("perfect_heal") {
-                world.heal_player((world.state.max_hp() / 20).max(1));
-            }
             if hit.projectile {
                 hit.expire_owner = true;
             } else {
                 hit.parried = true;
             }
-            if self.counter_time > 0.0 {
-                self.counter(world, hit);
-            }
+            self.trigger(world, Trigger::PerfectGuard, Some(hit));
             return true;
         }
 
@@ -1227,7 +1263,6 @@ impl Player {
     }
 
     fn counter(&mut self, world: &mut World, hit: &Hit) {
-        self.counter_time = 0.0;
         let at = hit.owner.and_then(|id| world.get(id)).map(|e| e.base().hitbox().center()).unwrap_or(hit.from);
         self.aim = safe_dir(at - self.center(), self.aim);
         world.add(SlashEffect::new(self.center(), self.aim, Self::mode(world), 34.0, true, false));
@@ -1240,7 +1275,7 @@ impl Player {
         world.camera.shake(0.2, 2.0);
     }
 
-    // ---- Overload, SP and Arts ----------------------------------------------------------------------------------
+    // ---- Overload, SP and skills --------------------------------------------------------------------------------
 
     fn add_overload(&mut self, world: &mut World, kind: HitKind) {
         let mode = Self::mode(world);
@@ -1260,7 +1295,13 @@ impl Player {
         self.overload +=
             amount * world.state.acc().overload * world.state.mods().overload_for(mode) * resonance * volatile;
         self.overload_idle = 0.0;
-        if self.overload >= 100.0 {
+        if self.overload >= 100.0 && world.state.mods().has("unbound") {
+            self.overload = 0.0;
+            let burn = (world.state.max_hp() / 10).max(1);
+            world.state.hp = (world.state.hp - burn).max(1);
+            world.add(DamageNumber::hurt(self.center(), burn, mode, false));
+            audio::play(Sound::Burn, 0.9, 0.0);
+        } else if self.overload >= 100.0 {
             self.overheat_now(world);
         }
     }
@@ -1277,7 +1318,11 @@ impl Player {
 
     /// The highest level the equipped skill can reach right now: limited by unlocked levels and SP.
     fn skill_cap(world: &World) -> i32 {
-        let affordable = (world.state.sp / 100.0).floor() as i32;
+        let affordable = if world.state.mods().has("blood_art") {
+            ((world.state.hp - 1) as f32 / Self::blood_cost(world)).floor() as i32
+        } else {
+            (world.state.sp / 100.0).floor() as i32
+        };
         world.state.skill_level(Self::mode(world)).min(affordable).min(skills::MAX_LEVEL)
     }
 
@@ -1323,11 +1368,25 @@ impl Player {
             return;
         }
         self.cancel_actions();
-        world.state.sp -= level as f32 * 100.0;
+        if world.state.mods().has("blood_art") {
+            let cost = (Self::blood_cost(world) * level as f32).round() as i32;
+            world.state.hp = (world.state.hp - cost).max(1);
+            world.add(DamageNumber::hurt(self.center(), cost, Element::None, false));
+        } else {
+            world.state.sp -= level as f32 * 100.0;
+        }
         self.skill = Some(Box::new(SkillAction::create(skill, level)));
         self.last_skill = Some((skill, level));
         world.add(SkillBanner::new(self.base.pos, skill, level));
         self.add_overload(world, HitKind::Skill);
+        if level >= skills::MAX_LEVEL {
+            self.trigger(world, Trigger::GreatSkill, None);
+        }
+    }
+
+    /// Life spent per skill level under the Blood Art keystone.
+    fn blood_cost(world: &World) -> f32 {
+        world.state.max_hp() as f32 * 0.08
     }
 
     /// The Echo soul performs the last skill again, at the same level, for free.
@@ -1366,10 +1425,6 @@ impl Player {
         self.static_time = seconds;
         self.static_radius = radius;
         self.static_power = power;
-    }
-
-    pub fn begin_counter(&mut self, seconds: f32) {
-        self.counter_time = seconds;
     }
 
     pub fn hide(&mut self, seconds: f32) {
@@ -1674,8 +1729,7 @@ impl Player {
     }
 
     fn draw_shield(&self, world: &World, batch: &mut Batch, lift: Vec2) {
-        let perfect = self.counter_time > 0.0
-            || (self.guard_time >= 0.0 && self.guard_time < 0.15 + world.state.acc().perfect_window);
+        let perfect = self.guard_time >= 0.0 && self.guard_time < self.perfect_window(world);
         let at = snap(self.center() + lift + self.aim * 7.0 + Vec2::new(0.0, 2.0));
         let color = if perfect { Rgba::WHITE.lerp(palette::HIGHLIGHT, 0.6) } else { Rgba::WHITE };
         let origin = Vec2::new(5.0, 6.0);
@@ -1883,9 +1937,6 @@ impl Entity for Player {
                 snap(self.center() + lift - Vec2::new(14.0, 14.0)),
                 Rgba::rgb(200, 240, 255).mul(0.8),
             );
-        }
-        if self.counter_time > 0.0 {
-            self.draw_orbit(world, batch, lift, Rgba::WHITE, 14.0, self.counter_time);
         }
         if self.ward_time > 0.0 {
             self.draw_orbit(world, batch, lift, Element::Aether.light(), 18.0, self.ward_time);

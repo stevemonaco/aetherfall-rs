@@ -1,4 +1,4 @@
-//! The pause menu: items, equipment, Combat Art loadouts, status and system options.
+//! The pause menu: items, equipment, skill loadouts, status and system options.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -22,12 +22,12 @@ use crate::core::geom::IRect;
 use crate::core::gfx::{Batch, TexId};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
-use crate::gameplay::mastery;
 use crate::gameplay::combat;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{self, EnemyDef, QuestDef, data};
 use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
+use crate::gameplay::mastery;
 use crate::gameplay::{pacts, souls};
 use crate::scene_any;
 
@@ -223,8 +223,7 @@ impl MenuScene {
 
     fn update_gear_choice(&mut self, state: &mut GameState) {
         move_index(&mut self.gear_row, self.gear_choices.len());
-        self.gear_scroll =
-            self.gear_scroll.clamp((self.gear_row + 1).saturating_sub(VISIBLE_GEAR_ROWS), self.gear_row);
+        self.gear_scroll = self.gear_scroll.clamp((self.gear_row + 1).saturating_sub(VISIBLE_GEAR_ROWS), self.gear_row);
         if input::pressed(GameAction::Cancel) {
             self.gear_slot = None;
             audio::sfx(Sound::MenuCancel);

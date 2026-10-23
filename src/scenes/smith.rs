@@ -137,7 +137,8 @@ impl Scene for SmithScene {
 
         if level < self.max_level && (level as usize) < RECIPES.len() {
             let (cost, materials) = RECIPES[level as usize];
-            let next_atk = state.weapon_atk(state.mode) / (1.0 + 0.08 * level as f32) * (1.0 + 0.08 * (level + 1) as f32);
+            let next_atk =
+                state.weapon_atk(state.mode) / (1.0 + 0.08 * level as f32) * (1.0 + 0.08 * (level + 1) as f32);
             let next = format!("Next: +{}  (ATK {})", level + 1, next_atk.round());
             font::draw(batch, &next, Vec2::new(x + 14.0, y + 46.0), palette::TEXT_DIM, shadow);
             let mut row_y = y + 60.0;

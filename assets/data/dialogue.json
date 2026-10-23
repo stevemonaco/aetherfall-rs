@@ -78,7 +78,7 @@
         "If you ever close that one... I'd love to see the shrine light up again."
       ],
       "do": [ "quest:shrine_light" ] },
-    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, Combat Arts, souls, the Circuit and your quests are all in there. M shows the world map." ] }
+    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, skills, souls, the Circuit and your quests are all in there. M shows the world map." ] }
   ],
 
   "pip": [
@@ -156,8 +156,8 @@
   "sage_elm": [
     { "if": "!shrine_done", "speaker": "Sage Elm", "lines": [
         "The light returns... and so do I. You have my thanks.",
-        "This shrine channels the Circuit, the Concord's discipline of strength. As you grow, points of power gather in you. Spend them on the Circuit to learn new Combat Arts and to sharpen body and blade.",
-        "Some paths are sealed and need a Circuit Shard to open. Take this one. You'll find the Circuit in your menu, or at any save crystal."
+        "This shrine channels the Circuit, the Concord's discipline of strength. As you grow, points of power gather in you. Spend them on the Circuit to learn new skills, deepen them, and sharpen body and blade.",
+        "The greatest paths, the keystones, need a Circuit Shard as well. Take this one. You'll find the Circuit in your menu, or at any save crystal, where you may also begin it anew."
       ],
       "do": [ "flag:shrine_done", "give:circuit_shard", "circuit" ] },
     { "speaker": "Sage Elm", "lines": [ "Shall we look at your Circuit?" ], "do": [ "circuit" ] }
@@ -396,7 +396,7 @@
         "Here. I'd been transcribing the Concord's Circuit tomes. Two are finished. They'll do you more good than me."
       ],
       "do": [ "flag:rook_done", "give:circuit_point*2" ] },
-    { "speaker": "Rook", "lines": [ "The Sage says every element has a mastery path in the Circuit, sealed behind a shard. Worth hunting for." ] }
+    { "speaker": "Rook", "lines": [ "The Sage says every element's path in the Circuit ends in a keystone, sealed behind a shard. Worth hunting for." ] }
   ],
 
   "haldis": [
@@ -552,7 +552,7 @@
         "Give me your blade, sleeper. Four sigils burning in one hilt. The Concord made it to wake here; it only needed a forge that remembered how."
       ],
       "ask": "Let Corvin awaken the Aether Blade?",
-      "yes": [ "flag:aether_awakened", "music:Retro-EternalFountain" ],
+      "yes": [ "flag:aether_awakened", "give:prism_edge", "music:Retro-EternalFountain" ],
       "yesLines": [
         "The four sigils flare under the hammer and run together along the edge. The steel comes out every color and no color at all.",
         "\"There. Awake at last. Strike your foes where they're weak and the blade drinks it in. When it's full, call the Aether and every element you've truly mastered answers at once. It won't last; nothing that bright does.\""

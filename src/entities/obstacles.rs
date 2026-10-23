@@ -299,8 +299,10 @@ impl Entity for TileObstacle {
                 self.resist()
             }
             ObstacleKind::Rock => {
-                let strong =
-                    matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher | HitKind::Environment);
+                let strong = matches!(
+                    hit.kind,
+                    HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher | HitKind::Environment
+                );
                 let windy = matches!(hit.element, Element::Wind | Element::Aether);
                 if (windy && strong) || (hit.kind == HitKind::Environment && hit.power >= 1.0) {
                     self.clear(world, Sound::Break, Rgba::rgb(170, 130, 90));

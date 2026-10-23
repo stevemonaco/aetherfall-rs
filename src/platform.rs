@@ -31,8 +31,8 @@ use crate::core::settings;
 use crate::entities::boss;
 use crate::gameplay::element::MODES;
 use crate::gameplay::game_data::{IMAGE_FILES, data};
-use crate::gameplay::{mastery, skills};
 use crate::gameplay::game_state::{self, GameState};
+use crate::gameplay::{circuit, mastery, skills};
 use crate::scenes::scene::SceneManager;
 use crate::scenes::title::TitleScene;
 use crate::scenes::world::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -58,6 +58,8 @@ pub struct LaunchOptions {
     pub resonance: bool,
     /// Learns every skill and unlocks all three levels.
     pub all_skills: bool,
+    /// Unlocks every Circuit node whose arm is open.
+    pub all_tree: bool,
     pub flags: Vec<String>,
     pub script: Option<String>,
     pub fuzz: Option<u64>,
@@ -89,6 +91,7 @@ impl LaunchOptions {
             options.mastery = value("--mastery").and_then(|v| v.parse().ok());
             options.resonance = args.iter().any(|a| a == "--resonance");
             options.all_skills = value("--skills").as_deref() == Some("all");
+            options.all_tree = value("--tree").as_deref() == Some("all");
             options.flags = list("--flags");
             options.script = value("--script");
             options.fuzz = value("--fuzz").and_then(|v| v.parse().ok());
@@ -362,6 +365,12 @@ fn finish_loading(world: &mut bevy::prelude::World) {
         for item in &options.give {
             state.give(item, 1);
         }
+        for flag in &options.flags {
+            match flag.strip_prefix("pact:") {
+                Some(pact) => state.pacts.insert(pact.to_string()),
+                None => state.flags.insert(flag.clone()),
+            };
+        }
         if let Some(level) = options.mastery {
             for mode in MODES.into_iter().filter(|&m| mastery::trains(m)) {
                 state.mastery.insert(mode.key().to_string(), mastery::xp_for(level));
@@ -376,11 +385,17 @@ fn finish_loading(world: &mut bevy::prelude::World) {
             }
             state.flags.insert("debug:skills".into());
         }
-        for flag in &options.flags {
-            match flag.strip_prefix("pact:") {
-                Some(pact) => state.pacts.insert(pact.to_string()),
-                None => state.flags.insert(flag.clone()),
-            };
+        if options.all_tree {
+            state.inventory.insert("circuit_point".into(), 200);
+            state.inventory.insert("circuit_shard".into(), 20);
+            let open: Vec<&str> = circuit::NODES
+                .iter()
+                .filter(|n| n.id != circuit::HUB && state.circuit_region_open(n.region))
+                .map(|n| n.id.as_str())
+                .collect();
+            for id in open {
+                state.unlock(id);
+            }
         }
         state.sp = state.max_sp();
         scenes.push(Box::new(WorldScene::new(state, false)));
@@ -756,7 +771,11 @@ fn take_shot(
                 s.mode
             );
             println!("DUMP flags={:?}", s.flags);
-            println!("DUMP inventory={:?} sigils={:?} mastery={:?} equipment={:?}", s.inventory, s.sigils, s.mastery, s.equipment);
+            println!("DUMP circuit={:?} skills={:?}", s.circuit_nodes, s.equipped_skills);
+            println!(
+                "DUMP inventory={:?} sigils={:?} mastery={:?} equipment={:?}",
+                s.inventory, s.sigils, s.mastery, s.equipment
+            );
         }
         commands.spawn(Screenshot::primary_window()).observe(save_to_disk(path));
     }

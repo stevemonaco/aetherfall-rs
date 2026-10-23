@@ -82,7 +82,7 @@ impl Scene for CrystalScene {
         }
         if confirm && self.row == 1 {
             audio::sfx(Sound::MenuSelect);
-            ctx.push(CircuitScene::new());
+            ctx.push(CircuitScene::at_crystal());
             return;
         }
         if confirm {

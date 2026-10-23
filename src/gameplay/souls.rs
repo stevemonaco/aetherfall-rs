@@ -64,7 +64,7 @@ pub const ALL: [SoulDef; 7] = [
     SoulDef {
         id: "echo",
         name: "Echo",
-        passive: "Remembers the last Combat Art you performed.",
+        passive: "Remembers the last skill you performed.",
         active: "Reprise: performs it again at no SP cost.",
         cooldown: 40.0,
         glow: Rgba::rgb(220, 190, 255),

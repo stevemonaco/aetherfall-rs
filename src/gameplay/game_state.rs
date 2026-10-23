@@ -6,13 +6,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use bevy::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-use super::skills::{self, SkillDef};
 use super::circuit::{self, CircuitMods, CircuitNode};
 use super::combat::{self, CombatStats};
 use super::element::{BASIC, Element, MODES};
 use super::game_data::data;
 use super::items::{self, AccessoryStats, ItemKind};
 use super::mastery;
+use super::skills::{self, SkillDef};
 use super::souls;
 use crate::core::direction::Direction;
 use crate::core::storage;
@@ -153,12 +153,13 @@ impl GameState {
     }
 
     pub fn circuit_points(&self) -> i32 {
-        let spent: i32 = self.circuit_nodes.iter().filter_map(|id| circuit::by_id(id)).map(|n| n.cost).sum();
+        let spent = self.circuit_nodes.iter().filter(|id| circuit::by_id(id).is_some()).count() as i32;
         self.level - 1 + self.count("circuit_point") - spent
     }
 
     pub fn shards_free(&self) -> i32 {
-        let used = self.circuit_nodes.iter().filter(|id| circuit::by_id(id).is_some_and(|n| n.shard)).count() as i32;
+        let used =
+            self.circuit_nodes.iter().filter(|id| circuit::by_id(id).is_some_and(|n| n.needs_shard())).count() as i32;
         self.count("circuit_shard") - used
     }
 
@@ -187,6 +188,9 @@ impl GameState {
     }
 
     pub fn dodge_charges(&self) -> i32 {
+        if self.mods().has("stillwater") {
+            return 1;
+        }
         3 + self.acc().dodge_charges + self.mods().dodge_charges
     }
 
@@ -245,9 +249,7 @@ impl GameState {
             .copied()
             .filter(|&m| match m {
                 Element::None => true,
-                Element::Aether => {
-                    self.aether_awakened() && (self.resonance_full() || self.mode == Element::Aether)
-                }
+                Element::Aether => self.aether_awakened() && (self.resonance_full() || self.mode == Element::Aether),
                 e => self.has_sigil(e),
             })
             .collect()
@@ -278,7 +280,7 @@ impl GameState {
             * self.acc().atk
             * combat::mode_mods(mode).atk
             * mods.atk
-            * if mods.has(&format!("mode_atk:{}", mode.key())) { 1.05 } else { 1.0 }
+            * mods.mode_atk_for(mode)
     }
 
     pub fn def(&self, mode: Element) -> f32 {
@@ -477,12 +479,40 @@ impl GameState {
         }
     }
 
+    pub fn circuit_has(&self, id: &str) -> bool {
+        id == circuit::HUB || self.circuit_nodes.contains(id)
+    }
+
+    /// Whether a node's arm is open: element arms need that element's sigil, the Aether arm an awakened blade.
+    pub fn circuit_region_open(&self, region: Element) -> bool {
+        self.owned_modes().contains(&region)
+    }
+
     pub fn can_unlock(&self, node: &CircuitNode) -> bool {
-        !self.circuit_nodes.contains(&node.id)
-            && self.circuit_points() >= node.cost
-            && (!node.shard || self.shards_free() > 0)
-            && node.requires.iter().all(|r| self.circuit_nodes.contains(r))
-            && (node.tree == Element::None || self.available_modes().contains(&node.tree))
+        !self.circuit_has(&node.id)
+            && self.circuit_points() >= 1
+            && (!node.needs_shard() || self.shards_free() > 0)
+            && node.links.iter().any(|l| self.circuit_has(l))
+            && self.circuit_region_open(node.region)
+    }
+
+    /// Refunds every Circuit node and forgets the skills they taught, keeping each mode's starter skill.
+    pub fn reset_circuit(&mut self) {
+        self.circuit_nodes.clear();
+        *self.mods.borrow_mut() = None;
+        let starters: Vec<&str> = self.owned_modes().into_iter().filter_map(skills::starter).map(|s| s.id).collect();
+        self.learned_skills.retain(|s| starters.contains(&s.as_str()));
+        for mode in self.owned_modes() {
+            let kept = self.equipped_skills.get(mode.key()).is_some_and(|id| self.learned_skills.contains(id));
+            if !kept && let Some(starter) = skills::starter(mode) {
+                self.equipped_skills.insert(mode.key().to_string(), starter.id.to_string());
+            }
+        }
+    }
+
+    /// How long an Aether burst lasts.
+    pub fn burst_duration(&self) -> f32 {
+        8.0 + self.mods().burst_bonus
     }
 
     pub fn soul_rank(&self, soul: &str) -> i32 {
@@ -563,4 +593,26 @@ fn power_of(id: Option<&str>) -> i32 {
 
 fn hp_of(id: Option<&str>) -> i32 {
     id.and_then(items::get).map(|i| i.hp).unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn web_unlocks_along_links() {
+        let mut state = GameState::new_game(1);
+        state.level = 10;
+        for id in ["n_vitality1", "n_strength1", "n_technique"] {
+            let node = circuit::by_id(id).unwrap();
+            assert!(state.can_unlock(node), "{id} should be unlockable");
+            state.unlock(id);
+        }
+        assert_eq!(state.skill_level(Element::None), 2);
+        assert!(!state.can_unlock(circuit::by_id("fire_edge1").unwrap()), "fire arm needs the sigil");
+        state.give("fire_sigil", 1);
+        assert!(state.can_unlock(circuit::by_id("fire_edge1").unwrap()));
+        state.reset_circuit();
+        assert_eq!(state.circuit_points(), 9);
+    }
 }

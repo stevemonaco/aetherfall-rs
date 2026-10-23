@@ -136,7 +136,7 @@ impl Entity for Cyclone {
     }
 }
 
-/// A patch of flame left on the ground by fire Arts; burns enemies that stand in it.
+/// A patch of flame left on the ground by fire skills; burns enemies that stand in it.
 pub struct FirePatch {
     base: EntityBase,
     life: f32,
@@ -174,7 +174,9 @@ impl Entity for FirePatch {
         self.tick = 0.4;
         let at = self.base.pos - Vec2::new(0.0, 4.0);
         world.with_player(|p, w| {
-            p.strike_area(w, at, 9.0, None, |p, w| p.make_hit(w, 0.3, HitKind::Skill, Some(Element::Fire), 0.3, 1.0, 0.0))
+            p.strike_area(w, at, 9.0, None, |p, w| {
+                p.make_hit(w, 0.3, HitKind::Skill, Some(Element::Fire), 0.3, 1.0, 0.0)
+            })
         });
     }
 

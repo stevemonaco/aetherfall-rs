@@ -318,8 +318,12 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
             let angles: &[f32] = if level >= 3 { &[-0.35, 0.0, 0.35] } else { &[0.0] };
             for &angle in angles {
                 let dir = rotate(p.aim, angle);
-                let mut shot =
-                    Projectile::new(Faction::Player, world.state.stats(Element::Wind), p.pos() + dir * 10.0, dir * 210.0);
+                let mut shot = Projectile::new(
+                    Faction::Player,
+                    world.state.stats(Element::Wind),
+                    p.pos() + dir * 10.0,
+                    dir * 210.0,
+                );
                 shot.power = if level == 2 { 2.3 } else { 1.7 };
                 shot.element = Element::Wind;
                 shot.kind = HitKind::Skill;
@@ -401,8 +405,12 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
             };
             for &(angle, power, scale) in lances {
                 let dir = rotate(p.aim, angle);
-                let mut shot =
-                    Projectile::new(Faction::Player, world.state.stats(Element::Water), p.pos() + dir * 8.0, dir * 300.0);
+                let mut shot = Projectile::new(
+                    Faction::Player,
+                    world.state.stats(Element::Water),
+                    p.pos() + dir * 8.0,
+                    dir * 300.0,
+                );
                 shot.power = power;
                 shot.element = Element::Water;
                 shot.kind = HitKind::Skill;

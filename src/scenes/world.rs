@@ -21,8 +21,8 @@ use crate::entities::entity::{Entity, EntityId, PLAYER_ID};
 use crate::entities::pickup::Pickup;
 use crate::entities::player::Player;
 use crate::entities::puzzles::SpanBridge;
-use crate::gameplay::skills;
 use crate::gameplay::blight_areas::{self, BlightAreaDef};
+use crate::gameplay::circuit::Trigger;
 use crate::gameplay::combat::{self, Faction, Hit};
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{EnemyDef, data};
@@ -30,6 +30,7 @@ use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::pacts;
 use crate::gameplay::rank::CombatRank;
+use crate::gameplay::skills;
 use crate::gameplay::souls::{self, SoulDef};
 use crate::world::ambience::Ambience;
 use crate::world::baker;
@@ -88,6 +89,8 @@ pub struct World {
     pub map: TileMap,
     pub chem: Chemistry,
     pub rank: CombatRank,
+    /// Combat events for the player's Circuit triggers, raised while the player itself is busy updating.
+    pub trigger_queue: Vec<Trigger>,
     pub camera: Camera,
     pub rng: Rng,
     pub hero: HeroInfo,
@@ -139,6 +142,7 @@ impl World {
             map: TileMap::new(&MapData { rows: vec![".".into()], ..MapData::default() }).unwrap(),
             chem: Chemistry::new(1, 1),
             rank: CombatRank::default(),
+            trigger_queue: Vec::new(),
             camera: Camera::new(SCREEN_WIDTH, SCREEN_HEIGHT),
             rng: Rng::from_time(),
             hero: HeroInfo::default(),
@@ -1140,7 +1144,8 @@ impl World {
             return;
         }
         let was_full = self.state.resonance_full();
-        self.state.resonance = (self.state.resonance + amount).min(100.0);
+        let gain = amount * self.state.mods().resonance_gain;
+        self.state.resonance = (self.state.resonance + gain).min(100.0);
         if !was_full && self.state.resonance_full() {
             audio::play(Sound::ChargeLevel, 0.9, 0.5);
             self.toast("Resonance full: switch to Aether!".to_string());
@@ -1163,6 +1168,7 @@ impl World {
             1.0
         };
         self.rank.kill(weight);
+        self.trigger_queue.push(Trigger::Kill);
         let mut multiplier = self.rank.multiplier();
         *self.state.kills.entry(kill.def.id.clone()).or_default() += 1;
         multiplier *= pacts::reward_multiplier(&self.state);

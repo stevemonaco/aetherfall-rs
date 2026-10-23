@@ -1,24 +1,73 @@
-//! The Circuit skill tree. Each node's effect is a small key/value string, e.g. `atk:0.05`, `art:cyclone`,
-//! `overload:fire:0.85` or `passive:perfect_heal`. Shard nodes also need a Circuit Shard.
+//! The Circuit: one connected web of passives grown outward from a central hub, with an arm per mode. Every node costs
+//! one point and can be taken once a linked node is; keystones also need a Circuit Shard. A node's effect is a short
+//! comma-separated list such as `atk:0.04`, `skill_level:fire:2`, `skill:meteor` or `on:perfect_guard:riposte`.
 
 use std::collections::{HashMap, HashSet};
+use std::f32::consts::FRAC_PI_2;
 use std::sync::LazyLock;
 
-use super::skills;
+use bevy::math::Vec2;
+
 use super::element::{BASIC, Element};
+
+pub const HUB: &str = "hub";
+/// Distance between neighbouring nodes in the web's layout, in pixels.
+pub const SPACING: f32 = 24.0;
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum NodeKind {
+    Hub,
+    Small,
+    Notable,
+    Keystone,
+}
 
 #[derive(Clone, Debug)]
 pub struct CircuitNode {
     pub id: String,
-    pub tree: Element,
+    /// The mode whose arm holds this node; element arms open once that element's sigil is owned.
+    pub region: Element,
+    pub kind: NodeKind,
     pub name: String,
     pub description: String,
-    pub cost: i32,
     pub effect: String,
-    pub col: i32,
-    pub row: i32,
-    pub requires: Vec<String>,
-    pub shard: bool,
+    pub pos: Vec2,
+    pub links: Vec<String>,
+}
+
+/// Events a trigger node can react to.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum Trigger {
+    Kill,
+    Hurt,
+    Dodge,
+    CloseCall,
+    PerfectGuard,
+    /// A skill performed at level 3.
+    GreatSkill,
+}
+
+impl Trigger {
+    fn parse(s: &str) -> Option<Trigger> {
+        Some(match s {
+            "kill" => Trigger::Kill,
+            "hurt" => Trigger::Hurt,
+            "dodge" => Trigger::Dodge,
+            "close_call" => Trigger::CloseCall,
+            "perfect_guard" => Trigger::PerfectGuard,
+            "great_skill" => Trigger::GreatSkill,
+            _ => return None,
+        })
+    }
+}
+
+/// A trigger granted by a node: what it reacts to, what it does, its cooldown, and the mode it needs (if any).
+#[derive(Clone, Debug)]
+pub struct TriggerDef {
+    pub event: Trigger,
+    pub effect: String,
+    pub cooldown: f32,
+    pub mode: Option<Element>,
 }
 
 /// Everything the Circuit contributes, folded into one record.
@@ -28,16 +77,21 @@ pub struct CircuitMods {
     pub def: f32,
     pub hp: f32,
     pub foc: f32,
+    pub speed: f32,
     pub sp_gain: f32,
     pub dodge_recharge: f32,
     pub dodge_charges: i32,
     pub bounces: i32,
     pub perfect_window: f32,
     pub tether_range: f32,
+    pub burst_bonus: f32,
+    pub resonance_gain: f32,
     pub overload: HashMap<Element, f32>,
     pub buildup: HashMap<Element, f32>,
+    pub mode_atk: HashMap<Element, f32>,
     pub passives: HashSet<String>,
     pub skill_levels: HashMap<Element, i32>,
+    pub triggers: Vec<TriggerDef>,
 }
 
 impl Default for CircuitMods {
@@ -47,16 +101,21 @@ impl Default for CircuitMods {
             def: 1.0,
             hp: 1.0,
             foc: 1.0,
+            speed: 1.0,
             sp_gain: 1.0,
             dodge_recharge: 1.0,
             dodge_charges: 0,
             bounces: 0,
             perfect_window: 0.0,
             tether_range: 0.0,
+            burst_bonus: 0.0,
+            resonance_gain: 1.0,
             overload: HashMap::new(),
             buildup: HashMap::new(),
+            mode_atk: HashMap::new(),
             passives: HashSet::new(),
             skill_levels: HashMap::new(),
+            triggers: Vec::new(),
         }
     }
 }
@@ -70,6 +129,11 @@ impl CircuitMods {
         self.buildup.get(&e).copied().unwrap_or(1.0)
     }
 
+    /// The ATK multiplier for fighting in a mode.
+    pub fn mode_atk_for(&self, e: Element) -> f32 {
+        1.0 + self.mode_atk.get(&e).copied().unwrap_or(0.0)
+    }
+
     pub fn has(&self, passive: &str) -> bool {
         self.passives.contains(passive)
     }
@@ -79,411 +143,482 @@ impl CircuitMods {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn node(
-    id: &str,
-    tree: Element,
-    name: &str,
-    desc: &str,
-    cost: i32,
-    effect: &str,
-    col: i32,
-    row: i32,
-    requires: &[&str],
-    shard: bool,
-) -> CircuitNode {
-    CircuitNode {
-        id: id.into(),
-        tree,
-        name: name.into(),
-        description: desc.into(),
-        cost,
-        effect: effect.into(),
-        col,
-        row,
-        requires: requires.iter().map(|s| s.to_string()).collect(),
-        shard,
+impl CircuitNode {
+    pub fn needs_shard(&self) -> bool {
+        self.kind == NodeKind::Keystone
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn element_tree(
-    e: Element,
-    dodge_art: &str,
-    throw_art: &str,
-    guard_art: &str,
-    passive: &str,
-    passive_name: &str,
-    passive_desc: &str,
-    melee_art: &str,
-) -> Vec<CircuitNode> {
-    let (k, label) = (e.key(), e.label());
-    let art_name = |id: &str| skills::get(id).map(|a| a.name).unwrap_or(id).to_string();
-    vec![
-        node(
-            &format!("{k}_attune1"),
-            e,
-            &format!("{label} Attunement"),
-            &format!("{label} mode overloads 15% slower."),
-            1,
-            &format!("overload:{k}:0.85"),
-            1,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            &format!("{k}_potency"),
-            e,
-            &format!("{label} Potency"),
-            &format!("{label} ailments build 25% faster."),
-            2,
-            &format!("buildup:{k}:1.25"),
-            2,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            &format!("{k}_melee"),
-            e,
-            &art_name(melee_art),
-            &format!("The {label} melee Art, learned with the sword."),
-            0,
-            &format!("art:{melee_art}"),
-            0,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            &format!("{k}_throw"),
-            e,
-            &art_name(throw_art),
-            &format!("Learn the {label} throw Art {}.", art_name(throw_art)),
-            2,
-            &format!("art:{throw_art}"),
-            0,
-            1,
-            &[&format!("{k}_melee")],
-            false,
-        ),
-        node(
-            &format!("{k}_dodge"),
-            e,
-            &art_name(dodge_art),
-            &format!("Learn the {label} dodge Art {}.", art_name(dodge_art)),
-            3,
-            &format!("art:{dodge_art}"),
-            1,
-            1,
-            &[&format!("{k}_attune1")],
-            false,
-        ),
-        node(
-            &format!("{k}_guard"),
-            e,
-            &art_name(guard_art),
-            &format!("Learn the {label} guard Art {}.", art_name(guard_art)),
-            3,
-            &format!("art:{guard_art}"),
-            2,
-            1,
-            &[&format!("{k}_potency")],
-            false,
-        ),
-        node(&format!("{k}_passive"), e, passive_name, passive_desc, 3, passive, 1, 2, &[&format!("{k}_dodge")], false),
-        node(
-            &format!("{k}_attune2"),
-            e,
-            &format!("{label} Attunement II"),
-            &format!("{label} mode overloads 20% slower."),
-            3,
-            &format!("overload:{k}:0.8"),
-            2,
-            2,
-            &[&format!("{k}_guard")],
-            false,
-        ),
-        node(
-            &format!("{k}_mastery"),
-            e,
-            &format!("{label} Mastery"),
-            &format!("{label} mode's bonuses grow: ailments +25% and ATK +5% while in it."),
-            5,
-            &format!("buildup:{k}:1.25,mode_atk:{k}:0.05"),
-            1,
-            3,
-            &[&format!("{k}_passive"), &format!("{k}_attune2")],
-            true,
-        ),
-    ]
+struct Arm {
+    region: Element,
+    dir: Vec2,
+    nodes: Vec<CircuitNode>,
+}
+
+impl Arm {
+    fn new(region: Element, degrees: f32) -> Arm {
+        let a = degrees.to_radians();
+        Arm { region, dir: Vec2::new(a.cos(), -a.sin()), nodes: Vec::new() }
+    }
+
+    /// Adds a node `along` steps out from the hub and `side` steps to the arm's left (negative) or right.
+    #[allow(clippy::too_many_arguments)]
+    fn add(
+        &mut self,
+        id: &str,
+        kind: NodeKind,
+        name: &str,
+        description: &str,
+        effect: &str,
+        along: f32,
+        side: f32,
+        links: &[&str],
+    ) {
+        let side_dir = Vec2::new(-self.dir.y, self.dir.x);
+        self.nodes.push(CircuitNode {
+            id: id.into(),
+            region: self.region,
+            kind,
+            name: name.into(),
+            description: description.into(),
+            effect: effect.into(),
+            pos: (self.dir * along + side_dir * side) * SPACING,
+            links: links.iter().map(|s| s.to_string()).collect(),
+        });
+    }
+}
+
+use NodeKind::{Keystone, Notable, Small};
+
+struct ElementArm {
+    element: Element,
+    degrees: f32,
+    skills: [(&'static str, &'static str); 2],
+    trigger: (&'static str, &'static str, &'static str),
+    passive: (&'static str, &'static str, &'static str),
+    keystone: (&'static str, &'static str, &'static str),
+}
+
+fn element_arm(spec: &ElementArm) -> Vec<CircuitNode> {
+    let (k, label) = (spec.element.key(), spec.element.label());
+    let id = |s: &str| format!("{k}_{s}");
+    let mut arm = Arm::new(spec.element, spec.degrees);
+    let edge = format!("mode_atk:{k}:0.04");
+    let edge_text = format!("ATK +4% in {label} mode.");
+    let potency = format!("buildup:{k}:1.15");
+    let potency_text = format!("{label} ailments build 15% faster.");
+    let calm = format!("overload:{k}:0.9");
+    let calm_text = format!("{label} mode overloads 10% slower.");
+    arm.add(&id("edge1"), Small, &format!("{label} Edge"), &edge_text, &edge, 2.0, 0.0, &[HUB]);
+    arm.add(&id("potency1"), Small, &format!("{label} Potency"), &potency_text, &potency, 3.0, 0.0, &[&id("edge1")]);
+    arm.add(
+        &id("technique"),
+        Notable,
+        &format!("{label} Technique"),
+        &format!("{label} skills can be charged to level 2."),
+        &format!("skill_level:{k}:2"),
+        4.0,
+        0.0,
+        &[&id("potency1")],
+    );
+    arm.add(&id("calm1"), Small, &format!("{label} Discipline"), &calm_text, &calm, 4.8, -1.0, &[&id("technique")]);
+    let (skill2, skill2_name) = spec.skills[0];
+    arm.add(
+        &id("skill2"),
+        Notable,
+        skill2_name,
+        &format!("Learn the {label} skill {skill2_name}."),
+        &format!("skill:{skill2}"),
+        5.6,
+        -1.8,
+        &[&id("calm1")],
+    );
+    arm.add(&id("potency2"), Small, &format!("{label} Potency"), &potency_text, &potency, 6.4, -2.4, &[&id("skill2")]);
+    let (t_name, t_text, t_effect) = spec.trigger;
+    arm.add(&id("trigger"), Notable, t_name, t_text, t_effect, 7.3, -2.8, &[&id("potency2")]);
+    arm.add(&id("edge2"), Small, &format!("{label} Edge"), &edge_text, &edge, 5.0, 0.0, &[&id("technique")]);
+    arm.add(&id("calm2"), Small, &format!("{label} Discipline"), &calm_text, &calm, 6.0, 0.0, &[&id("edge2")]);
+    arm.add(
+        &id("apex"),
+        Notable,
+        &format!("{label} Apex"),
+        &format!("{label} skills can be charged to level 3."),
+        &format!("skill_level:{k}:3"),
+        7.0,
+        0.0,
+        &[&id("calm2")],
+    );
+    arm.add(&id("edge3"), Small, &format!("{label} Edge"), &edge_text, &edge, 4.8, 1.0, &[&id("technique")]);
+    let (skill3, skill3_name) = spec.skills[1];
+    arm.add(
+        &id("skill3"),
+        Notable,
+        skill3_name,
+        &format!("Learn the {label} skill {skill3_name}."),
+        &format!("skill:{skill3}"),
+        5.6,
+        1.8,
+        &[&id("edge3")],
+    );
+    arm.add(&id("potency3"), Small, &format!("{label} Potency"), &potency_text, &potency, 6.4, 2.4, &[&id("skill3")]);
+    let (p_name, p_text, p_effect) = spec.passive;
+    arm.add(&id("passive"), Notable, p_name, p_text, p_effect, 7.3, 2.8, &[&id("potency3")]);
+    let (key_name, key_text, key_effect) = spec.keystone;
+    arm.add(&id("keystone"), Keystone, key_name, key_text, key_effect, 8.2, 0.0, &[&id("apex")]);
+    arm.nodes
+}
+
+fn neutral_arm() -> Vec<CircuitNode> {
+    let mut arm = Arm::new(Element::None, 90.0);
+    arm.add("n_vitality1", Small, "Vitality", "Life +5%.", "hp:0.05", 2.0, 0.0, &[HUB]);
+    arm.add("n_strength1", Small, "Strength", "ATK +4%.", "atk:0.04", 3.0, 0.0, &["n_vitality1"]);
+    arm.add(
+        "n_technique",
+        Notable,
+        "Neutral Technique",
+        "Neutral skills can be charged to level 2.",
+        "skill_level:none:2",
+        4.0,
+        0.0,
+        &["n_strength1"],
+    );
+    arm.add("n_toughness1", Small, "Toughness", "DEF +5%.", "def:0.05", 4.8, -1.0, &["n_technique"]);
+    arm.add(
+        "n_riposte",
+        Notable,
+        "Riposte",
+        "A perfect guard answers with a heavy counter-slash.",
+        "on:perfect_guard:riposte",
+        5.6,
+        -1.8,
+        &["n_toughness1"],
+    );
+    arm.add(
+        "n_form",
+        Small,
+        "Perfect Form",
+        "The perfect guard window widens.",
+        "perfect:0.04",
+        6.4,
+        -2.4,
+        &["n_riposte"],
+    );
+    arm.add(
+        "n_siphon",
+        Notable,
+        "Life Siphon",
+        "Perfect guards restore 5% of your life.",
+        "on:perfect_guard:siphon",
+        7.3,
+        -2.8,
+        &["n_form"],
+    );
+    arm.add("n_vitality2", Small, "Vitality", "Life +8%.", "hp:0.08", 8.1, -3.2, &["n_siphon"]);
+    arm.add(
+        "n_retaliation",
+        Notable,
+        "Retaliation",
+        "Taking a hit releases a shockwave around you (every 3 seconds at most).",
+        "on:hurt:retaliation:3",
+        8.9,
+        -3.6,
+        &["n_vitality2"],
+    );
+    arm.add("n_focus1", Small, "Focus", "FOC +8%.", "foc:0.08", 4.8, 1.0, &["n_technique"]);
+    arm.add(
+        "n_triple",
+        Notable,
+        "Triple Shot",
+        "Learn the Neutral skill Triple Shot.",
+        "skill:triple_shot",
+        5.6,
+        1.8,
+        &["n_focus1"],
+    );
+    arm.add("n_ricochet", Small, "Ricochet", "Bolts bounce one extra time.", "bounce:1", 6.4, 2.4, &["n_triple"]);
+    arm.add(
+        "n_phantom",
+        Notable,
+        "Phantom Step",
+        "Learn the Neutral skill Phantom Step.",
+        "skill:phantom_step",
+        7.3,
+        2.8,
+        &["n_ricochet"],
+    );
+    arm.add(
+        "n_feet",
+        Small,
+        "Quick Feet",
+        "Dodges recharge 25% faster.",
+        "dodge_recharge:1.25",
+        8.1,
+        3.2,
+        &["n_phantom"],
+    );
+    arm.add("n_wind", Notable, "Second Wind", "One extra dodge charge.", "dodges:1", 8.9, 3.6, &["n_feet"]);
+    arm.add("n_strength2", Small, "Strength", "ATK +4%.", "atk:0.04", 5.0, 0.0, &["n_technique"]);
+    arm.add("n_well", Small, "Spirit Well", "SP builds 15% faster.", "sp:1.15", 6.0, 0.0, &["n_strength2"]);
+    arm.add(
+        "n_apex",
+        Notable,
+        "Neutral Apex",
+        "Neutral skills can be charged to level 3.",
+        "skill_level:none:3",
+        7.0,
+        0.0,
+        &["n_well"],
+    );
+    arm.add(
+        "n_tether",
+        Small,
+        "Long Tether",
+        "The Aether Tether reaches 40% further.",
+        "tether:0.4",
+        8.0,
+        0.0,
+        &["n_apex"],
+    );
+    arm.add(
+        "n_tap",
+        Notable,
+        "Spirit Tap",
+        "Defeating a foe restores 15 SP.",
+        "on:kill:spirit_tap",
+        9.0,
+        0.0,
+        &["n_tether"],
+    );
+    arm.add(
+        "n_keystone",
+        Keystone,
+        "Blood Art",
+        "Skills cost 8% of your life per level instead of SP. They cannot take your last point of life.",
+        "passive:blood_art",
+        10.0,
+        0.0,
+        &["n_tap"],
+    );
+    arm.nodes
+}
+
+fn aether_arm() -> Vec<CircuitNode> {
+    let mut arm = Arm::new(Element::Aether, 270.0);
+    arm.add("a_attune1", Small, "Attunement", "Resonance fills 15% faster.", "resonance:1.15", 2.0, 0.0, &[HUB]);
+    arm.add(
+        "a_concord",
+        Small,
+        "Concord",
+        "ATK, DEF and FOC +3%.",
+        "atk:0.03,def:0.03,foc:0.03",
+        3.0,
+        0.0,
+        &["a_attune1"],
+    );
+    arm.add(
+        "a_technique",
+        Notable,
+        "Aether Technique",
+        "Aether skills can be charged to level 2.",
+        "skill_level:aether:2",
+        4.0,
+        0.0,
+        &["a_concord"],
+    );
+    arm.add(
+        "a_ray",
+        Notable,
+        "Prism Ray",
+        "Learn the Aether skill Prism Ray.",
+        "skill:prism_ray",
+        4.8,
+        -1.2,
+        &["a_technique"],
+    );
+    arm.add(
+        "a_linger1",
+        Small,
+        "Lingering Light",
+        "Aether bursts last 1 second longer.",
+        "burst:1",
+        5.6,
+        -2.0,
+        &["a_ray"],
+    );
+    arm.add(
+        "a_flicker",
+        Notable,
+        "Flicker",
+        "A close call slows every foe to a crawl for 2 seconds (every 12 seconds at most).",
+        "on:close_call:flicker:12",
+        6.4,
+        -2.6,
+        &["a_linger1"],
+    );
+    arm.add(
+        "a_sanctum",
+        Notable,
+        "Sanctum",
+        "Learn the Aether skill Sanctum.",
+        "skill:sanctum",
+        4.8,
+        1.2,
+        &["a_technique"],
+    );
+    arm.add(
+        "a_attune2",
+        Small,
+        "Attunement",
+        "Resonance fills 15% faster.",
+        "resonance:1.15",
+        5.6,
+        2.0,
+        &["a_sanctum"],
+    );
+    arm.add(
+        "a_overflow",
+        Notable,
+        "Overflow",
+        "Performing a skill at level 3 refunds one SP pip.",
+        "on:great_skill:overflow",
+        6.4,
+        2.6,
+        &["a_attune2"],
+    );
+    arm.add(
+        "a_linger2",
+        Small,
+        "Lingering Light",
+        "Aether bursts last 1 second longer.",
+        "burst:1",
+        5.0,
+        0.0,
+        &["a_technique"],
+    );
+    arm.add(
+        "a_apex",
+        Notable,
+        "Aether Apex",
+        "Aether skills can be charged to level 3.",
+        "skill_level:aether:3",
+        6.0,
+        0.0,
+        &["a_linger2"],
+    );
+    arm.add(
+        "a_keystone",
+        Keystone,
+        "Aether Bond",
+        "Aether bursts last 4 seconds longer, but Resonance fills 40% slower.",
+        "burst:4,resonance:0.6",
+        7.0,
+        0.0,
+        &["a_apex"],
+    );
+    arm.nodes
 }
 
 pub static NODES: LazyLock<Vec<CircuitNode>> = LazyLock::new(|| {
-    use Element as E;
-    let mut nodes = vec![
-        node("core_hp1", E::None, "Vitality", "Life +5%.", 1, "hp:0.05", 0, 0, &[], false),
-        node("core_atk1", E::None, "Strength", "ATK +4%.", 1, "atk:0.04", 1, 0, &[], false),
-        node("core_def1", E::None, "Toughness", "DEF +5%.", 1, "def:0.05", 2, 0, &[], false),
-        node("core_foc1", E::None, "Focus", "FOC +8%.", 1, "foc:0.08", 3, 0, &[], false),
-        node(
-            "core_whirl",
-            E::None,
-            "Whirlwind",
-            "Learn the Neutral melee Art Whirlwind.",
-            2,
-            "art:whirl",
-            1,
-            1,
-            &["core_atk1"],
-            false,
-        ),
-        node(
-            "core_triple",
-            E::None,
-            "Triple Shot",
-            "Learn the Neutral throw Art Triple Shot.",
-            2,
-            "art:triple_shot",
-            3,
-            1,
-            &["core_foc1"],
-            false,
-        ),
-        node(
-            "core_recover",
-            E::None,
-            "Quick Feet",
-            "Dodges recharge 25% faster.",
-            2,
-            "dodge_recharge:1.25",
-            0,
-            1,
-            &["core_hp1"],
-            false,
-        ),
-        node(
-            "core_counter",
-            E::None,
-            "Counter Stance",
-            "Learn the Neutral guard Art Counter Stance.",
-            3,
-            "art:counter_stance",
-            2,
-            1,
-            &["core_def1"],
-            false,
-        ),
-        node(
-            "core_phantom",
-            E::None,
-            "Phantom Step",
-            "Learn the Neutral dodge Art Phantom Step.",
-            3,
-            "art:phantom_step",
-            0,
-            2,
-            &["core_recover"],
-            false,
-        ),
-        node(
-            "core_spirit",
-            E::None,
-            "Spirit Well",
-            "SP builds 15% faster.",
-            2,
-            "sp:1.15",
-            1,
-            2,
-            &["core_whirl"],
-            false,
-        ),
-        node(
-            "core_ricochet",
-            E::None,
-            "Ricochet",
-            "Bolts bounce one extra time.",
-            3,
-            "bounce:1",
-            3,
-            2,
-            &["core_triple"],
-            false,
-        ),
-        node(
-            "core_form",
-            E::None,
-            "Perfect Form",
-            "The perfect guard window widens.",
-            3,
-            "perfect:0.04",
-            2,
-            2,
-            &["core_counter"],
-            false,
-        ),
-        node("core_hp2", E::None, "Vitality II", "Life +8%.", 3, "hp:0.08", 0, 3, &["core_phantom"], false),
-        node("core_atk2", E::None, "Strength II", "ATK +6%.", 3, "atk:0.06", 1, 3, &["core_spirit"], false),
-        node("core_def2", E::None, "Toughness II", "DEF +8%.", 3, "def:0.08", 2, 3, &["core_form"], false),
-        node(
-            "core_reach",
-            E::None,
-            "Long Tether",
-            "The Aether Tether reaches 40% further.",
-            2,
-            "tether:0.4",
-            3,
-            3,
-            &["core_ricochet"],
-            false,
-        ),
-        node("core_wind", E::None, "Second Wind", "One extra dodge charge.", 4, "dodges:1", 0, 4, &["core_hp2"], true),
-        node(
-            "core_siphon",
-            E::None,
-            "Life Siphon",
-            "Perfect guards restore 5% of your life.",
-            4,
-            "passive:perfect_heal",
-            2,
-            4,
-            &["core_def2"],
-            true,
-        ),
-        node("core_atk3", E::None, "Strength III", "ATK +8%.", 5, "atk:0.08", 1, 4, &["core_atk2"], true),
+    let mut nodes = vec![CircuitNode {
+        id: HUB.into(),
+        region: Element::None,
+        kind: NodeKind::Hub,
+        name: "The Circuit".into(),
+        description: "Where every path begins.".into(),
+        effect: String::new(),
+        pos: Vec2::ZERO,
+        links: Vec::new(),
+    }];
+    nodes.extend(neutral_arm());
+    let arms = [
+        ElementArm {
+            element: Element::Wind,
+            degrees: 30.0,
+            skills: [("cyclone", "Cyclone"), ("updraft", "Updraft")],
+            trigger: (
+                "Tempest Ward",
+                "In Wind mode, a perfect guard raises a ward that reflects projectiles for 2 seconds.",
+                "on:perfect_guard:tempest_ward:0:wind",
+            ),
+            passive: ("Gale Force", "Gust slams into walls deal double damage.", "passive:gust_slam"),
+            keystone: ("Tailwind", "Move 15% faster and dodges recharge 40% faster, but DEF -20%.", "passive:tailwind"),
+        },
+        ElementArm {
+            element: Element::Fire,
+            degrees: -30.0,
+            skills: [("meteor", "Meteor"), ("flame_aegis", "Flame Aegis")],
+            trigger: ("Blaze Step", "In Fire mode, dodges leave a line of fire.", "on:dodge:blaze_step:0:fire"),
+            passive: ("Wildfire", "Foes that die burning spread the flames.", "passive:burn_spread"),
+            keystone: (
+                "Unbound Flame",
+                "Overload never forces you out of your mode. Instead, reaching full overload burns 10% of your life.",
+                "passive:unbound",
+            ),
+        },
+        ElementArm {
+            element: Element::Water,
+            degrees: 210.0,
+            skills: [("glacier_lance", "Glacier Lance"), ("ice_mirror", "Ice Mirror")],
+            trigger: (
+                "Mist Veil",
+                "In Water mode, a close call hides you in mist (every 6 seconds at most).",
+                "on:close_call:mist_veil:6:water",
+            ),
+            passive: ("Deep Chill", "Chill lasts longer and freezes come sooner.", "passive:deep_chill"),
+            keystone: (
+                "Stillwater",
+                "The perfect guard window doubles, but you can hold only one dodge charge.",
+                "passive:stillwater",
+            ),
+        },
+        ElementArm {
+            element: Element::Thunder,
+            degrees: 150.0,
+            skills: [("storm_call", "Storm Call"), ("static_field", "Static Field")],
+            trigger: (
+                "Arc Step",
+                "In Thunder mode, dodges shock everything you pass through.",
+                "on:dodge:arc_step:0:thunder",
+            ),
+            passive: ("Chain Shock", "Shock pulses arc to any nearby foe, wet or not.", "passive:chain_shock"),
+            keystone: ("Overcharge", "ATK +25%, but DEF -25%.", "atk:0.25,def:-0.25"),
+        },
     ];
-    nodes.extend(element_tree(
-        E::Wind,
-        "updraft",
-        "cyclone",
-        "tempest_wall",
-        "passive:gust_slam",
-        "Gale Force",
-        "Gust slams into walls deal double damage.",
-        "gale_slash",
-    ));
-    nodes.extend(element_tree(
-        E::Fire,
-        "blaze_step",
-        "meteor",
-        "flame_aegis",
-        "passive:burn_spread",
-        "Wildfire",
-        "Foes that die burning spread the flames.",
-        "cinder_rush",
-    ));
-    nodes.extend(element_tree(
-        E::Water,
-        "mist_step",
-        "glacier_lance",
-        "ice_mirror",
-        "passive:deep_chill",
-        "Deep Chill",
-        "Chill lasts longer and freezes come sooner.",
-        "frost_bloom",
-    ));
-    nodes.extend(element_tree(
-        E::Thunder,
-        "arc_step",
-        "storm_call",
-        "static_field",
-        "passive:chain_shock",
-        "Chain Shock",
-        "Shock pulses arc to any nearby foe, wet or not.",
-        "arc_cleave",
-    ));
-    nodes.extend([
-        node(
-            "aether_edge",
-            E::Aether,
-            "Prism Edge",
-            "Learn the Aether melee Art Prism Edge.",
-            4,
-            "art:prism_edge",
-            0,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            "aether_ray",
-            E::Aether,
-            "Prism Ray",
-            "Learn the Aether throw Art Prism Ray.",
-            4,
-            "art:prism_ray",
-            1,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            "aether_flicker",
-            E::Aether,
-            "Flicker",
-            "Learn the Aether dodge Art Flicker.",
-            4,
-            "art:flicker",
-            2,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            "aether_sanctum",
-            E::Aether,
-            "Sanctum",
-            "Learn the Aether guard Art Sanctum.",
-            4,
-            "art:sanctum",
-            3,
-            0,
-            &[],
-            false,
-        ),
-        node(
-            "aether_resonance",
-            E::Aether,
-            "Resonance",
-            "Every element's ailments build 15% faster.",
-            4,
-            "buildup:all:1.15",
-            1,
-            1,
-            &["aether_edge"],
-            false,
-        ),
-        node(
-            "aether_calm",
-            E::Aether,
-            "Stillness",
-            "Every element overloads 15% slower.",
-            4,
-            "overload:all:0.85",
-            2,
-            1,
-            &["aether_flicker"],
-            false,
-        ),
-        node(
-            "aether_mastery",
-            E::Aether,
-            "Concord Mastery",
-            "ATK, DEF and FOC +6%.",
-            6,
-            "atk:0.06,def:0.06,foc:0.06",
-            1,
-            2,
-            &["aether_resonance", "aether_calm"],
-            true,
-        ),
-    ]);
+    for spec in &arms {
+        nodes.extend(element_arm(spec));
+    }
+    nodes.extend(aether_arm());
+    link_both_ways(&mut nodes);
     nodes
 });
 
+/// Makes every link symmetric so the web can be walked from either end.
+fn link_both_ways(nodes: &mut [CircuitNode]) {
+    let pairs: Vec<(String, String)> =
+        nodes.iter().flat_map(|n| n.links.iter().map(move |l| (n.id.clone(), l.clone()))).collect();
+    for (from, to) in pairs {
+        if let Some(target) = nodes.iter_mut().find(|n| n.id == to)
+            && !target.links.contains(&from)
+        {
+            target.links.push(from);
+        }
+    }
+}
+
 pub fn by_id(id: &str) -> Option<&'static CircuitNode> {
     NODES.iter().find(|n| n.id == id)
+}
+
+/// The direction an arm leaves the hub, for laying out labels.
+pub fn arm_angle(region: Element) -> f32 {
+    match region {
+        Element::None => FRAC_PI_2,
+        Element::Wind => 30f32.to_radians(),
+        Element::Fire => -30f32.to_radians(),
+        Element::Water => 210f32.to_radians(),
+        Element::Thunder => 150f32.to_radians(),
+        Element::Aether => -FRAC_PI_2,
+    }
 }
 
 /// Folds the effects of every unlocked node into one set of modifiers.
@@ -491,7 +626,7 @@ pub fn compute<'a>(unlocked: impl Iterator<Item = &'a String>) -> CircuitMods {
     let mut mods = CircuitMods::default();
     for id in unlocked {
         let Some(node) = by_id(id) else { continue };
-        for effect in node.effect.split(',') {
+        for effect in node.effect.split(',').filter(|e| !e.is_empty()) {
             let p: Vec<&str> = effect.split(':').collect();
             let value = |i: usize| p.get(i).and_then(|v| v.parse::<f32>().ok()).unwrap_or(0.0);
             match p[0] {
@@ -505,8 +640,15 @@ pub fn compute<'a>(unlocked: impl Iterator<Item = &'a String>) -> CircuitMods {
                 "bounce" => mods.bounces += value(1) as i32,
                 "perfect" => mods.perfect_window += value(1),
                 "tether" => mods.tether_range += value(1),
+                "burst" => mods.burst_bonus += value(1),
+                "resonance" => mods.resonance_gain *= value(1),
                 "passive" => {
                     mods.passives.insert(p[1].to_string());
+                    if p[1] == "tailwind" {
+                        mods.speed *= 1.15;
+                        mods.dodge_recharge *= 1.4;
+                        mods.def -= 0.2;
+                    }
                 }
                 "overload" => {
                     for e in targets(p[1]) {
@@ -520,13 +662,23 @@ pub fn compute<'a>(unlocked: impl Iterator<Item = &'a String>) -> CircuitMods {
                         mods.buildup.insert(e, v);
                     }
                 }
+                "mode_atk" => {
+                    *mods.mode_atk.entry(Element::parse(Some(p[1]))).or_default() += value(2);
+                }
                 "skill_level" => {
                     let e = Element::parse(Some(p[1]));
                     let level = mods.skill_level(e).max(value(2) as i32);
                     mods.skill_levels.insert(e, level);
                 }
-                "mode_atk" => {
-                    mods.passives.insert(format!("mode_atk:{}", p[1]));
+                "on" => {
+                    if let Some(event) = p.get(1).and_then(|e| Trigger::parse(e)) {
+                        mods.triggers.push(TriggerDef {
+                            event,
+                            effect: p.get(2).copied().unwrap_or("").to_string(),
+                            cooldown: value(3),
+                            mode: p.get(4).map(|m| Element::parse(Some(m))),
+                        });
+                    }
                 }
                 _ => {}
             }
@@ -537,4 +689,31 @@ pub fn compute<'a>(unlocked: impl Iterator<Item = &'a String>) -> CircuitMods {
 
 fn targets(key: &str) -> Vec<Element> {
     if key == "all" { BASIC.to_vec() } else { vec![Element::parse(Some(key))] }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_link_points_at_a_real_node() {
+        for node in NODES.iter() {
+            for link in &node.links {
+                assert!(by_id(link).is_some(), "{} links to missing {link}", node.id);
+            }
+        }
+        let ids: HashSet<&str> = NODES.iter().map(|n| n.id.as_str()).collect();
+        assert_eq!(ids.len(), NODES.len(), "duplicate node ids");
+    }
+
+    #[test]
+    fn effects_fold_into_mods() {
+        let picked: Vec<String> = ["fire_technique", "fire_edge1", "n_riposte", "a_keystone"].map(String::from).into();
+        let mods = compute(picked.iter());
+        assert_eq!(mods.skill_level(Element::Fire), 2);
+        assert!((mods.mode_atk_for(Element::Fire) - 1.04).abs() < 1e-5);
+        assert_eq!(mods.triggers.len(), 1);
+        assert_eq!(mods.triggers[0].event, Trigger::PerfectGuard);
+        assert!((mods.burst_bonus - 4.0).abs() < 1e-5);
+    }
 }

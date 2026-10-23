@@ -780,10 +780,7 @@ impl Enemy {
         let element = if hit.element == Element::Aether { self.best_element_against(world) } else { hit.element };
         self.alert(world);
 
-        if self.aura
-            && hit.kind != HitKind::Environment
-            && element == self.aura_element.opposite()
-        {
+        if self.aura && hit.kind != HitKind::Environment && element == self.aura_element.opposite() {
             self.aura = false;
             audio::play(Sound::Break, 0.8, 0.3);
             world.add(FloatingText::new(
