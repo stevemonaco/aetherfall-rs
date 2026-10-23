@@ -1,4 +1,5 @@
 pub mod art_actions;
+pub mod blight_hazards;
 pub mod blocks;
 pub mod boss;
 pub mod combat_effects;
@@ -19,6 +20,7 @@ pub mod rift;
 pub mod serpent;
 pub mod sovereign;
 pub mod tether;
+pub mod tide;
 pub mod warden;
 pub mod warlock;
 pub mod wyrm;

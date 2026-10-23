@@ -1,3 +1,4 @@
+pub mod blight_gate;
 pub mod circuit;
 pub mod crystal;
 pub mod dialogue;

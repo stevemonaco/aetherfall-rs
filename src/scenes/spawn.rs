@@ -1,5 +1,6 @@
 //! Builds entities from map file entries.
 
+use crate::entities::blight_hazards::{BlightGate, Cannon, StormGrid};
 use crate::entities::blocks::{AetherSeal, IceBlock, LensShard, PressurePlate, TetherLever, TetherPost};
 use crate::entities::boss;
 use crate::entities::companion::DigSpot;
@@ -10,6 +11,7 @@ use crate::entities::obstacles::{Brazier, Crate, ObstacleKind, TileObstacle, Tur
 use crate::entities::props::{Building, Chest, Decor, Npc, Sign, Warp};
 use crate::entities::puzzles::{FloorSwitch, Gate, LockedDoor, SaveCrystal, SpanBridge, Trigger};
 use crate::entities::rift::Rift;
+use crate::entities::tide::Tide;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::data;
 use crate::scenes::world::World;
@@ -34,6 +36,10 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
         "dig" => Box::new(DigSpot::new(entry, &map_id)),
         "span" => Box::new(SpanBridge::new(entry)),
         "turbine" => Box::new(Turbine::new(entry)),
+        "tide" => Box::new(Tide::new(entry)),
+        "storm" => Box::new(StormGrid::new(entry)),
+        "cannon" => Box::new(Cannon::new(entry)),
+        "blightgate" => Box::new(BlightGate::new(entry)),
         "brazier" => Box::new(Brazier::new(entry)),
         "crate" => Box::new(Crate::new(entry)),
         "vent" => Box::new(GasVent::new(entry)),

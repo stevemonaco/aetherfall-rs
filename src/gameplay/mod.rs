@@ -1,4 +1,5 @@
 pub mod arts;
+pub mod blight_areas;
 pub mod circuit;
 pub mod combat;
 pub mod element;

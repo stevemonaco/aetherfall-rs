@@ -20,7 +20,9 @@ use crate::entities::effects::{FloatingText, Particle, Puff};
 use crate::entities::entity::{Entity, EntityId, PLAYER_ID};
 use crate::entities::pickup::Pickup;
 use crate::entities::player::Player;
+use crate::entities::puzzles::SpanBridge;
 use crate::gameplay::arts;
+use crate::gameplay::blight_areas::{self, BlightAreaDef};
 use crate::gameplay::combat::{self, Faction, Hit};
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{EnemyDef, data};
@@ -34,7 +36,7 @@ use crate::world::baker;
 use crate::world::camera::Camera;
 use crate::world::chemistry::Chemistry;
 use crate::world::lighting::{self, LightFrame};
-use crate::world::map::{MapData, TILE, TileMap, tile_center, tile_feet};
+use crate::world::map::{EntityData, MapData, TILE, TileMap, tile_center, tile_feet};
 use crate::world::theme::TerrainTheme;
 use crate::world::water::WaterLayer;
 
@@ -121,6 +123,10 @@ pub struct World {
     checkpoint: Option<GameState>,
     ambient: Rgba,
     saved_flash: f32,
+    run_start: f64,
+    run_area: Option<String>,
+    run_damage: i32,
+    run_graded: bool,
 }
 
 impl World {
@@ -168,6 +174,10 @@ impl World {
             checkpoint: None,
             ambient: Rgba::WHITE,
             saved_flash: 0.0,
+            run_start: 0.0,
+            run_area: None,
+            run_damage: 0,
+            run_graded: false,
         }
     }
 
@@ -363,6 +373,11 @@ impl World {
             self.state.flags.insert(format!("visited:{id}"));
         }
         self.state.flags.insert(format!("seen:{id}"));
+        match self.data.blight_area.clone() {
+            None => self.run_area = None,
+            Some(area) if self.run_area.as_ref() != Some(&area) => self.begin_run(&area, false),
+            Some(_) => {}
+        }
 
         let mut spawn_point = None;
         for entity in self.data.entities.clone() {
@@ -375,6 +390,21 @@ impl World {
             } else {
                 self.dormant.push(entity);
             }
+        }
+
+        let prefix = format!("filled:{id}:");
+        let filled: Vec<String> =
+            self.state.flags.iter().filter_map(|f| f.strip_prefix(&prefix)).map(String::from).collect();
+        for xy in filled {
+            let mut xy = xy.split('_').map(|v| v.parse::<f32>().unwrap_or(0.0));
+            let mut span = EntityData {
+                kind: "span".into(),
+                x: xy.next().unwrap_or(0.0),
+                y: xy.next().unwrap_or(0.0),
+                ..EntityData::default()
+            };
+            span.extra.insert("look".into(), "rubble".into());
+            self.add(SpanBridge::new(&span));
         }
 
         let start = position
@@ -434,6 +464,14 @@ impl World {
         for (arena, boss, intro) in arenas {
             if !self.state.flags.contains(boss) && self.state.flags.remove(arena) {
                 self.state.flags.remove(intro);
+            }
+        }
+        let arenas: Vec<String> = self.state.flags.iter().filter(|f| f.starts_with("run:arena:")).cloned().collect();
+        for arena in arenas {
+            let boss = &arena["run:arena:".len()..];
+            if !self.state.flags.contains(&format!("run:{boss}")) {
+                self.state.flags.remove(&format!("run:met:{boss}"));
+                self.state.flags.remove(&arena);
             }
         }
     }
@@ -865,6 +903,69 @@ impl World {
         self.overlays.push_back(overlay);
     }
 
+    pub fn open_blight_gate(&mut self) {
+        self.queue(Box::new(|_| Box::new(super::blight_gate::BlightGateScene::new())));
+    }
+
+    /// Enters a Blighted area through a Blight Gate. A fresh run re-seals its per-run state (flags prefixed `run:` and
+    /// rifts named `run_*`) so the area can be replayed for a better grade.
+    pub fn start_run(&mut self, area: &BlightAreaDef, map: &str, x: i32, y: i32) {
+        self.state.flags.retain(|f| !f.starts_with("run:") && !f.starts_with("rift:run_"));
+        self.begin_run(area.id, map == area.map);
+        self.run_actions(&[format!("warp:{map},{x},{y},up")]);
+    }
+
+    fn begin_run(&mut self, area_id: &str, graded: bool) {
+        self.run_area = Some(area_id.to_string());
+        self.run_start = self.state.play_time;
+        self.run_damage = 0;
+        self.run_graded = graded;
+    }
+
+    /// Damage taken during the current Blighted run, for its grade.
+    pub fn player_hurt(&mut self, amount: i32) {
+        self.run_damage += amount;
+    }
+
+    fn finish_run(&mut self, area_id: &str) {
+        let Some(area) = blight_areas::get(area_id) else { return };
+        if self.run_area.as_deref() != Some(area_id) || !self.run_graded {
+            self.show_message(&format!(
+                "{} cleared! (Ungraded: a graded run starts at the Blight Gate and ends without falling or leaving.)",
+                area.name
+            ));
+            self.run_area = None;
+            return;
+        }
+        let seconds = self.state.play_time - self.run_start;
+        let heat = pacts::heat(&self.state);
+        let grade = blight_areas::grade(seconds as f32, area.par_seconds, self.run_damage, self.state.max_hp(), heat);
+        let best = blight_areas::best_grade(&self.state, area_id);
+        let cores = (blight_areas::rank(Some(grade)) - blight_areas::rank(best.as_deref())).max(0);
+        if best.is_none() || cores > 0 {
+            let prefix = format!("grade:{area_id}=");
+            self.state.flags.retain(|f| !f.starts_with(&prefix));
+            self.state.flags.insert(format!("{prefix}{grade}"));
+        }
+        if cores > 0 {
+            self.state.give("blight_core", cores);
+        }
+        let total = seconds.max(0.0) as i64;
+        let reward = if cores > 0 {
+            format!(" (+{cores} Blight Core{})", if cores > 1 { "s" } else { "" })
+        } else {
+            String::new()
+        };
+        self.show_message(&format!(
+            "{} cleared in {}:{:02}, taking {} damage. Grade: {grade}{reward}",
+            area.name,
+            total / 60,
+            total % 60,
+            self.run_damage
+        ));
+        self.run_area = None;
+    }
+
     pub fn start_dialogue(&mut self, id: &str, speaker: &str) {
         let Some(entries) = data().dialogue.get(id) else {
             self.show_message_from("...", speaker, None);
@@ -969,6 +1070,7 @@ impl World {
                         self.begin_warp(w[0], tile, Direction::parse(w.get(3).copied()), true);
                     }
                 }
+                "grade" => self.finish_run(arg),
                 "ending" => {
                     self.state.flags.insert("game_clear".into());
                     audio::play_music(Some("Menu-AdventuresAwait"));

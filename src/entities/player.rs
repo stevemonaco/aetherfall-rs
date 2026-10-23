@@ -597,6 +597,7 @@ impl Player {
 
     fn apply_damage(&mut self, world: &mut World, amount: i32, element: Element, crit: bool) {
         world.state.hp = (world.state.hp - amount).max(0);
+        world.player_hurt(amount);
         world.add(DamageNumber::hurt(self.center(), amount, element, crit));
         if world.state.hp > 0 {
             return;
