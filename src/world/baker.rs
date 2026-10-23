@@ -2,10 +2,10 @@
 //! ragged borders between any pair of terrains without authoring transition tiles. Water is left transparent so the
 //! animated water layer underneath shows through. A direct port of TerrainBaker.cs.
 
-use crate::color::Rgba;
-use crate::map::{TILE, Terrain, TileMap};
-use crate::noise::{self, worley};
-use crate::theme::TerrainTheme;
+use crate::core::color::Rgba;
+use crate::world::map::{TILE, Terrain, TileMap};
+use crate::core::noise::{self, worley};
+use crate::world::theme::TerrainTheme;
 
 const CORNER_RADIUS: f32 = 6.0;
 const NEIGHBOURS: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];

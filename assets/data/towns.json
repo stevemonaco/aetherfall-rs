@@ -1,0 +1,7 @@
+{
+  // Each town's restoration is the share of its rifts that have been sealed (flags rift:<id>).
+  "leafhollow": { "name": "Leafhollow", "rifts": [ "leaf_herbalist", "leaf_smith", "leaf_shrine", "leaf_hound", "leaf_bridge" ] },
+  "brinewatch": { "name": "Brinewatch", "rifts": [ "brine_fisher", "brine_lighthouse", "brine_ferry", "brine_shipwright", "brine_guardian" ] },
+  "highcrag":   { "name": "Highcrag", "rifts": [ "crag_arena", "crag_forge", "crag_apprentice", "crag_stormling", "crag_hearth" ] },
+  "ashford":    { "name": "Ashford Camp", "rifts": [ "ash_camp", "ash_smith", "ash_forge_bellows", "ash_forge_anvil", "ash_forge_heart", "ash_ember", "ash_lantern" ] }
+}

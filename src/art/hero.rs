@@ -1,80 +1,15 @@
-//! Procedural sprites: a CPU pixel canvas and the person rig shared by the hero and villagers (ported from
-//! Canvas.cs and HeroArt.cs).
+//! People drawn procedurally from a small rig (head, hair or hat, scarf, torso, arms, legs) so the hero and every
+//! villager share one look. Frames are 20x26 with the feet at the bottom centre; side views face right.
 
-use crate::color::{OUTLINE, Rgba, ramp};
+use bevy::math::Vec2;
 
-/// A small CPU-side pixel buffer for drawing procedural sprites before uploading them as images.
-pub struct Canvas {
-    pub width: i32,
-    pub height: i32,
-    pub pixels: Vec<Rgba>,
-}
-
-impl Canvas {
-    pub fn new(width: i32, height: i32) -> Canvas {
-        Canvas { width, height, pixels: vec![Rgba::TRANSPARENT; (width * height) as usize] }
-    }
-
-    pub fn get(&self, x: i32, y: i32) -> Rgba {
-        if x >= 0 && y >= 0 && x < self.width && y < self.height {
-            self.pixels[(y * self.width + x) as usize]
-        } else {
-            Rgba::TRANSPARENT
-        }
-    }
-
-    pub fn set(&mut self, x: i32, y: i32, c: Rgba) {
-        if x >= 0 && y >= 0 && x < self.width && y < self.height {
-            self.pixels[(y * self.width + x) as usize] = c;
-        }
-    }
-
-    pub fn ellipse(&mut self, cx: f32, cy: f32, rx: f32, ry: f32, c: Rgba) {
-        for y in (cy - ry - 1.0) as i32..=(cy + ry + 1.0) as i32 {
-            for x in (cx - rx - 1.0) as i32..=(cx + rx + 1.0) as i32 {
-                let (dx, dy) = ((x as f32 + 0.5 - cx) / rx, (y as f32 + 0.5 - cy) / ry);
-                if dx * dx + dy * dy <= 1.0 {
-                    self.set(x, y, c);
-                }
-            }
-        }
-    }
-
-    /// Adds a 1px outline around all opaque pixels, matching the dark outlines on the 7Soul sprites.
-    pub fn outline(&mut self, c: Rgba) {
-        let copy = self.pixels.clone();
-        let opaque = |x: i32, y: i32| {
-            x >= 0 && y >= 0 && x < self.width && y < self.height && copy[(y * self.width + x) as usize].a > 0
-        };
-        let mut edges = Vec::new();
-        for y in 0..self.height {
-            for x in 0..self.width {
-                if !opaque(x, y) && (opaque(x - 1, y) || opaque(x + 1, y) || opaque(x, y - 1) || opaque(x, y + 1)) {
-                    edges.push((x, y));
-                }
-            }
-        }
-        for (x, y) in edges {
-            self.set(x, y, c);
-        }
-    }
-
-    pub fn blit(&mut self, source: &Canvas, ox: i32, oy: i32) {
-        for y in 0..source.height {
-            for x in 0..source.width {
-                let c = source.get(x, y);
-                if c.a > 0 {
-                    self.set(ox + x, oy + y, c);
-                }
-            }
-        }
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        self.pixels.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect()
-    }
-}
-
+use crate::core::canvas::Canvas;
+use crate::core::color::{Rgba, ramp};
+use crate::core::direction::Direction;
+use crate::core::geom::{IRect, snap};
+use crate::core::gfx::{self, Batch, TexId};
+use crate::core::noise;
+use crate::core::palette::OUTLINE;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum HeroPose {
     Idle,
@@ -118,8 +53,10 @@ pub enum Headwear {
     Headband,
 }
 
-/// What a person looks like: palette ramps (dark to light) and a few style switches.
+/// What a person looks like: palette ramps (dark to light) and a few style switches. `key` names the cached sheet.
+#[derive(Clone)]
 pub struct Appearance {
+    pub key: String,
     pub skin: Vec<Rgba>,
     pub hair: Vec<Rgba>,
     pub top: Vec<Rgba>,
@@ -136,22 +73,53 @@ pub struct Appearance {
 }
 
 impl Appearance {
-    pub fn hero() -> Appearance {
+    fn new(key: &str, skin: Vec<Rgba>, hair: Vec<Rgba>, top: Vec<Rgba>, legs: Vec<Rgba>, boots: Vec<Rgba>, hair_style: HairStyle) -> Appearance {
         Appearance {
-            skin: ramp(&[0xB07850, 0xE0A87C, 0xF6D2AC]),
-            hair: ramp(&[0x3A2216, 0x6A3E22, 0x9A5E30, 0xC08A48]),
-            top: ramp(&[0x22305A, 0x3A5498, 0x5A7ECC, 0x8AAEEC]),
-            legs: ramp(&[0x221C2C, 0x3C3248]),
-            boots: ramp(&[0x2E1C12, 0x6A4226]),
-            hair_style: HairStyle::Short,
+            key: key.to_string(),
+            skin,
+            hair,
+            top,
+            legs,
+            boots,
+            hair_style,
             headwear: Headwear::None,
             hat: None,
-            scarf: Some(ramp(&[0x16645A, 0x26A08C, 0x66DCC4])),
+            scarf: None,
             robe: false,
             beard: false,
             belt: None,
             cape: false,
         }
+    }
+
+    fn wear(mut self, headwear: Headwear, hat: Option<Vec<Rgba>>) -> Appearance {
+        self.headwear = headwear;
+        self.hat = hat;
+        self
+    }
+
+    fn robed(mut self) -> Appearance {
+        self.robe = true;
+        self
+    }
+
+    fn bearded(mut self) -> Appearance {
+        self.beard = true;
+        self
+    }
+
+    pub fn hero() -> Appearance {
+        let mut look = Appearance::new(
+            "hero",
+            people::skin(1),
+            ramp(&[0x3A2216, 0x6A3E22, 0x9A5E30, 0xC08A48]),
+            ramp(&[0x22305A, 0x3A5498, 0x5A7ECC, 0x8AAEEC]),
+            ramp(&[0x221C2C, 0x3C3248]),
+            ramp(&[0x2E1C12, 0x6A4226]),
+            HairStyle::Short,
+        );
+        look.scarf = Some(ramp(&[0x16645A, 0x26A08C, 0x66DCC4]));
+        look
     }
 }
 
@@ -208,12 +176,201 @@ impl PersonSprite {
                 for f in 0..Self::frame_count(pose) {
                     let mut frame = Canvas::new(Self::FRAME_WIDTH, Self::FRAME_HEIGHT);
                     Painter { c: &mut frame, look }.paint(view, rig_for(pose, f));
-                    frame.outline(OUTLINE);
+                    frame.outline_with(OUTLINE);
                     sheet.blit(&frame, Self::column(pose, f) * Self::FRAME_WIDTH, v as i32 * Self::FRAME_HEIGHT);
                 }
             }
         }
         sheet
+    }
+}
+
+impl PersonSprite {
+    pub fn sheet(look: &Appearance) -> TexId {
+        gfx::cached(&format!("person_{}", look.key), || PersonSprite::build(look))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw(batch: &mut Batch, look: &Appearance, feet: Vec2, facing: Direction, pose: HeroPose, frame: i32, color: Rgba, silhouette: bool, scale: f32, rotation: f32) {
+        let view = match facing {
+            Direction::Up => 1,
+            Direction::Left | Direction::Right => 2,
+            Direction::Down => 0,
+        };
+        let src = IRect::new(Self::column(pose, frame) * Self::FRAME_WIDTH, view * Self::FRAME_HEIGHT, Self::FRAME_WIDTH, Self::FRAME_HEIGHT);
+        let sheet = Self::sheet(look);
+        let tex = if silhouette { gfx::silhouette(sheet) } else { sheet };
+        let origin = Vec2::new(Self::FRAME_WIDTH as f32 / 2.0, (Self::FRAME_HEIGHT - 1) as f32);
+        batch.draw_ex(tex, snap(feet), Some(src), color, rotation, origin, Vec2::splat(scale), facing == Direction::Left, false);
+    }
+}
+
+/// The hero's look and convenience drawing.
+pub mod hero_sprite {
+    use std::sync::LazyLock;
+
+    use super::*;
+
+    pub static LOOK: LazyLock<Appearance> = LazyLock::new(Appearance::hero);
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw(batch: &mut Batch, feet: Vec2, facing: Direction, pose: HeroPose, frame: i32, color: Rgba, silhouette: bool, scale: f32, rotation: f32) {
+        PersonSprite::draw(batch, &LOOK, feet, facing, pose, frame, color, silhouette, scale, rotation);
+    }
+}
+
+/// Named looks for the townsfolk, keyed by the sprite names map files use.
+pub mod people {
+    use std::collections::HashMap;
+    use std::sync::{LazyLock, Mutex};
+
+    use super::*;
+
+    pub fn skin(tone: i32) -> Vec<Rgba> {
+        match tone {
+            0 => ramp(&[0xC08A64, 0xF0BE98, 0xFFE0C4]),
+            2 => ramp(&[0x7A4A2A, 0xB07850, 0xD8A070]),
+            3 => ramp(&[0x4A2A1A, 0x7A4A30, 0xA06A44]),
+            _ => ramp(&[0xB07850, 0xE0A87C, 0xF6D2AC]),
+        }
+    }
+
+    fn white() -> Vec<Rgba> {
+        ramp(&[0x8A8A9A, 0xC0C0CC, 0xE8E8F0, 0xFFFFFF])
+    }
+    fn grey() -> Vec<Rgba> {
+        ramp(&[0x4A4A58, 0x7A7A8A, 0xA8A8B8, 0xD0D0DC])
+    }
+    fn brown() -> Vec<Rgba> {
+        ramp(&[0x2E1C12, 0x5A3A22, 0x8A5A32, 0xB07A48])
+    }
+    fn black() -> Vec<Rgba> {
+        ramp(&[0x14121C, 0x26222E, 0x3A3444, 0x524A5E])
+    }
+    fn blond() -> Vec<Rgba> {
+        ramp(&[0x8A6A2A, 0xC8A040, 0xE8C860, 0xFFE8A0])
+    }
+    fn red() -> Vec<Rgba> {
+        ramp(&[0x5A1A12, 0x8A2E1E, 0xB84A2A, 0xE07A4A])
+    }
+    fn dark_pants() -> Vec<Rgba> {
+        ramp(&[0x221C2C, 0x3C3248])
+    }
+    fn brown_pants() -> Vec<Rgba> {
+        ramp(&[0x3A2618, 0x5A3E28])
+    }
+    fn boots() -> Vec<Rgba> {
+        ramp(&[0x2E1C12, 0x6A4226])
+    }
+    fn cloth(dark: u32, mid: u32, light: u32, lit: u32) -> Vec<Rgba> {
+        ramp(&[dark, mid, light, lit])
+    }
+
+    fn looks() -> HashMap<String, Appearance> {
+        use HairStyle::*;
+        use Headwear::*;
+        let a = Appearance::new;
+        let list = vec![
+            a("oldman1", skin(0), white(), cloth(0x3A2A1A, 0x6A4A2A, 0x8A6A3A, 0xB08A5A), brown_pants(), boots(), Bald).robed().bearded(),
+            a("oldman2", skin(1), grey(), cloth(0x1E3A2A, 0x2E5A3E, 0x427A52, 0x6AA070), brown_pants(), boots(), Short).robed().bearded(),
+            a("oldman3", skin(2), white(), cloth(0x22305A, 0x3A4A88, 0x5A6AB0, 0x8A9AD0), dark_pants(), boots(), Long).robed().bearded(),
+            a("adventurer_f2", skin(1), red(), cloth(0x2A4A1E, 0x3E6A2E, 0x5A8A3E, 0x8AB060), brown_pants(), boots(), Long),
+            a("adventurer_f3", skin(3), black(), cloth(0x5A1E3A, 0x8A2E5A, 0xB04A7A, 0xD87AA0), dark_pants(), boots(), Bun),
+            a("adventurer_f4", skin(0), blond(), cloth(0x2A3A6A, 0x3E5A9A, 0x5A7ACA, 0x8AA8E8), dark_pants(), boots(), Long)
+                .wear(Headband, Some(ramp(&[0x8A1E1E, 0xC03A3A, 0xE05A5A, 0xF08A8A]))),
+            a("adventurer_m3", skin(2), brown(), cloth(0x5A3A12, 0x8A5A1E, 0xB07A30, 0xD8A050), dark_pants(), boots(), Spiky),
+            a("adventurer_m4", skin(1), black(), cloth(0x3A1A1A, 0x6A2A2A, 0x9A3E3E, 0xC06A5A), brown_pants(), boots(), Short)
+                .wear(Cap, Some(ramp(&[0x1A2A4A, 0x2A4A7A, 0x3E6AA8, 0x6A9AD0]))),
+            {
+                let mut l = a("cleric1", skin(1), blond(), white(), dark_pants(), boots(), Short).wear(Hood, Some(white())).robed();
+                l.belt = Some(Rgba::hex(0xC8A040));
+                l
+            },
+            {
+                let mut l = a("cleric2", skin(2), grey(), cloth(0x8A8A9A, 0xC0C0CC, 0xE8E8F0, 0xFFFFFF), dark_pants(), boots(), Bald).robed();
+                l.belt = Some(Rgba::hex(0x3A6AB0));
+                l
+            },
+            a("cleric3", skin(3), black(), cloth(0x5A4A12, 0x8A7A2A, 0xB0A048, 0xD8C870), dark_pants(), boots(), Bun).robed(),
+            a("fighter1", skin(1), brown(), grey(), dark_pants(), boots(), Short)
+                .wear(Headband, Some(ramp(&[0x6A1A1A, 0x9A2A2A, 0xC03A3A, 0xE06A6A]))),
+            a("fighter3", skin(2), red(), grey(), brown_pants(), boots(), Spiky),
+            a("warrior2", skin(3), black(), cloth(0x4A2A12, 0x6A4A22, 0x8A6A3A, 0xB08A5A), brown_pants(), boots(), Short).wear(Helmet, Some(grey())),
+            {
+                let mut l = a("knight3", skin(0), blond(), grey(), dark_pants(), boots(), Short).wear(Helmet, Some(grey()));
+                l.cape = true;
+                l
+            },
+            a("guard1", skin(1), brown(), cloth(0x1A2A5A, 0x2A4A8A, 0x3E6AB8, 0x6A9AE0), dark_pants(), boots(), Short).wear(Helmet, Some(grey())),
+            a("guard2", skin(2), black(), cloth(0x5A1A1A, 0x8A2A2A, 0xB03E3E, 0xD86A6A), dark_pants(), boots(), Short).wear(Helmet, Some(grey())),
+            a("guard3", skin(3), brown(), cloth(0x1A4A3A, 0x2A6A54, 0x3E8A70, 0x6AB09A), dark_pants(), boots(), Short).wear(Helmet, Some(grey())),
+            a("hunter1", skin(1), brown(), cloth(0x1E3A1A, 0x2E5A26, 0x427A36, 0x6AA05A), brown_pants(), boots(), Short)
+                .wear(Hood, Some(cloth(0x1E3A1A, 0x2E5A26, 0x427A36, 0x6AA05A))),
+            a("hunter2", skin(2), blond(), cloth(0x3A2A12, 0x5A4220, 0x7A5A30, 0xA07A48), brown_pants(), boots(), Long),
+            a("hunter3", skin(0), red(), cloth(0x2A3A1A, 0x3E5426, 0x566E36, 0x7A9450), dark_pants(), boots(), Bun).wear(Cap, Some(brown())),
+            a("mage3", skin(1), white(), cloth(0x2A1A4A, 0x4A2E7A, 0x6A46A8, 0x9A72D0), dark_pants(), boots(), Long)
+                .wear(WizardHat, Some(cloth(0x2A1A4A, 0x4A2E7A, 0x6A46A8, 0x9A72D0)))
+                .robed(),
+            a("wizard1", skin(0), grey(), cloth(0x1A2A4A, 0x2A447A, 0x3E62A8, 0x6A8ED0), dark_pants(), boots(), Short)
+                .wear(WizardHat, Some(cloth(0x1A2A4A, 0x2A447A, 0x3E62A8, 0x6A8ED0)))
+                .robed()
+                .bearded(),
+            a("ninja1", skin(1), black(), black(), dark_pants(), boots(), Short).wear(Hood, Some(black())),
+            {
+                let mut l = a("thief2", skin(2), brown(), cloth(0x2A2A3A, 0x3E3E54, 0x56566E, 0x7A7A94), dark_pants(), boots(), Spiky);
+                l.scarf = Some(ramp(&[0x5A1A1A, 0x8A2A2A, 0xC04A4A]));
+                l
+            },
+            a("thief3", skin(1), red(), cloth(0x3A2A12, 0x5A4220, 0x7A5A30, 0xA07A48), dark_pants(), boots(), Short)
+                .wear(Hood, Some(cloth(0x2A2A3A, 0x3E3E54, 0x56566E, 0x7A7A94))),
+            {
+                let mut l = a("rogue1", skin(1), brown(), cloth(0x3A2A1A, 0x5A4228, 0x7A5A3A, 0xA07A54), brown_pants(), boots(), Short)
+                    .wear(Cap, Some(cloth(0x5A1A1A, 0x8A2A2A, 0xB03E3E, 0xD86A6A)));
+                l.scarf = Some(ramp(&[0x6A5A1A, 0x9A8A2A, 0xC8B850]));
+                l
+            },
+            a("rogue2", skin(3), black(), cloth(0x1E3A3A, 0x2E5A5A, 0x427A7A, 0x6AA0A0), dark_pants(), boots(), Long)
+                .wear(Headband, Some(ramp(&[0x6A5A1A, 0x9A8A2A, 0xC8B850, 0xE8D880]))),
+        ];
+        list.into_iter().map(|l| (l.key.clone(), l)).collect()
+    }
+
+    static LOOKS: LazyLock<Mutex<HashMap<String, Appearance>>> = LazyLock::new(|| Mutex::new(looks()));
+
+    /// The look registered under `name`, or a stable look generated from the name.
+    pub fn get(name: &str) -> Appearance {
+        let mut table = LOOKS.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(look) = table.get(name) {
+            return look.clone();
+        }
+        let seed = name.bytes().fold(0i32, |h, b| h.wrapping_mul(31).wrapping_add(b as i32));
+        let h = noise::hash(seed, 0, 7);
+        let hairs = [white(), grey(), brown(), black(), blond(), red()];
+        let cloths = [
+            cloth(0x3A2A1A, 0x6A4A2A, 0x8A6A3A, 0xB08A5A),
+            cloth(0x1E3A2A, 0x2E5A3E, 0x427A52, 0x6AA070),
+            cloth(0x22305A, 0x3A4A88, 0x5A6AB0, 0x8A9AD0),
+            cloth(0x5A1E3A, 0x8A2E5A, 0xB04A7A, 0xD87AA0),
+            cloth(0x5A3A12, 0x8A5A1E, 0xB07A30, 0xD8A050),
+            cloth(0x3A1A1A, 0x6A2A2A, 0x9A3E3E, 0xC06A5A),
+        ];
+        let styles = [HairStyle::Short, HairStyle::Long, HairStyle::Bald, HairStyle::Bun, HairStyle::Spiky];
+        let mut look = Appearance::new(
+            name,
+            skin((h % 4) as i32),
+            hairs[((h >> 3) % hairs.len() as u32) as usize].clone(),
+            cloths[((h >> 6) % cloths.len() as u32) as usize].clone(),
+            if h & 512 != 0 { dark_pants() } else { brown_pants() },
+            boots(),
+            styles[((h >> 10) % 5) as usize],
+        );
+        if (h >> 13).is_multiple_of(4) {
+            look.headwear = Headwear::Cap;
+        }
+        look.hat = Some(cloths[((h >> 15) % cloths.len() as u32) as usize].clone());
+        look.robe = (h >> 18).is_multiple_of(5);
+        table.insert(name.to_string(), look.clone());
+        look
     }
 }
 
@@ -613,11 +770,4 @@ impl Painter<'_> {
             }
         }
     }
-}
-
-/// A soft ground shadow drawn under every actor.
-pub fn shadow(width: i32, height: i32) -> Canvas {
-    let mut c = Canvas::new(width, height);
-    c.ellipse(width as f32 / 2.0, height as f32 / 2.0, width as f32 / 2.0, height as f32 / 2.0, Rgba::new(0, 0, 0, 90));
-    c
 }

@@ -1,0 +1,107 @@
+{
+  // A quest starts when the flag quest:<id> is set (dialogue action "quest:<id>") and each stage is done once its
+  // condition holds. The first unfinished stage is what the quest log and HUD show.
+  "silent_village": {
+    "title": "The Silent Village", "giver": "Elder Orin", "region": "Leafhollow", "side": false, "reward": "a Circuit Shard",
+    "stages": [
+      { "text": "Seal the rift in the north meadow of Windward Fields.", "done": "rift:leaf_herbalist" },
+      { "text": "Seal the rift in the Mossy Grotto's eastern chamber.", "done": "rift:leaf_smith" },
+      { "text": "Tell Elder Orin what you found.", "done": "silent_village_done" }
+    ]
+  },
+  "wren_hound": {
+    "title": "A Hunter's Hound", "giver": "Wren", "region": "Windward Fields", "reward": "a Focus Band",
+    "stages": [
+      { "text": "Find Wren's hound, last seen beyond the thorns in the south-west of Windward Fields.", "done": "rift:leaf_hound" },
+      { "text": "Tell Wren her hound is safe.", "done": "wren_done" }
+    ]
+  },
+  "brindle_gel": {
+    "title": "Sticky Business", "giver": "Brindle", "region": "Leafhollow", "reward": "Healing Draughts and gold",
+    "stages": [
+      { "text": "Bring Brindle three Slime Gel. Slimes drop it.", "done": "count:slime_gel:3" },
+      { "text": "Hand the gel to Brindle.", "done": "brindle_done" }
+    ]
+  },
+  "shrine_light": {
+    "title": "The Dark Shrine", "giver": "Sage Elm", "region": "Leafhollow", "reward": "a Circuit Shard",
+    "stages": [
+      { "text": "Seal the rift by the eastern cliffs of Windward Fields.", "done": "rift:leaf_shrine" },
+      { "text": "Speak with Sage Elm at the restored shrine.", "done": "shrine_done" }
+    ]
+  },
+  "old_bridge": {
+    "title": "The Old West Bridge", "giver": "Guard Hal", "region": "Leafhollow", "reward": "the way to Whisperwood",
+    "stages": [
+      { "text": "Something strong guards a rift in the Mossy Grotto's barred western chamber. Seal it.", "done": "rift:leaf_bridge" },
+      { "text": "Cross the old west bridge out of Leafhollow.", "done": "seen:whisperwood" }
+    ]
+  }
+,
+  "nets_and_hulls": {
+    "title": "Nets and Hulls", "giver": "Fisher Lin", "region": "Brinewatch", "reward": "potions and gold",
+    "stages": [
+      { "text": "Seal the rift by the lake in Mistmoor Marsh.", "done": "rift:brine_fisher" },
+      { "text": "Seal the rift in the north-east of Mistmoor Marsh.", "done": "rift:brine_shipwright" },
+      { "text": "Tell Fisher Lin.", "done": "nets_done" }
+    ]
+  },
+  "drowned_light": {
+    "title": "The Drowned Light", "giver": "Mayor Hollis", "region": "Sunken Temple", "reward": "a lit temple",
+    "stages": [
+      { "text": "Seal the rift in the Sunken Temple's east wing.", "done": "rift:brine_lighthouse" },
+      { "text": "Visit Keeper Maren at the lighthouse.", "done": "maren_done" }
+    ]
+  },
+  "highcrag_fires": {
+    "title": "Cold Hearths", "giver": "Watchman Brann", "region": "Frostpeak", "reward": "Highcrag's thanks",
+    "stages": [
+      { "text": "Seal the rift near the Frostpeak trailhead.", "done": "rift:crag_hearth" },
+      { "text": "Seal the rift on the Frostpeak switchbacks.", "done": "rift:crag_apprentice" }
+    ]
+  },
+  "torvald_anvil": {
+    "title": "The Master Anvil", "giver": "Torvald", "region": "Storm Spire", "reward": "blade upgrades to +5",
+    "stages": [
+      { "text": "Seal the rift on the Storm Spire's first floor.", "done": "rift:crag_forge" }
+    ]
+  },
+  "cold_forge": {
+    "title": "The Cold Forge", "giver": "Quartermaster Ines", "region": "The Ashen Reach", "side": false, "reward": "the Aether Blade",
+    "stages": [
+      { "text": "Seal the rift holding the forge's bellows, up on the Ashen Rim.", "done": "rift:ash_forge_bellows" },
+      { "text": "Find the forge's anvil in the Fallen Bastion. (The city remembers what was done in its past.)", "done": "rift:ash_forge_anvil" },
+      { "text": "Defeat the Concord Warden to free the forge's heart.", "done": "rift:ash_forge_heart" },
+      { "text": "Ask Forgemaster Corvin to fuse your four swords.", "done": "aether_forged" },
+      { "text": "Return to the Sky Altar in Highcrag.", "done": "seen:citadel_1" }
+    ]
+  },
+  "ashford_rebuilt": {
+    "title": "Ashford Rising", "giver": "Quartermaster Ines", "region": "The Ashen Reach", "reward": "supplies and a tinker",
+    "stages": [
+      { "text": "Seal the rift south-west of the Reach's glass pools.", "done": "rift:ash_camp" },
+      { "text": "Seal the rift north of the glass pools.", "done": "rift:ash_smith" }
+    ]
+  },
+  "lost_foragers": {
+    "title": "Lost in Whisperwood", "giver": "Hazel", "region": "Whisperwood", "reward": "a Sage Pendant and a Life Shard",
+    "stages": [
+      { "text": "Find Hazel's three foragers in Whisperwood: Ivy, Rook and Pim.", "done": "found_ivy,found_rook,found_pim" },
+      { "text": "Tell Hazel in Leafhollow.", "done": "foragers_paid" }
+    ]
+  },
+  "old_salt": {
+    "title": "The Ferryman's Boat", "giver": "Old Tam", "region": "The Old Saltmine", "reward": "passage to Smuggler's Cove",
+    "stages": [
+      { "text": "Find Ferryman Loy in the old saltmine south of Brinewatch.", "done": "rift:brine_ferry" },
+      { "text": "Ask Loy to sail you to Smuggler's Cove.", "done": "seen:cove" }
+    ]
+  },
+  "smugglers_hoard": {
+    "title": "The Smugglers' Hoard", "giver": "Ferryman Loy", "region": "Smuggler's Cove", "reward": "the Gale Boots",
+    "stages": [
+      { "text": "Cross the tide flats and find the smugglers' caves.", "done": "seen:cove_caves" },
+      { "text": "Defeat the ghost captain in the caves.", "done": "rift:cove_captain" }
+    ]
+  }
+}

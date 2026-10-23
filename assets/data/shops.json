@@ -1,0 +1,26 @@
+{
+  "village": {
+    "greeting": "Take a look around!",
+    "items": [ "herb", "cooling_salve", "tanned_hide", "wood_shield", "chain_mail", "iron_shield" ]
+  },
+  "herbalist": {
+    "greeting": "Remedies for every ailment, dear.",
+    "items": [ "herb", "potion", "cooling_salve", "spirit_tonic" ]
+  },
+  "brinewatch": {
+    "greeting": "Fresh from the lake!",
+    "items": [ "herb", "potion", "spirit_tonic", "cooling_salve", "scale_armor", "coral_shield", "power_charm", "fortune_coin" ]
+  },
+  "highcrag": {
+    "greeting": "Fresh from the forge!",
+    "items": [ "herb", "potion", "spirit_tonic", "elixir", "frost_plate", "storm_shield", "guard_charm", "sage_pendant", "cool_stone" ]
+  },
+  "ashford": {
+    "greeting": "What we have is yours.",
+    "items": [ "herb", "potion", "spirit_tonic", "elixir", "cooling_salve", "ember_shield" ]
+  },
+  "ashford_tinker": {
+    "greeting": "Charms! Gadgets! Mostly safe!",
+    "items": [ "swift_anklet", "scholar_lens", "vampire_fang", "salamander_scale", "sage_pendant" ]
+  }
+}

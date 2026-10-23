@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use crate::color::{Rgba, ramp};
-use crate::map::Terrain;
+use crate::core::color::{Rgba, ramp};
+use crate::world::map::Terrain;
 
 pub struct TerrainTheme {
     pub name: &'static str,

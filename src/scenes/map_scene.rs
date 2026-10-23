@@ -1,0 +1,248 @@
+//! The world map: every region the player has seen, how they connect, towns' restoration and how many chests and
+//! rifts each region still hides.
+
+use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex};
+
+use bevy::math::Vec2;
+
+use super::scene::{Scene, SceneCtx, world_below};
+use super::world::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::art::combat;
+use crate::core::audio::{self, Sound};
+use crate::core::canvas::Canvas;
+use crate::core::color::Rgba;
+use crate::core::font;
+use crate::core::geom::IRect;
+use crate::core::gfx::{self, Batch};
+use crate::core::input::{self, GameAction};
+use crate::core::{noise, palette};
+use crate::gameplay::game_data::{WorldNode, data};
+use crate::gameplay::game_state::GameState;
+use crate::scene_any;
+use crate::world::map::MapData;
+
+type Counts = (Vec<String>, Vec<String>);
+
+static COUNTS: LazyLock<Mutex<HashMap<String, Counts>>> = LazyLock::new(Default::default);
+static NAMES: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(Default::default);
+
+/// A map's display name, or `None` if no such map exists.
+pub fn map_name(id: &str) -> Option<String> {
+    let mut names = NAMES.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(name) = names.get(id) {
+        return Some(name.clone());
+    }
+    if !MapData::exists(id) {
+        return None;
+    }
+    let name = MapData::load(id).name;
+    names.insert(id.to_string(), name.clone());
+    Some(name)
+}
+
+/// The flags of a map's chests and rifts.
+fn counts_for(map_id: &str) -> Counts {
+    let mut counts = COUNTS.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(cached) = counts.get(map_id) {
+        return cached.clone();
+    }
+    let (mut chests, mut rifts) = (Vec::new(), Vec::new());
+    if MapData::exists(map_id) {
+        for e in MapData::load(map_id).entities {
+            if e.kind == "chest" {
+                chests.push(
+                    e.str("flag").map(str::to_string).unwrap_or_else(|| format!("chest:{map_id}:{}_{}", e.x, e.y)),
+                );
+            }
+            if e.kind == "rift" {
+                rifts.push(format!(
+                    "rift:{}",
+                    e.str("id").map(str::to_string).unwrap_or_else(|| format!("{}_{}", e.x, e.y))
+                ));
+            }
+        }
+    }
+    counts.insert(map_id.to_string(), (chests.clone(), rifts.clone()));
+    (chests, rifts)
+}
+
+fn visible(state: &GameState, node: &WorldNode) -> bool {
+    node.maps.iter().any(|m| state.flags.contains(&format!("seen:{m}")))
+        || node.show.is_some() && state.check(node.show.as_deref())
+}
+
+pub struct MapScene {
+    nodes: Vec<&'static WorldNode>,
+    here: Option<&'static WorldNode>,
+    cursor: Option<&'static WorldNode>,
+    time: f32,
+}
+
+impl MapScene {
+    pub fn new() -> MapScene {
+        MapScene { nodes: Vec::new(), here: None, cursor: None, time: 0.0 }
+    }
+
+    fn draw_details(batch: &mut Batch, state: &GameState, node: &WorldNode) {
+        let rect = IRect::new(SCREEN_WIDTH - 150, 30, 138, 70);
+        batch.draw_window(rect);
+        let shadow = Some(palette::TEXT_SHADOW);
+        let x = (rect.x + 8) as f32;
+        font::draw(batch, &node.name, Vec2::new(x, (rect.y + 6) as f32), palette::HIGHLIGHT, shadow);
+        let (mut chests, mut opened, mut rifts, mut closed) = (0, 0, 0, 0);
+        for map in &node.maps {
+            let (c, r) = counts_for(map);
+            chests += c.len();
+            opened += c.iter().filter(|f| state.flags.contains(*f)).count();
+            rifts += r.len();
+            closed += r.iter().filter(|f| state.flags.contains(*f)).count();
+        }
+        let mut y = (rect.y + 20) as f32;
+        if let Some(town) = node.town.as_deref().filter(|t| data().towns.contains_key(*t)) {
+            let text = format!("Restored {}%", (state.restoration(town) * 100.0).round());
+            font::draw(batch, &text, Vec2::new(x, y), Rgba::rgb(230, 200, 255), shadow);
+            y += 11.0;
+        }
+        if chests > 0 {
+            font::draw(batch, &format!("Chests {opened}/{chests}"), Vec2::new(x, y), palette::TEXT, shadow);
+            y += 11.0;
+        }
+        if rifts > 0 {
+            font::draw(batch, &format!("Rifts sealed {closed}/{rifts}"), Vec2::new(x, y), palette::TEXT, shadow);
+        }
+    }
+}
+
+fn draw_dashed(batch: &mut Batch, a: Vec2, b: Vec2) {
+    let length = a.distance(b);
+    let dir = (b - a) / length.max(1.0);
+    let mut t = 6.0;
+    while t < length - 6.0 {
+        batch.fill_rect(a.x + dir.x * t, a.y + dir.y * t, 2.0, 2.0, Rgba::rgb(120, 90, 60));
+        t += 5.0;
+    }
+}
+
+fn build_parchment() -> Canvas {
+    let mut c = Canvas::new(SCREEN_WIDTH, SCREEN_HEIGHT);
+    for y in 0..c.height {
+        for x in 0..c.width {
+            let (fx, fy) = (x as f32, y as f32);
+            let n = noise::value(fx / 30.0, fy / 30.0, 401) * 0.6 + noise::value(fx / 8.0, fy / 8.0, 403) * 0.4;
+            let edge = x.min(c.width - x).min(y.min(c.height - y)) as f32 / 24.0;
+            let mut color = Rgba::rgb(196, 170, 120).lerp(Rgba::rgb(230, 212, 168), n);
+            if edge < 1.0 {
+                color = Rgba::rgb(150, 115, 75).lerp(color, edge);
+            }
+            c.set(x, y, color);
+        }
+    }
+    c
+}
+
+impl Scene for MapScene {
+    scene_any!();
+
+    fn is_overlay(&self) -> bool {
+        true
+    }
+
+    fn enter(&mut self, ctx: &mut SceneCtx) {
+        input::consume();
+        if let Some(world) = ctx.world() {
+            self.nodes = data().world.iter().filter(|n| visible(&world.state, n)).collect();
+            let map_id = world.map_id();
+            self.here = self.nodes.iter().copied().find(|n| n.maps.iter().any(|m| m == map_id));
+        }
+        self.cursor = self.here.or_else(|| self.nodes.first().copied());
+        audio::sfx(Sound::MenuSelect);
+    }
+
+    fn update(&mut self, ctx: &mut SceneCtx, dt: f32) {
+        self.time += dt;
+        if input::pressed(GameAction::Cancel)
+            || input::pressed(GameAction::Map)
+            || (input::pressed(GameAction::Menu) && !input::pressed(GameAction::Confirm))
+        {
+            audio::sfx(Sound::MenuCancel);
+            ctx.pop();
+            input::consume();
+            return;
+        }
+        let axis = |plus: GameAction, minus: GameAction| {
+            if input::pressed(plus) {
+                1.0
+            } else if input::pressed(minus) {
+                -1.0
+            } else {
+                0.0
+            }
+        };
+        let step = Vec2::new(axis(GameAction::Right, GameAction::Left), axis(GameAction::Down, GameAction::Up));
+        if step != Vec2::ZERO
+            && let Some(cursor) = self.cursor
+        {
+            let from = Vec2::new(cursor.x as f32, cursor.y as f32);
+            let next = self
+                .nodes
+                .iter()
+                .copied()
+                .filter(|n| !std::ptr::eq(*n, cursor))
+                .map(|n| (n, Vec2::new(n.x as f32, n.y as f32) - from))
+                .filter(|(_, to)| to.normalize_or_zero().dot(step) > 0.5)
+                .min_by(|a, b| a.1.length().total_cmp(&b.1.length()))
+                .map(|(n, _)| n);
+            if let Some(next) = next {
+                self.cursor = Some(next);
+                audio::sfx(Sound::MenuMove);
+            }
+        }
+    }
+
+    fn draw(&self, below: &[Box<dyn Scene>], batch: &mut Batch) {
+        let Some(world) = world_below(below) else { return };
+        batch.begin_screen();
+        batch.draw(gfx::cached("map_parchment", build_parchment), Vec2::ZERO, Rgba::WHITE);
+        font::draw(batch, "World Map", Vec2::new(14.0, 10.0), Rgba::rgb(80, 50, 30), None);
+
+        let at = |n: &WorldNode| Vec2::new(n.x as f32, n.y as f32);
+        for node in &self.nodes {
+            for link in &node.links {
+                if let Some(other) = self.nodes.iter().find(|n| &n.id == link) {
+                    draw_dashed(batch, at(node), at(other));
+                }
+            }
+        }
+
+        let origin = Vec2::splat(16.0);
+        let disc = |batch: &mut Batch, tex: gfx::TexId, pos: Vec2, color: Rgba, scale: f32| {
+            batch.draw_ex(tex, pos, None, color, 0.0, origin, Vec2::splat(scale), false, false);
+        };
+        for &node in &self.nodes {
+            let pos = at(node);
+            let icon = match node.kind.as_str() {
+                "town" => Rgba::rgb(200, 80, 60),
+                "dungeon" => Rgba::rgb(90, 70, 130),
+                "side" => Rgba::rgb(60, 130, 90),
+                "blight" => Rgba::rgb(130, 40, 120),
+                _ => Rgba::rgb(120, 100, 60),
+            };
+            disc(batch, combat::disc(), pos, Rgba::rgb(60, 40, 20), 0.38);
+            disc(batch, combat::disc(), pos, icon, 0.3);
+            if self.here.is_some_and(|h| std::ptr::eq(h, node)) && (self.time * 3.0) as i32 % 2 == 0 {
+                disc(batch, combat::ring(), pos, Rgba::rgb(255, 230, 120), 0.55);
+            }
+            if self.cursor.is_some_and(|c| std::ptr::eq(c, node)) {
+                disc(batch, combat::ring(), pos, Rgba::rgb(60, 30, 10), 0.7);
+            }
+            font::draw_centered(batch, &node.name, pos + Vec2::new(0.0, 8.0), Rgba::rgb(60, 36, 20), None);
+        }
+
+        if let Some(cursor) = self.cursor {
+            MapScene::draw_details(batch, &world.state, cursor);
+        }
+        let hint = format!("{}: close", input::glyph(GameAction::Cancel));
+        font::draw(batch, &hint, Vec2::new(14.0, (SCREEN_HEIGHT - 14) as f32), Rgba::rgb(110, 80, 50), None);
+    }
+}

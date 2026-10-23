@@ -1,0 +1,588 @@
+{
+  // Each id lists entries; the first whose "if" condition holds is used.
+  // Conditions: flag, !flag, has:item, count:item:n, level:n, gold:n, crystals:n, restored:town:percent (comma = AND).
+  // Actions: give:item[*n], take:item[*n], flag:, unflag:, gold:+n/-n, heal, art:, quest:, shop:, smith:max, circuit,
+  //          save, say:, music:, warp:map,x,y[,facing], ending
+
+  // ---- Act 1: Leafhollow -----------------------------------------------------------------------------------------
+
+  "vault_wake": [
+    { "lines": [
+      "...cold. Then, slowly, warmth.",
+      "The lid of the crystal pod slides open. Dust hangs in the air like it has waited a hundred years to settle.",
+      "A stairway leads up toward daylight. The crystal nearby hums softly. (Strike it, or press the melee button beside it, to save.)"
+    ] }
+  ],
+
+  "elder": [
+    { "if": "!has:wind", "speaker": "Elder Orin", "lines": [
+        "Ah... so the vault has finally opened. Welcome back to the waking world, child.",
+        "You slept a hundred years beneath Leafhollow. Before the Aetherfall, the Concord sealed you there with a blade meant for one who would wake.",
+        "Take it: the Sword of Wind. Each sword the Concord forged holds an element. Hold one and you can fight in its mode.",
+        "Something else came down with the sky-cities. Rifts: tears in the world that pour out monsters. When they opened they swallowed half of Leafhollow. Our smith, our healer, even the shrine's light.",
+        "Seal the rifts and what they took may come back. There is one in the north meadow of the fields, and another deep in the Mossy Grotto."
+      ],
+      "do": [ "give:wind", "quest:silent_village", "flag:met_elder" ] },
+    { "if": "rift:leaf_herbalist,rift:leaf_smith,!silent_village_done", "speaker": "Elder Orin", "lines": [
+        "Hazel's apothecary, standing again. Torva hammering at her anvil. I'd begun to forget the sound.",
+        "It's as I hoped: what the rifts take, they can be made to give back. Take this. The Concord left it in the vault with you."
+      ],
+      "do": [ "flag:silent_village_done", "give:circuit_shard" ] },
+    { "if": "restored:leafhollow:40,!leaf_reward_40", "speaker": "Elder Orin", "lines": [ "The village grows louder by the day. Here: we found this in the rubble of the old well. It's yours by right." ],
+      "do": [ "flag:leaf_reward_40", "give:life_shard" ] },
+    { "if": "restored:leafhollow:80,!leaf_reward_80", "speaker": "Elder Orin", "lines": [ "Nearly whole again. My grandmother's charm, light as a breath. It will keep you quick on your feet." ],
+      "do": [ "flag:leaf_reward_80", "give:wind_feather" ] },
+    { "if": "restored:leafhollow:100,!leaf_reward_100", "speaker": "Elder Orin", "lines": [ "Every house lit, every face home. The Concord's shrine gem belongs with the one who did this." ],
+      "do": [ "flag:leaf_reward_100", "give:spirit_pip" ] },
+    { "if": "game_clear", "speaker": "Elder Orin", "lines": [
+        "The sky is clear again, and the valley breathes easy. Whatever you choose to do next, sleeper, you have earned it."
+      ] },
+    { "if": "has:ember_crystal,!elder_ember", "speaker": "Elder Orin", "lines": [
+        "The Ember Crystal! You truly did it. I can feel the warmth of it from here.",
+        "Four crystals powered the Concord. Three fell in the Aetherfall. Whoever gathers them can open the way to the Citadel that still hangs above the clouds, where the fourth remains.",
+        "Something up there is feeding the rifts. Keep the crystal. Carry it, and find the others.",
+        "The old east road through the fields is choked with thorns. Burn them. Beyond lie Mistmoor Marsh and the lake town of Brinewatch, where the Tide Crystal was kept."
+      ],
+      "do": [ "flag:elder_ember", "give:herb*2" ] },
+    { "if": "has:storm_crystal", "speaker": "Elder Orin", "lines": [
+        "Three crystals... I can hardly believe it. They say the Concord's forge still burns somewhere in the crater to the east.",
+        "Go, sleeper. End this, and come home."
+      ] },
+    { "if": "has:tide_crystal", "speaker": "Elder Orin", "lines": [
+        "The Tide Crystal as well! The mountain folk of Highcrag guard the last fallen crystal, high in their Storm Spire.",
+        "The pass north of Brinewatch should be open now that the lake is calm."
+      ] },
+    { "if": "elder_ember", "speaker": "Elder Orin", "lines": [
+        "East through the fields, then across Mistmoor Marsh to Brinewatch. They say a witch lives in the marsh; she may help you, if you are polite."
+      ] },
+    { "if": "!silent_village_done", "speaker": "Elder Orin", "lines": [ "The rifts: one in the north meadow of the fields, another in the grotto's eastern chamber. Strike a rift once its monsters are spent, and it will close." ] },
+    { "speaker": "Elder Orin", "lines": [ "A fire burns in the grotto shrine, deeper than any torch. Whatever guards it guards something of the Concord's." ] }
+  ],
+
+  "guard": [
+    { "if": "!has:wind", "speaker": "Guard Hal", "lines": [
+        "Halt! Monsters roam the fields beyond the gate. I can't let you pass without a proper blade.",
+        "Speak with Elder Orin. His house is the one with the blue roof."
+      ] },
+    { "if": "!boss_warlock", "speaker": "Guard Hal", "lines": [
+        "So the Elder armed you. A word from an old soldier: don't trade blows. Dodge through an attack just as it lands and you'll come out unharmed.",
+        "And when something winds up a big swing, raise your guard right as it falls. Time it well and you'll knock it off its feet."
+      ] },
+    { "speaker": "Guard Hal", "lines": [ "A Sword of Fire! Those vines in the village corner won't stand a chance. Mind the tall grass, though. It goes up fast." ] }
+  ],
+
+  "mira": [
+    { "if": "!has:wind", "speaker": "Mira", "lines": [ "You're the sleeper from the vault? Everyone in Leafhollow is talking about you! The Elder's been waiting." ] },
+    { "if": "!quest:shrine_light", "speaker": "Mira", "lines": [
+        "See that old shrine by the eastern hedge? It used to glow at night. Sage Elm tended it, until a rift opened by the cliffs in the fields and took him.",
+        "If you ever close that one... I'd love to see the shrine light up again."
+      ],
+      "do": [ "quest:shrine_light" ] },
+    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, Combat Arts, souls, the Circuit and your quests are all in there. M shows the world map." ] }
+  ],
+
+  "pip": [
+    { "if": "!thorns_village", "speaker": "Pip", "lines": [
+        "My grandpa says there's treasure behind the thorny vines up in the corner!",
+        "But cutting them doesn't work. Maybe they need to be burned?"
+      ] },
+    { "speaker": "Pip", "lines": [ "Whoa, you burned them! Was there treasure? Was there?!" ] }
+  ],
+
+  "hunter": [
+    { "if": "!has:wind", "speaker": "Wren", "lines": [ "Hm? Sorry. I'm waiting for someone." ] },
+    { "if": "!quest:wren_hound", "speaker": "Wren", "lines": [
+        "My hound, Bramble, chased something into the south-west corner of the fields and never came back. That's thorn country now.",
+        "Thorns don't care about blades. They'd need fire. If you ever find a way through, look for her?"
+      ],
+      "do": [ "quest:wren_hound" ] },
+    { "if": "rift:leaf_hound,!wren_done", "speaker": "Wren", "lines": [
+        "Bramble! She's... she's with you? Glowing like that? A rift had her, you say.",
+        "Then she's yours now, I think. She chose you. Keep her close: she can smell treasure buried a foot down.",
+        "Take this too. It helped me keep my aim steady."
+      ],
+      "do": [ "flag:wren_done", "give:focus_band" ] },
+    { "if": "wren_done", "speaker": "Wren", "lines": [ "Let Bramble lead now and then. Where she barks, dig." ] },
+    { "speaker": "Wren", "lines": [ "Slimes melt to fire and fly apart in wind. Learn what each beast fears. Your strikes will tell you: big numbers mean you've found it." ] }
+  ],
+
+  "inn": [
+    { "if": "gold:10", "speaker": "Innkeeper Bess", "lines": [ "Welcome to the Sleepy Stag!" ],
+      "ask": "A warm bed for the night is 10 gold. Will you rest?",
+      "yes": [ "gold:-10", "heal", "save" ],
+      "yesLines": [ "You sleep soundly. Fully restored!\n(Your journey has been recorded.)" ],
+      "noLines": [ "Come back any time, dear." ] },
+    { "speaker": "Innkeeper Bess", "lines": [ "Oh, you're a little short. A bed is 10 gold, dear. Come back when you can." ] }
+  ],
+
+  "knight": [
+    { "if": "!boss_warlock", "speaker": "Weary Knight", "lines": [
+        "I came hunting the fiend in the grotto. It vanished in a flash of flame and reappeared behind me.",
+        "It flares before every volley. Watch for the glow, then dodge through the fire. And it hates water, if you have any."
+      ] },
+    { "speaker": "Weary Knight", "lines": [ "You bested the Warlock? Then I'll drink to you, sleeper." ] }
+  ],
+
+  "shopkeeper": [
+    { "if": "has:wind,!quest:brindle_gel", "speaker": "Brindle", "lines": [
+        "Welcome to Brindle's Goods! Say, you look handy. The slimes out in the fields leave a gel behind when they burst.",
+        "Bring me three and I'll make it worth your while. Torva swears by the stuff for tempering."
+      ],
+      "do": [ "quest:brindle_gel", "shop:village" ] },
+    { "if": "quest:brindle_gel,count:slime_gel:3,!brindle_done", "speaker": "Brindle", "lines": [ "Three gels, fresh and wobbly! A deal's a deal." ],
+      "do": [ "take:slime_gel*3", "flag:brindle_done", "give:potion*2", "gold:+100", "shop:village" ] },
+    { "speaker": "Brindle", "lines": [ "Welcome to Brindle's Goods! Herbs, hides and shields, all honest prices." ], "do": [ "shop:village" ] }
+  ],
+
+  "torva": [
+    { "if": "!torva_met", "speaker": "Torva", "lines": [
+        "Ha! Out of the dark and back at my own anvil. I owe you, sleeper.",
+        "That Concord blade of yours: every sword you carry shares one edge, and I can temper it.",
+        "Bring gold and what the beasts leave behind. Gel, fangs, shards. I'll do the rest."
+      ],
+      "do": [ "flag:torva_met", "smith:3" ] },
+    { "speaker": "Torva", "lines": [ "Let's see that edge." ], "do": [ "smith:3" ] }
+  ],
+
+  "hazel": [
+    { "if": "rift:leaf_bridge,!quest:lost_foragers", "speaker": "Hazel", "lines": [
+        "The west bridge is back? Then... oh, please. Three of my foragers went into Whisperwood the morning the rifts opened. Ivy, Rook and little Pim.",
+        "The wood twists paths about. If they're alive they're lost. Find them, and tell them Hazel says come home."
+      ], "do": [ "quest:lost_foragers" ] },
+    { "if": "found_ivy,found_rook,found_pim,!foragers_paid", "speaker": "Hazel", "lines": [ "All three, home and grubby and alive. I don't have the words. I have this, though; it was my mother's." ], "do": [ "flag:foragers_paid", "give:sage_pendant", "give:life_shard" ] },
+    { "speaker": "Hazel", "lines": [ "I was halfway through brewing a draught when the world went purple. It's still warm! Have a look." ], "do": [ "shop:herbalist" ] }
+  ],
+
+  "sage_elm": [
+    { "if": "!shrine_done", "speaker": "Sage Elm", "lines": [
+        "The light returns... and so do I. You have my thanks.",
+        "This shrine channels the Circuit, the Concord's discipline of strength. As you grow, points of power gather in you. Spend them on the Circuit to learn new Combat Arts and to sharpen body and blade.",
+        "Some paths are sealed and need a Circuit Shard to open. Take this one. You'll find the Circuit in your menu, or at any save crystal."
+      ],
+      "do": [ "flag:shrine_done", "give:circuit_shard", "circuit" ] },
+    { "speaker": "Sage Elm", "lines": [ "Shall we look at your Circuit?" ], "do": [ "circuit" ] }
+  ],
+
+  "bridgewarden": [
+    { "if": "!has:wind", "speaker": "Bridgewarden Oda", "lines": [ "Nothing to see. Just a stream and an old bridge that isn't there." ] },
+    { "if": "!rift:leaf_bridge,!quest:old_bridge", "speaker": "Bridgewarden Oda", "lines": [
+        "I keep the west bridge. Kept it, I should say. The night the rifts opened it just... wasn't there.",
+        "Folk say something big lairs in a rift in the grotto's western chamber, behind the iron bars. If the bridge went anywhere, it went there."
+      ],
+      "do": [ "quest:old_bridge" ] },
+    { "if": "!rift:leaf_bridge", "speaker": "Bridgewarden Oda", "lines": [ "The grotto's west chamber, behind the bars. Something big." ] },
+    { "speaker": "Bridgewarden Oda", "lines": [ "My bridge! The road west runs into Whisperwood. Strange woods. The paths move when you aren't looking." ] }
+  ],
+
+  "traveler": [
+    { "speaker": "Traveler", "lines": [
+        "Melee is fine, but don't forget your bolts. Tap throw to fling one; hold it to charge a piercing shot. They bounce off walls, too.",
+        "A charged blast of wind can shatter cracked stone. There's a rockfall over the grotto entrance to the north-east."
+      ] }
+  ],
+
+  "explorer": [
+    { "if": "!grotto_switch", "speaker": "Lost Explorer", "lines": [
+        "Careful! The bones here walk, and the shades pass through walls.",
+        "The west chamber's barred. There's an old Concord turbine in the east chamber wired to those bars. It needs a strong wind to turn.",
+        "The sealed door north needs a key, too. I think it's somewhere behind the bars."
+      ] },
+    { "speaker": "Lost Explorer", "lines": [ "Beyond the north door is an old shrine. I heard a roar from down there... and felt heat like a forge." ] }
+  ],
+
+  "warlock_intro": [
+    { "speaker": "Ember Warlock", "lines": [ "(A wave of searing heat rolls through the chamber...)", "So the Concord's sleeper finally crawls from its tomb. The Ember Crystal is MINE. Burn!" ],
+      "do": [ "flag:boss_arena", "music:Boss-KnightFight" ] }
+  ],
+
+  // ---- Act 2: Mistmoor and Brinewatch ----------------------------------------------------------------------------
+
+  "witch": [
+    { "if": "!has:rabbit_boots", "speaker": "Morwen", "lines": [
+        "Hm. A sleeper from the Concord vaults, carrying a crystal. I wondered when you would come squelching through my marsh.",
+        "You will not get far in this country on foot alone. Take these boots; they belonged to a courier who could clear a ditch in one bound.",
+        "The Flame Ring lies on the little island in the lake. With the boots, you can hop the stones to reach it.",
+        "And mind the gas that seeps from the bog. Fire makes it go up all at once. Use that."
+      ],
+      "do": [ "give:rabbit_boots" ] },
+    { "if": "!has:tide_crystal", "speaker": "Morwen", "lines": [
+        "The serpent in the Sunken Temple was the crystal's guardian once. Now the crystal's fear drives it mad.",
+        "Strike when it surfaces, and watch the ripples. They tell you where it will rise. Lightning through its pools wouldn't hurt, either."
+      ] },
+    { "speaker": "Morwen", "lines": [ "Two crystals, and you still have all your fingers. Impressive. Mind the mountain cold." ] }
+  ],
+
+  "brine_guard": [
+    { "if": "!has:tide_crystal", "speaker": "Guard Ostra", "lines": [ "The mountain pass is closed. Since the lake spirit began raging, the trail floods by day and freezes by night. Nobody goes up or down." ] },
+    { "speaker": "Guard Ostra", "lines": [ "The lake is calm again, and so is the pass. Highcrag lies up the mountain. Dress warmly!" ] }
+  ],
+
+  "fisher": [
+    { "if": "!quest:nets_and_hulls", "speaker": "Fisher Lin", "lines": [
+        "Half the harbour vanished with the rifts. Old Tam's net shed, Kett's boatyard... A couple of rifts in the marsh, folk say, still humming.",
+        "Close them and maybe the waterfront comes back."
+      ],
+      "do": [ "quest:nets_and_hulls" ] },
+    { "if": "rift:brine_fisher,rift:brine_shipwright,!nets_done", "speaker": "Fisher Lin", "lines": [ "Tam's shed and Kett's yard, back like they never left! Here, a little something from the whole waterfront." ],
+      "do": [ "flag:nets_done", "give:potion*2", "gold:+400" ] },
+    { "if": "!has:rabbit_boots", "speaker": "Fisher Lin", "lines": [ "The storms tore two planks off the pier. The temple island's out of reach unless you can leap like a marsh toad." ] },
+    { "if": "!has:tide_crystal", "speaker": "Fisher Lin", "lines": [ "Those boots! You could hop the gaps easy. Press jump and go. Just don't land in the water." ] },
+    { "speaker": "Fisher Lin", "lines": [ "Fish are biting again. Whatever you did down there, thank you." ] }
+  ],
+
+  "sailor": [
+    { "speaker": "Old Sailor", "lines": [
+        "In my day the Concord's sky-ships came down to this very lake. Silver hulls, sails like wings.",
+        "Water freezes under a charged Concord water-blade, they say. Paths across the deep, for one who knows the trick."
+      ] }
+  ],
+
+  "nim": [
+    { "if": "!has:tide_crystal", "speaker": "Nim", "lines": [ "There's a sea serpent in the temple! It pops up out of the water and goes PFFT with bubbles. My mom says not to go near the lake." ] },
+    { "speaker": "Nim", "lines": [ "You beat the serpent?! Can I have one of its scales? No? Okay." ] }
+  ],
+
+  "ama": [
+    { "speaker": "Sister Ama", "lines": [
+        "Bless you, traveler. The save crystals remember every place you've rested; touch one and it can carry you to any other.",
+        "Charms and trinkets change how one fights. You can wear two at once, so choose with care. (Gear tab in the menu.)"
+      ] }
+  ],
+
+  "brine_shopkeeper": [
+    { "speaker": "Coral", "lines": [ "Welcome to Coral Goods! Scale armor straight from the lake, and charms with a little luck in them." ], "do": [ "shop:brinewatch" ] }
+  ],
+
+  "brine_inn": [
+    { "if": "gold:20", "speaker": "Innkeeper Gull", "lines": [ "Welcome to the Gull's Rest." ],
+      "ask": "A room for the night is 20 gold. Will you stay?",
+      "yes": [ "gold:-20", "heal", "save" ],
+      "yesLines": [ "You sleep to the sound of the waves. Fully restored!\n(Your journey has been recorded.)" ],
+      "noLines": [ "Suit yourself." ] },
+    { "speaker": "Innkeeper Gull", "lines": [ "A room's 20 gold. Come back when your purse is heavier." ] }
+  ],
+
+  "drifter": [
+    { "speaker": "Drifter", "lines": [
+        "I hear the Storm Spire up in Highcrag hasn't stopped crackling for a hundred years.",
+        "Metal doors in there, they say, sealed with lightning sigils. A jolt opens them. Thunder, or water carrying it."
+      ] }
+  ],
+
+  "mayor": [
+    { "if": "!mayor_gift", "speaker": "Mayor Hollis", "lines": [
+        "You mean to face the lake serpent? Then you're braver than every one of my guards.",
+        "Take this elixir, and come back alive. Brinewatch would be in your debt."
+      ],
+      "do": [ "flag:mayor_gift", "give:elixir" ] },
+    { "if": "!quest:drowned_light", "speaker": "Mayor Hollis", "lines": [
+        "One more thing. The temple's lower halls were lit by our lighthouse, through the water. The rifts swallowed it.",
+        "If you find what took it down there, close it. You'll want the light."
+      ],
+      "do": [ "quest:drowned_light" ] },
+    { "if": "restored:brinewatch:40,!brine_reward_40", "speaker": "Mayor Hollis", "lines": [ "The town is coming back to life. Take this; it was found in the lighthouse lamp." ], "do": [ "flag:brine_reward_40", "give:life_shard" ] },
+    { "if": "restored:brinewatch:80,!brine_reward_80", "speaker": "Mayor Hollis", "lines": [ "The ferry, the yard, the light... You've given Brinewatch its harbour back. A duelist left this ring in lieu of rent once. Yours." ], "do": [ "flag:brine_reward_80", "give:parry_ring" ] },
+    { "if": "restored:brinewatch:100,!brine_reward_100", "speaker": "Mayor Hollis", "lines": [ "Every soul accounted for. The council voted: this belongs with you." ], "do": [ "flag:brine_reward_100", "give:spirit_pip" ] },
+    { "if": "!has:tide_crystal", "speaker": "Mayor Hollis", "lines": [ "The temple lies past the broken pier. May the tides favor you." ] },
+    { "speaker": "Mayor Hollis", "lines": [ "Brinewatch owes you everything. The pass north is open, by my order." ] }
+  ],
+
+  "tam": [
+    { "if": "!tam_done", "speaker": "Old Tam", "lines": [ "Out of the purple and back to my nets. I'd found this in the lake the day before it all went wrong. Shiny. Yours." ], "do": [ "flag:tam_done", "give:life_shard" ] },
+    { "if": "tam_done,!quest:old_salt", "speaker": "Old Tam", "lines": [
+        "Loy the ferryman went down the old saltmine after his boat the day the rifts came. Took it right off the jetty, the purple did, and he followed it.",
+        "Here's the key to the shaft south of town. Bring him back, would you? Nobody else will go."
+      ], "do": [ "quest:old_salt" ] },
+    { "speaker": "Old Tam", "lines": [ "Lightning and water, lad. Never mix 'em unless you mean it. The whole lake'll carry a spark." ] }
+  ],
+
+  "maren": [
+    { "if": "!maren_done", "speaker": "Keeper Maren", "lines": [
+        "The lamp's lit! Can you see it? It shines down through the lake into the temple's lower halls, the way it did for a hundred years.",
+        "Whatever's down there, at least now you'll see it coming. Take this, for the trouble."
+      ],
+      "do": [ "flag:maren_done", "give:spirit_tonic*2" ] },
+    { "speaker": "Keeper Maren", "lines": [ "I trim the wick every hour. Old habits." ] }
+  ],
+
+  "kett": [
+    { "if": "!kett_done", "speaker": "Bosun Kett", "lines": [
+        "My yard! My hulls! Ha! I owe you a boat, sleeper. Or at least a keel.",
+        "Here: a Concord tome I fished out of a wreck. Can't read a word of it. Maybe you can."
+      ],
+      "do": [ "flag:kett_done", "give:circuit_point" ] },
+    { "speaker": "Bosun Kett", "lines": [ "Ferry's Loy's business, not mine. He's been gone since the rifts, too. Last seen heading into the old saltmine." ] }
+  ],
+
+  "ferryman": [
+    { "speaker": "Ferryman Loy", "lines": [ "Back at my oar, thanks to you. The cove's down the coast, past the cliffs." ],
+      "ask": "Sail to Smuggler's Cove?", "yes": [ "quest:smugglers_hoard", "warp:cove,4,16,right" ], "noLines": [ "Whenever you like." ] }
+  ],
+
+  "serpent_intro": [
+    { "speaker": "", "lines": [ "The pools churn. Something enormous coils beneath the surface...", "A great serpent rises, shrieking, then plunges back into the depths!" ],
+      "do": [ "flag:serpent_arena", "music:Boss-BaronessBattle" ] }
+  ],
+
+  // ---- Act 3: Frostpeak and Highcrag -----------------------------------------------------------------------------
+
+  "spire_watch": [
+    { "if": "!quest:highcrag_fires", "speaker": "Watchman Brann", "lines": [
+        "Rifts on the trail, rifts in the Spire. They took our hearth and the Sage's apprentice both. Close the ones on Frostpeak, if you can."
+      ],
+      "do": [ "quest:highcrag_fires" ] },
+    { "if": "!has:storm_crystal", "speaker": "Watchman Brann", "lines": [
+        "The Storm Spire. The last of the falling crystals came down inside it, and the lightning has never stopped since.",
+        "Our elders tell of sealed doors within that only thunder can open. Go carefully."
+      ] },
+    { "speaker": "Watchman Brann", "lines": [ "The storm has finally quieted. The east pass down into the crater is open again, if you've the stomach for ash." ] }
+  ],
+
+  "climber": [
+    { "speaker": "Climber Vesk", "lines": [
+        "You came up Frostpeak? Then you know the ice walls. A little fire and they're puddles.",
+        "Here's a tip: frozen beasts shatter if you hit them hard enough. And they slide, if you hit them the other way."
+      ] }
+  ],
+
+  "edda": [
+    { "if": "!has:storm_crystal", "speaker": "Edda", "lines": [ "My grandmother says the sky-city still hangs above the clouds, right over the Sky Altar. Do you think anyone still lives up there?" ] },
+    { "speaker": "Edda", "lines": [ "The altar's glowing! I've never seen it do that before." ] }
+  ],
+
+  "altar_keeper": [
+    { "if": "restored:highcrag:40,!crag_reward_40", "speaker": "Altar Keeper", "lines": [ "Highcrag remembers you, sleeper. The altar left this in its basin overnight. Take it." ], "do": [ "flag:crag_reward_40", "give:life_shard" ] },
+    { "if": "restored:highcrag:80,!crag_reward_80", "speaker": "Altar Keeper", "lines": [ "The arena, the anvil, the hearth... This charm belonged to Highcrag's last champion." ], "do": [ "flag:crag_reward_80", "give:phoenix_plume" ] },
+    { "if": "restored:highcrag:100,!crag_reward_100", "speaker": "Altar Keeper", "lines": [ "The whole mountain sings. This gem is yours." ], "do": [ "flag:crag_reward_100", "give:spirit_pip" ] },
+    { "if": "!crystals:3", "speaker": "Altar Keeper", "lines": [
+        "This altar was the Concord's stair to their sky-city. Three sockets: fire, tide and storm.",
+        "The fourth crystal, wind, never fell. It is still up there, with whoever rules the Citadel now."
+      ] },
+    { "if": "crystals:3,!has:aether", "speaker": "Altar Keeper", "lines": [
+        "All three crystals, and still the stair stays shut. The Concord sealed it in Aether, the four elements woven as one.",
+        "They forged such blades in the crater east of here, where their first city fell. If any of their forge still stands, it's there."
+      ] },
+    { "speaker": "Altar Keeper", "lines": [ "The Aether Blade... Place the crystals in the altar, and the sky will open for you. Be ready: the Citadel will not welcome you." ] }
+  ],
+
+  "sky_altar": [
+    { "if": "crystals:3,!has:aether", "speaker": "", "lines": [
+        "You set the three crystals into their sockets. They glow... and the light stalls, as if pressing against a lid.",
+        "Carved beneath the sockets: \"The stair is sealed in Aether. Bring the blade of the whole sky.\""
+      ] },
+    { "if": "crystals:3", "speaker": "", "lines": [
+        "You set the three crystals into their sockets. Fire, tide and storm blaze to life...",
+        "A column of light rises from the altar into the clouds. Far above, something answers."
+      ],
+      "ask": "Ascend to the Sky Citadel?",
+      "yes": [ "warp:citadel_1,21,30,up" ] },
+    { "speaker": "", "lines": [ "An ancient stone altar with three empty sockets, shaped for great crystals. They are dark." ] }
+  ],
+
+  "crag_shopkeeper": [
+    { "if": "!quest:torvald_anvil", "speaker": "Torvald", "lines": [
+        "Torvald's Forge. Mountain steel, and the best charms this side of the clouds.",
+        "I used to temper blades too, until a rift in the Spire swallowed my master anvil. Close it and I'll take your edge further than any village smith."
+      ],
+      "do": [ "quest:torvald_anvil", "shop:highcrag" ] },
+    { "if": "rift:cinder_smith", "speaker": "Torvald", "lines": [ "Caldera-forged anvil. She takes a temper like nothing else. Bring it here." ], "ask": "Temper your blade at the caldera anvil?", "yes": [ "smith:7" ], "no": [ "shop:highcrag" ] },
+    { "if": "rift:crag_forge", "speaker": "Torvald", "lines": [ "Buying, or shall I work that blade?" ], "ask": "Temper your blade at the master anvil?", "yes": [ "smith:5" ], "no": [ "shop:highcrag" ] },
+    { "speaker": "Torvald", "lines": [ "Torvald's Forge. Mountain steel, and the best charms this side of the clouds." ], "do": [ "shop:highcrag" ] }
+  ],
+
+  "rook": [
+    { "if": "!rook_done", "speaker": "Rook", "lines": [
+        "I was copying the Sage's star charts when the floor turned purple. That was... how long ago?",
+        "Here. I'd been transcribing the Concord's Circuit tomes. Two are finished. They'll do you more good than me."
+      ],
+      "do": [ "flag:rook_done", "give:circuit_point*2" ] },
+    { "speaker": "Rook", "lines": [ "The Sage says every element has a mastery path in the Circuit, sealed behind a shard. Worth hunting for." ] }
+  ],
+
+  "haldis": [
+    { "if": "!haldis_done", "speaker": "Old Haldis", "lines": [ "The great hearth burns again! A village is only as warm as its fire. Here, child; it's cold where you're going." ], "do": [ "flag:haldis_done", "give:cool_stone" ] },
+    { "speaker": "Old Haldis", "lines": [ "Warm your hands. The Spire's colder than it looks." ], "do": [ "heal" ] }
+  ],
+
+  "crag_inn": [
+    { "if": "gold:30", "speaker": "Innkeeper Sigrun", "lines": [ "Come in out of the cold!" ],
+      "ask": "A warm bed by the hearth is 30 gold. Stay the night?",
+      "yes": [ "gold:-30", "heal", "save" ],
+      "yesLines": [ "You sleep deeply beside the fire. Fully restored!\n(Your journey has been recorded.)" ],
+      "noLines": [ "The cold will be waiting, dear." ] },
+    { "speaker": "Innkeeper Sigrun", "lines": [ "A bed is 30 gold. I'm sorry, love, the firewood is dear up here." ] }
+  ],
+
+  "stranger": [
+    { "if": "!game_clear", "speaker": "Hooded Stranger", "lines": [
+        "I served in the Citadel once, before the fall. Sovereign Vael would not let the sky-city die. He bound himself to the wind crystal instead.",
+        "He is guarded by four orbs, one for each element. Each breaks only to its own."
+      ] },
+    { "speaker": "Hooded Stranger", "lines": [ "So he is finally at rest. Thank you." ] }
+  ],
+
+  "sage": [
+    { "if": "!sage_gift", "speaker": "Sage Ilda", "lines": [
+        "A sleeper, here? The stars said you would come, though they were vague about the date.",
+        "Your Circuit is young. This will open one of its sealed paths. Spend it where your heart leans."
+      ],
+      "do": [ "flag:sage_gift", "give:circuit_shard" ] },
+    { "if": "!has:prism_band", "speaker": "Sage Ilda", "lines": [ "Every elemental ring you find makes one element resonate: its ailments bite deeper and its overload comes slower. In the Citadel, there is said to be a band that does it for them all." ] },
+    { "speaker": "Sage Ilda", "lines": [ "The Prism Band! Every element sings with it. Use it well." ] }
+  ],
+
+  // ---- Side zones ----------------------------------------------------------------------------------------------
+
+  "forager_ivy": [
+    { "speaker": "Forager Ivy", "lines": [ "Hazel sent you? I've walked this clearing in circles for... days? The path keeps coming back here.", "East, you say? Toward the sound of the river. Right." ], "do": [ "flag:found_ivy" ] }
+  ],
+  "forager_rook": [
+    { "speaker": "Forager Rook", "lines": [ "I wasn't lost. I was surveying. Extensively.", "...Fine. Which way is home?" ], "do": [ "flag:found_rook" ] }
+  ],
+  "forager_pim": [
+    { "speaker": "Forager Pim", "lines": [ "The bridge ate itself and I couldn't get back! I ate mushrooms. Only the not-glowing ones.", "You came for me? I'll run the whole way!" ], "do": [ "flag:found_pim" ] }
+  ],
+
+  "grett": [
+    { "if": "!grett_met", "speaker": "Miner Grett", "lines": [
+        "Didn't think anyone'd come down here again. Forty years I worked this seam. Salt, iron, and the odd pearl.",
+        "That blade of yours could use real hammering. I've an anvil and nothing but time."
+      ], "do": [ "flag:grett_met", "smith:3" ] },
+    { "speaker": "Miner Grett", "lines": [ "Back for more? Bring me what you've found." ], "do": [ "smith:3" ] }
+  ],
+
+  "ferry_back": [
+    { "speaker": "Ferryman Loy", "lines": [ "Tide's with us whenever you are." ], "ask": "Sail back to Brinewatch?", "yes": [ "warp:brinewatch,26,21,down" ], "noLines": [ "I'll wait." ] }
+  ],
+
+  "wyrm_intro": [
+    { "speaker": "", "lines": [ "The lava heaves. A serpent of black stone and molten seams rears out of the pit, shedding cinders.", "Its crust glows too hot to touch. Something would have to cool it first." ],
+      "do": [ "flag:wyrm_arena", "music:Boss-DangerousDuke" ] }
+  ],
+
+  "dace": [
+    { "if": "!arena_open", "speaker": "Arena Master Dace", "lines": [
+        "The Highcrag Arena, open again! Three ladders: bronze, silver and gold. Waves until you drop or they do.",
+        "Every medal earns a prize. And if you want a real test, the shrine there will bind you to a Pact or two."
+      ], "do": [ "flag:arena_open" ] },
+    { "if": "rift:arena_bronze,!arena_bronze_paid", "speaker": "Arena Master Dace", "lines": [ "Bronze! Not bad for a first bout." ], "do": [ "flag:arena_bronze_paid", "give:spirit_pip" ] },
+    { "if": "rift:arena_silver,!arena_silver_paid", "speaker": "Arena Master Dace", "lines": [ "Silver. The crowd knows your name now." ], "do": [ "flag:arena_silver_paid", "give:parry_ring" ] },
+    { "if": "rift:arena_gold,!arena_gold_paid", "speaker": "Arena Master Dace", "lines": [ "GOLD! Nobody's taken gold in a hundred years. These were the last champion's." ], "do": [ "flag:arena_gold_paid", "give:wind_feather", "give:spirit_pip" ] },
+    { "if": "rift:arena_gold", "speaker": "Arena Master Dace", "lines": [ "Champion. Try the Pacts, if you're bored." ] },
+    { "speaker": "Arena Master Dace", "lines": [ "Step into the ring when you're ready." ] }
+  ],
+
+  "echo_warlock": [
+    { "speaker": "Echo of the Ember Warlock", "lines": [ "(The flames in the shrine burn violet...)", "Burn... burn... the crystal is mine... it was always mine..." ],
+      "do": [ "flag:run:arena:echo_warlock", "music:Boss-KnightFight" ] }
+  ],
+  "echo_serpent": [
+    { "speaker": "", "lines": [ "The pools have gone black. Something coils beneath them, larger than you remember, and patient." ],
+      "do": [ "flag:run:arena:echo_serpent", "music:Boss-BaronessBattle" ] }
+  ],
+  "echo_golem": [
+    { "speaker": "", "lines": [ "At the spire's root, a colossus hangs head-down from the ceiling. Violet lightning crawls along its limbs as it drops." ],
+      "do": [ "flag:run:arena:echo_golem", "music:Boss-ManAtArms" ] }
+  ],
+  "echo_warden": [
+    { "speaker": "", "lines": [ "ECHO OF THE WARDEN: INTRUDER. THE HOLLOW IS SEALED. THE HOLLOW IS SEALED." ],
+      "do": [ "flag:run:arena:echo_warden", "music:Retro-RedChaos" ] }
+  ],
+  "echo_wyrm": [
+    { "speaker": "", "lines": [ "The floor splits into lava. Something that was once the Magma Wyrm surfaces, its seams burning violet." ],
+      "do": [ "flag:run:arena:echo_wyrm", "music:Boss-DangerousDuke" ] }
+  ],
+  "echo_sovereign": [
+    { "speaker": "Echo of Sovereign Vael", "lines": [ "Still... you climb... my stair. Down, now. Always down.", "Give me... the crystals..." ],
+      "do": [ "flag:run:arena:echo_sovereign", "music:Boss-DangerousDuke" ] }
+  ],
+  "concord_intro": [
+    { "speaker": "", "lines": [
+        "At the bottom of the Hollow, a ring of white stone turns slowly in the dark. Four sockets. One heart, beating violet.",
+        "THE FIRST CONCORD: WE BOUND THE ELEMENTS, SO THAT NO ONE WOULD EVER HAVE TO. THEN THE BINDING ROTTED, AND WE WITH IT.",
+        "THE LAST SLEEPER. CARRYING ALL FIVE BLADES. GOOD. YOU WILL MAKE A FINE SIXTH."
+      ], "do": [ "flag:run:arena:concord", "music:Boss-DangerousDuke" ] }
+  ],
+
+  "pact_shrine": [
+    { "speaker": "", "lines": [ "A shrine of black stone. Words cut into it promise much to those who carry heavier burdens." ], "do": [ "pacts" ] }
+  ],
+
+  // ---- Act 4: the Ashen Reach -----------------------------------------------------------------------------------
+
+  "ines": [
+    { "if": "!quest:cold_forge", "speaker": "Quartermaster Ines", "lines": [
+        "A sleeper? Walking out of the ash on purpose? Sit, sit. Mind the fire, it's the only one we've got.",
+        "Ashford's what's left of the crater folk. The rifts out there took the rest: our people, our tents, even the old Concord Forge behind us. It's a ghost of itself.",
+        "The forge needs its bellows, its anvil and its heart. The bellows were dragged into a rift up on the Rim. The anvil sank into the Bastion. And the heart... the Warden guards it, in the Bastion's deepest hall.",
+        "Bring them back and Corvin, our forgemaster, might be able to do what you came for."
+      ],
+      "do": [ "quest:cold_forge", "quest:ashford_rebuilt" ] },
+    { "if": "restored:ashford:40,!ash_reward_40", "speaker": "Quartermaster Ines", "lines": [ "Tents up, bellies full. Here; Pell found this in the ash and won't stop asking what it is." ], "do": [ "flag:ash_reward_40", "give:life_shard" ] },
+    { "if": "restored:ashford:70,!ash_reward_70", "speaker": "Quartermaster Ines", "lines": [ "The forge breathes again. Corvin says this is yours; it was cooling on the anvil when the rifts opened." ], "do": [ "flag:ash_reward_70", "give:circuit_shard" ] },
+    { "if": "restored:ashford:100,!ash_reward_100", "speaker": "Quartermaster Ines", "lines": [ "Every last one of us, home. The camp wants you to have this." ], "do": [ "flag:ash_reward_100", "give:spirit_pip" ] },
+    { "if": "rift:ash_camp", "speaker": "Quartermaster Ines", "lines": [ "Supplies are thin, but you've earned first pick." ], "do": [ "shop:ashford" ] },
+    { "speaker": "Quartermaster Ines", "lines": [ "Out there, south-west of the pools, there's a rift that took our tents and half the camp with them. Close it and I can open the stores." ] }
+  ],
+
+  "varro": [
+    { "speaker": "Tinker Varro", "lines": [ "Back from the purple and none the worse. Trinkets, charms, odd little things. All work, mostly." ], "do": [ "shop:ashford_tinker" ] }
+  ],
+
+  "pell": [
+    { "if": "!pell_gate", "speaker": "Scout Pell", "lines": [
+        "Seen that tear by the forge? It opened when the camp came back. Same violet as the rifts, but it doesn't spit monsters. It pulls.",
+        "I put my hand through once. I saw the Ember Vault, only... wrong. Blighted. Places you've cleared, remembered by something that hates them.",
+        "Things that die in there get back up unless you finish them right: look for the mark over their heads. And walk light on that purple ground."
+      ], "do": [ "flag:pell_gate" ] },
+    { "speaker": "Scout Pell", "lines": [
+        "I've walked the Bastion's halls. Sometimes I'd see it as it was: whole, flying, full of machines. Memory shards do that.",
+        "Whatever you move back then, stays moved. The city remembers."
+      ] }
+  ],
+
+  "sorrel": [
+    { "speaker": "Medic Sorrel", "lines": [ "Hold still. There. Good as new. Mostly." ], "do": [ "heal" ] }
+  ],
+
+  "corvin": [
+    { "if": "!has:aether,!has:thunder", "speaker": "Forgemaster Corvin", "lines": [ "The forge burns, but I need all four of the Concord's blades to make what you need: wind, fire, water and thunder." ] },
+    { "if": "!has:aether", "speaker": "Forgemaster Corvin", "lines": [
+        "Bellows, anvil, heart. A hundred years cold, and she sings like she was lit yesterday.",
+        "Give me your four blades, sleeper. The Concord made them to be one. They only needed a forge that remembered how."
+      ],
+      "ask": "Let Corvin fuse the four swords into one?",
+      "yes": [ "give:aether", "flag:aether_forged", "music:Retro-EternalFountain" ],
+      "yesLines": [
+        "Wind, fire, water and thunder fold into one another under the hammer. The steel comes out every color and no color at all.",
+        "\"There. The Aether Blade. Every element at once, and whichever your foe fears most finds it first. Its Arts are in the Circuit; it has no overload, but it drinks your spirit while you wield it.\""
+      ],
+      "noLines": [ "When you're ready." ] },
+    { "speaker": "Forgemaster Corvin", "lines": [ "Bring me blight cores and I'll push that blade past anything the Concord dreamed of." ], "do": [ "smith:10" ] }
+  ],
+
+  "warden_intro": [
+    { "speaker": "", "lines": [ "A colossal automaton unfolds from the floor, its shield flaring through every element in turn. Somewhere inside it, a heart of fire beats.", "CONCORD WARDEN: INTRUDER. THE FORGE IS SEALED. THE FORGE IS SEALED." ],
+      "do": [ "flag:warden_arena", "music:Retro-RedChaos" ] }
+  ],
+
+  "golem_intro": [
+    { "speaker": "", "lines": [ "The rooftop shudders. Stone grinds against stone as a colossal figure rises, lightning crawling through its veins!" ],
+      "do": [ "flag:golem_arena", "music:Boss-ManAtArms" ] }
+  ],
+
+  // ---- Act 5: the Sky Citadel -------------------------------------------------------------------------------------
+
+  "sovereign_intro": [
+    { "speaker": "Sovereign Vael", "lines": [
+        "So. The Concord's last sleeper climbs my stair, carrying the crystals my people let fall.",
+        "I held this city in the sky for a hundred years. I will not let it fall a second time.",
+        "Give me the crystals, and the Aether will be whole again. Refuse, and be scattered on the wind!"
+      ],
+      "do": [ "flag:throne_arena", "music:Boss-DangerousDuke" ] }
+  ],
+
+  "too_weak_6": [ { "lines": [ "Something vast stirs beneath the pools." ], "do": [ "flag:serpent_arena" ] } ],
+  "too_weak_10": [ { "lines": [ "Thunder rolls across the rooftop." ], "do": [ "flag:golem_arena" ] } ],
+  "too_weak_13": [ { "lines": [ "A crushing pressure fills the throne room." ], "do": [ "flag:throne_arena" ] } ]
+}
