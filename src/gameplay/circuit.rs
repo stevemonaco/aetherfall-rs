@@ -86,6 +86,8 @@ pub struct CircuitMods {
     pub tether_range: f32,
     pub burst_bonus: f32,
     pub resonance_gain: f32,
+    /// Share of max life regenerated each second.
+    pub regen: f32,
     pub overload: HashMap<Element, f32>,
     pub buildup: HashMap<Element, f32>,
     pub mode_atk: HashMap<Element, f32>,
@@ -110,6 +112,7 @@ impl Default for CircuitMods {
             tether_range: 0.0,
             burst_bonus: 0.0,
             resonance_gain: 1.0,
+            regen: 0.0,
             overload: HashMap::new(),
             buildup: HashMap::new(),
             mode_atk: HashMap::new(),
@@ -323,6 +326,16 @@ fn neutral_arm() -> Vec<CircuitNode> {
         8.9,
         -3.6,
         &["n_vitality2"],
+    );
+    arm.add(
+        "n_renewal",
+        Notable,
+        "Renewal",
+        "Regenerate 0.6% of your life every second.",
+        "regen:0.006",
+        9.7,
+        -4.0,
+        &["n_retaliation"],
     );
     arm.add("n_focus1", Small, "Focus", "FOC +8%.", "foc:0.08", 4.8, 1.0, &["n_technique"]);
     arm.add(
@@ -641,6 +654,7 @@ pub fn compute<'a>(unlocked: impl Iterator<Item = &'a String>) -> CircuitMods {
                 "perfect" => mods.perfect_window += value(1),
                 "tether" => mods.tether_range += value(1),
                 "burst" => mods.burst_bonus += value(1),
+                "regen" => mods.regen += value(1),
                 "resonance" => mods.resonance_gain *= value(1),
                 "passive" => {
                     mods.passives.insert(p[1].to_string());

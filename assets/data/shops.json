@@ -1,7 +1,7 @@
 {
   "village": {
     "greeting": "Take a look around!",
-    "items": [ "herb", "cooling_salve", "tanned_hide", "wood_shield", "chain_mail", "iron_shield" ]
+    "items": [ "herb", "cooling_salve", "tanned_hide", "wood_shield", "chain_mail", "iron_shield", "verdant_charm" ]
   },
   "herbalist": {
     "greeting": "Remedies for every ailment, dear.",

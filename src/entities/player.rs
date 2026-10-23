@@ -54,7 +54,6 @@ pub struct Player {
     invulnerable: f32,
     knock_time: f32,
     death_time: f32,
-    since_hurt: f32,
     jump_time: f32,
     fall_time: f32,
     knock_velocity: Vec2,
@@ -142,7 +141,6 @@ impl Player {
             invulnerable: 0.0,
             knock_time: 0.0,
             death_time: 0.0,
-            since_hurt: 99.0,
             jump_time: -1.0,
             fall_time: -1.0,
             knock_velocity: Vec2::ZERO,
@@ -374,7 +372,6 @@ impl Player {
         self.frame_dt = dt;
         self.tick_triggers(world, dt);
         self.invulnerable = (self.invulnerable - dt).max(0.0);
-        self.since_hurt += dt;
         self.update_status(world, dt);
         self.update_combat_timers(world, dt);
 
@@ -441,12 +438,9 @@ impl Player {
         }
         self.update_heat(world, self.frame_dt);
         self.update_blight(world, self.frame_dt);
-        if self.since_hurt > 4.0
-            && !world.in_combat()
-            && world.state.hp < world.state.max_hp()
-            && self.status.burn <= 0.0
-        {
-            self.regen += world.state.max_hp() as f32 * 0.04 * self.frame_dt;
+        let rate = world.state.acc().regen + world.state.mods().regen;
+        if rate > 0.0 && world.state.hp < world.state.max_hp() && self.status.burn <= 0.0 {
+            self.regen += world.state.max_hp() as f32 * rate * self.frame_dt;
         }
         if self.regen >= 1.0 {
             let whole = self.regen as i32;
@@ -636,7 +630,6 @@ impl Player {
         }
 
         self.invulnerable = HURT_INVULNERABLE;
-        self.since_hurt = 0.0;
         world.rank.player_hurt();
         if !self.is_dead() {
             self.trigger(world, Trigger::Hurt, Some(hit));

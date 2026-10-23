@@ -371,8 +371,9 @@ impl World {
         self.companion = None;
         self.state.map_id = id.to_string();
         self.reset_unfinished_arenas();
-        if items::TOWNS.iter().any(|t| t.0 == id) {
+        if let Some(&(_, _, (cx, cy))) = items::TOWNS.iter().find(|t| t.0 == id) {
             self.state.flags.insert(format!("visited:{id}"));
+            self.state.flags.insert(format!("crystal:{id}:{cx}_{cy}"));
         }
         self.state.flags.insert(format!("seen:{id}"));
         match self.data.blight_area.clone() {
@@ -412,6 +413,7 @@ impl World {
         let start = position
             .or(spawn_point)
             .unwrap_or(Vec2::new(self.map.pixel_width() as f32 / 2.0, self.map.pixel_height() as f32 / 2.0));
+        let start = self.nearest_open(start);
         let mut player = Player::new(start, facing);
         player.added(self);
         self.player = Some(Box::new(player));
@@ -704,12 +706,23 @@ impl World {
         self.entities_of::<crate::entities::hazards::SteamCloud>().any(|s| s.base().pos.distance(at) < s.radius() + 6.0)
     }
 
-    /// True while any nearby enemy is hunting the player, which pauses out-of-combat regeneration.
-    pub fn in_combat(&self) -> bool {
-        self.boss.is_some()
-            || self
-                .entities_of::<crate::entities::enemy::Enemy>()
-                .any(|e| e.alerted() && e.base().pos.distance(self.hero.pos) < 260.0)
+    /// The given spot if the player can stand there, otherwise the nearest tile that is open.
+    fn nearest_open(&self, pos: Vec2) -> Vec2 {
+        let t = TILE as f32;
+        let (x, y) = ((pos.x / t).floor() as i32, ((pos.y - 3.0) / t).floor() as i32);
+        if !self.map.blocks_walking(x, y) {
+            return pos;
+        }
+        for r in 1..8i32 {
+            for dy in -r..=r {
+                for dx in -r..=r {
+                    if dx.abs().max(dy.abs()) == r && !self.map.blocks_walking(x + dx, y + dy) {
+                        return tile_feet(x + dx, y + dy);
+                    }
+                }
+            }
+        }
+        pos
     }
 
     // ---- Movement -----------------------------------------------------------------------------------------------

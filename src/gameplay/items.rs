@@ -41,6 +41,8 @@ pub struct AccessoryStats {
     pub auto_revive: bool,
     pub blight_taken: f32,
     pub mastery: f32,
+    /// Share of max life regenerated each second.
+    pub regen: f32,
 }
 
 impl AccessoryStats {
@@ -63,6 +65,7 @@ impl AccessoryStats {
         auto_revive: false,
         blight_taken: 1.0,
         mastery: 1.0,
+        regen: 0.0,
     };
 
     pub fn combine(a: &AccessoryStats, b: &AccessoryStats) -> AccessoryStats {
@@ -85,6 +88,7 @@ impl AccessoryStats {
             auto_revive: a.auto_revive || b.auto_revive,
             blight_taken: a.blight_taken * b.blight_taken,
             mastery: a.mastery * b.mastery,
+            regen: a.regen + b.regen,
         }
     }
 }
@@ -182,6 +186,8 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { gold: 1.6, ..N }),
         item("scholar_lens", "Scholar's Lens", Accessory, 0, 0, "Gain 30% more experience.")
             .with_acc(AccessoryStats { exp: 1.3, ..N }),
+        item("verdant_charm", "Verdant Charm", Accessory, 450, 0, "Regenerate 1% of your life every second.")
+            .with_acc(AccessoryStats { regen: 0.01, ..N }),
         item("mentor_ribbon", "Mentor's Ribbon", Accessory, 450, 0, "Element mastery grows 50% faster.")
             .with_acc(AccessoryStats { mastery: 1.5, ..N }),
         item("sage_pendant", "Sage Pendant", Accessory, 600, 0, "Gain SP 40% faster.")
@@ -368,9 +374,10 @@ pub fn name_of(id: &str) -> String {
     id.to_string()
 }
 
-/// Save crystals that fast travel can reach once activated, with the tile the player arrives on.
-pub const TOWNS: [(&str, &str, (i32, i32)); 3] = [
-    ("leafhollow", "Leafhollow", (19, 13)),
-    ("brinewatch", "Brinewatch", (15, 16)),
-    ("highcrag", "Highcrag", (17, 16)),
+/// Towns and their save crystal tiles; visiting a town opens its crystal to fast travel.
+pub const TOWNS: [(&str, &str, (i32, i32)); 4] = [
+    ("leafhollow", "Leafhollow", (22, 15)),
+    ("brinewatch", "Brinewatch", (12, 14)),
+    ("highcrag", "Highcrag", (18, 12)),
+    ("ashford", "Ashford Camp", (22, 18)),
 ];

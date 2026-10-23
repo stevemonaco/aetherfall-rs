@@ -168,10 +168,6 @@ impl Enemy {
         enemy
     }
 
-    pub fn alerted(&self) -> bool {
-        self.alerted
-    }
-
     pub fn heavy(&self) -> bool {
         self.boss.is_some() || self.def.heavy
     }

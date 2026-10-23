@@ -185,7 +185,7 @@ impl Entity for LockedDoor {
     }
 }
 
-/// Records the game, restores the player and becomes a fast-travel destination.
+/// Records the game and becomes a fast-travel destination.
 pub struct SaveCrystal {
     base: EntityBase,
     time: f32,
@@ -226,11 +226,7 @@ impl Entity for SaveCrystal {
     }
 
     fn interact(&mut self, world: &mut World) {
-        world.state.hp = world.state.max_hp();
-        if let Some(p) = world.player.as_mut() {
-            p.cure_ailments();
-        }
-        audio::sfx(Sound::Heal);
+        audio::play(Sound::ChargeLevel, 0.7, 0.3);
         let (tx, ty) = self.base.tile_pos();
         let flag = format!("crystal:{}:{tx}_{ty}", world.map_id());
         world.state.flags.insert(flag);

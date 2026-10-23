@@ -18,7 +18,7 @@
     "TTTTTTTT............w...........TTTTT.TTTTTT",
     "TTTTTTTTTTTTTT....wwwww.........TTTTT.TTTTTT",
     "TTTTTTTTTTTTTT..TTTTTw..TTTTTT..TTTTT.TTTTTT",
-    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTT.TTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTT..TTTTT",
     "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT........TTTTTT",
     "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTTTTTTTTT",
     "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTTTTTTTTT",
@@ -66,8 +66,8 @@
     },
     {
       "type": "save",
-      "x": 36.0,
-      "y": 21.0
+      "x": 31.0,
+      "y": 20.0
     },
     {
       "type": "sign",
@@ -177,8 +177,8 @@
     },
     {
       "type": "sign",
-      "x": 37.0,
-      "y": 12.0,
+      "x": 38.0,
+      "y": 13.0,
       "text": "The trail ends at a wall of brambles that looks... not quite real."
     },
     {

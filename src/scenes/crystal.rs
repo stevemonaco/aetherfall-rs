@@ -1,4 +1,4 @@
-//! The save crystal menu: the game is already saved and the player healed; from here they can fast travel.
+//! The save crystal menu: the game is already saved; from here the player can fast travel or open the Circuit.
 
 use bevy::math::Vec2;
 
@@ -58,7 +58,6 @@ impl Scene for CrystalScene {
                 self.rows.push(Row { label: name, map: parts[1].to_string(), tile: (x, y + 1) });
             }
         }
-        audio::sfx(Sound::Heal);
     }
 
     fn update(&mut self, ctx: &mut SceneCtx, _dt: f32) {
