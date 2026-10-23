@@ -2,8 +2,8 @@
 
 use bevy::math::Vec2;
 
-use crate::art::hero::{HeroPose, hero_sprite};
 use crate::art::combat as art;
+use crate::art::hero::{HeroPose, hero_sprite};
 use crate::core::color::Rgba;
 use crate::core::direction::Direction;
 use crate::core::geom::{IRect, snap};
@@ -186,7 +186,13 @@ impl Entity for ArtBanner {
     fn draw(&self, world: &World, batch: &mut Batch) {
         let alpha = ((0.9 - self.age) * 4.0).min(1.0);
         let at = world.hero.pos - Vec2::new(0.0, 36.0 + (self.age * 30.0).min(6.0));
-        font::draw_centered(batch, self.art.name, snap(at), self.art.element.light().mul(alpha), Some(palette::TEXT_SHADOW.mul(alpha)));
+        font::draw_centered(
+            batch,
+            self.art.name,
+            snap(at),
+            self.art.element.light().mul(alpha),
+            Some(palette::TEXT_SHADOW.mul(alpha)),
+        );
     }
 }
 
@@ -320,8 +326,28 @@ impl Entity for LineMarker {
         let delta = self.to - from;
         let (length, angle) = (delta.length(), delta.y.atan2(delta.x));
         let origin = Vec2::new(0.0, 0.5);
-        batch.draw_ex(gfx::pixel(), from, None, self.color.mul(0.2), angle, origin, Vec2::new(length, self.width), false, false);
-        batch.draw_ex(gfx::pixel(), from, None, self.color.mul(0.45), angle, origin, Vec2::new(length * t, self.width * 0.5), false, false);
+        batch.draw_ex(
+            gfx::pixel(),
+            from,
+            None,
+            self.color.mul(0.2),
+            angle,
+            origin,
+            Vec2::new(length, self.width),
+            false,
+            false,
+        );
+        batch.draw_ex(
+            gfx::pixel(),
+            from,
+            None,
+            self.color.mul(0.45),
+            angle,
+            origin,
+            Vec2::new(length * t, self.width * 0.5),
+            false,
+            false,
+        );
     }
 }
 
@@ -372,7 +398,17 @@ impl Entity for LightningStrike {
 /// Draws a straight line of the given width.
 pub fn draw_line(batch: &mut Batch, a: Vec2, b: Vec2, color: Rgba, width: f32) {
     let delta = b - a;
-    batch.draw_ex(gfx::pixel(), a, None, color, delta.y.atan2(delta.x), Vec2::new(0.0, 0.5), Vec2::new(delta.length(), width), false, false);
+    batch.draw_ex(
+        gfx::pixel(),
+        a,
+        None,
+        color,
+        delta.y.atan2(delta.x),
+        Vec2::new(0.0, 0.5),
+        Vec2::new(delta.length(), width),
+        false,
+        false,
+    );
 }
 
 /// A jagged electric arc between two points.
@@ -535,7 +571,13 @@ impl Entity for ClawEffect {
         let alpha = 1.0 - self.age / 0.15;
         for i in -1..=1 {
             let start = self.base.pos + normal * i as f32 * 4.0 - self.dir * 6.0;
-            draw_line(batch, start, start + self.dir * 12.0 + normal * 2.0, self.color.lerp(Rgba::WHITE, 0.5).mul(alpha), 1.5);
+            draw_line(
+                batch,
+                start,
+                start + self.dir * 12.0 + normal * 2.0,
+                self.color.lerp(Rgba::WHITE, 0.5).mul(alpha),
+                1.5,
+            );
         }
     }
 }

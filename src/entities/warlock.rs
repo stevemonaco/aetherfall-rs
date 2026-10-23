@@ -64,7 +64,6 @@ impl WarlockState {
         }
     }
 
-
     fn strip() -> FrameStrip {
         FrameStrip::new(props::warlock(), 32, 40)
     }
@@ -82,7 +81,11 @@ impl WarlockState {
         self.grounded = true;
         self.next(Step::Stagger, 3.0);
         self.fade = 1.0;
-        world.add(FloatingText::new(enemy.base.pos - Vec2::new(0.0, 48.0), "It can't teleport now!", palette::HIGHLIGHT));
+        world.add(FloatingText::new(
+            enemy.base.pos - Vec2::new(0.0, 48.0),
+            "It can't teleport now!",
+            palette::HIGHLIGHT,
+        ));
     }
 
     fn shoot(enemy: &Enemy, world: &mut World, from: Vec2, direction: Vec2, speed_scale: f32) {
@@ -118,9 +121,13 @@ impl WarlockState {
             Step::FadeOut => {
                 self.fade = self.timer / 0.4;
                 if self.timer <= 0.0 {
-                    let choices: Vec<Vec2> = self.anchors.iter().copied().filter(|a| a.distance(player) > 48.0).collect();
-                    enemy.base.pos =
-                        if choices.is_empty() { self.anchors[0] } else { choices[world.rng.below(choices.len() as i32) as usize] };
+                    let choices: Vec<Vec2> =
+                        self.anchors.iter().copied().filter(|a| a.distance(player) > 48.0).collect();
+                    enemy.base.pos = if choices.is_empty() {
+                        self.anchors[0]
+                    } else {
+                        choices[world.rng.below(choices.len() as i32) as usize]
+                    };
                     self.next(Step::FadeIn, 0.4);
                 }
             }
@@ -133,7 +140,8 @@ impl WarlockState {
             }
             Step::RingWindup => {
                 if world.rng.next_f32() < 0.6 {
-                    let at = enemy.base.pos - Vec2::new(world.rng.range(-14, 15) as f32, 20.0 + world.rng.below(16) as f32);
+                    let at =
+                        enemy.base.pos - Vec2::new(world.rng.range(-14, 15) as f32, 20.0 + world.rng.below(16) as f32);
                     world.add(Particle::new(at, Vec2::new(0.0, -30.0), Rgba::rgb(255, 160, 60), 0.4));
                 }
                 if self.timer <= 0.0 {
@@ -160,7 +168,13 @@ impl WarlockState {
                     if self.volley_shots <= 0 {
                         self.next(Step::Recover, 1.1);
                     } else {
-                        world.add(LineMarker::new(from, from + safe_normalize(dir) * 90.0, 6.0, 0.3, Rgba::rgb(255, 120, 50)));
+                        world.add(LineMarker::new(
+                            from,
+                            from + safe_normalize(dir) * 90.0,
+                            6.0,
+                            0.3,
+                            Rgba::rgb(255, 120, 50),
+                        ));
                     }
                 }
             }
@@ -206,7 +220,13 @@ impl WarlockState {
             1 => {
                 self.volley_shots = if enraged { 5 } else { 3 };
                 self.next(Step::Volley, 0.5);
-                world.add(LineMarker::new(enemy.base.pos - Vec2::new(0.0, 14.0), world.hero.pos, 6.0, 0.5, Rgba::rgb(255, 120, 50)));
+                world.add(LineMarker::new(
+                    enemy.base.pos - Vec2::new(0.0, 14.0),
+                    world.hero.pos,
+                    6.0,
+                    0.5,
+                    Rgba::rgb(255, 120, 50),
+                ));
             }
             _ => {
                 let count = if enraged { 5 } else { 3 };
@@ -357,6 +377,16 @@ impl Entity for EmberPillar {
         let rise = ((self.age - self.delay) * 6.0).min(1.0);
         let src = IRect::new(frame * 16, 0, 16, 22);
         let at = snap(self.base.pos - Vec2::new(8.0, 30.0 * rise));
-        batch.draw_ex(crate::art::combat::flames(), at, Some(src), Rgba::WHITE, 0.0, Vec2::ZERO, Vec2::new(1.0, 1.4), false, false);
+        batch.draw_ex(
+            crate::art::combat::flames(),
+            at,
+            Some(src),
+            Rgba::WHITE,
+            0.0,
+            Vec2::ZERO,
+            Vec2::new(1.0, 1.4),
+            false,
+            false,
+        );
     }
 }

@@ -103,7 +103,10 @@ pub struct Sign {
 impl Sign {
     pub fn new(data: &EntityData) -> Sign {
         let pos = tile_center(data.x as i32, data.y as i32) + Vec2::new(0.0, 7.0);
-        Sign { base: EntityBase { pos, solid: true, width: 12.0, height: 6.0, ..EntityBase::default() }, text: data.str_or("text", "...").to_string() }
+        Sign {
+            base: EntityBase { pos, solid: true, width: 12.0, height: 6.0, ..EntityBase::default() },
+            text: data.str_or("text", "...").to_string(),
+        }
     }
 }
 
@@ -140,7 +143,10 @@ impl Chest {
         let sword = item.as_deref().is_some_and(|i| items::sword(i).is_some());
         Chest {
             base: EntityBase { pos, solid: true, width: 14.0, height: 8.0, ..EntityBase::default() },
-            flag: data.str("flag").map(str::to_string).unwrap_or_else(|| format!("chest:{map_id}:{}_{}", data.x, data.y)),
+            flag: data
+                .str("flag")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("chest:{map_id}:{}_{}", data.x, data.y)),
             item,
             count: data.int("count", 1),
             gold: data.int("gold", 0),
@@ -214,7 +220,12 @@ impl Warp {
         let (w, h) = (data.int("w", 1), data.int("h", 1));
         let pos = Vec2::new((data.x + w as f32 / 2.0) * T, (data.y + h as f32) * T);
         Warp {
-            base: EntityBase { pos, width: (w * TILE - 6) as f32, height: (h * TILE - 6) as f32, ..EntityBase::default() },
+            base: EntityBase {
+                pos,
+                width: (w * TILE - 6) as f32,
+                height: (h * TILE - 6) as f32,
+                ..EntityBase::default()
+            },
             art: match data.str("art") {
                 Some("stairs_down") => Some(art::stairs_down()),
                 Some("stairs_up") => Some(art::stairs_up()),
@@ -238,7 +249,14 @@ impl Entity for Warp {
     }
 
     fn touch(&mut self, world: &mut World) {
-        world.try_warp(self.condition.as_deref(), self.blocked_text.as_deref(), &self.target, self.target_tile, self.target_facing, self.door);
+        world.try_warp(
+            self.condition.as_deref(),
+            self.blocked_text.as_deref(),
+            &self.target,
+            self.target_tile,
+            self.target_facing,
+            self.door,
+        );
     }
 
     fn draw(&self, _world: &World, batch: &mut Batch) {
@@ -265,7 +283,12 @@ impl Building {
         let tiles = IRect::new(data.x as i32, data.y as i32, w, h);
         let center_x = tiles.x + tiles.w / 2;
         Building {
-            base: EntityBase { pos: Vec2::new((center_x * TILE) as f32, (tiles.bottom() * TILE) as f32), width: 0.0, height: 0.0, ..EntityBase::default() },
+            base: EntityBase {
+                pos: Vec2::new((center_x * TILE) as f32, (tiles.bottom() * TILE) as f32),
+                width: 0.0,
+                height: 0.0,
+                ..EntityBase::default()
+            },
             texture: art::house(w, h, door, data.str_or("roof", "red")),
             tiles,
             restore: data.str("restore").map(str::to_string),
@@ -367,7 +390,12 @@ impl Decor {
         let dialogue = data.str("dialogue").map(str::to_string);
         let size = if dialogue.is_some() { T } else { 0.0 };
         Decor {
-            base: EntityBase { pos: Vec2::new(tx as f32 * T + T / 2.0, (ty * TILE + TILE - 1) as f32), width: size, height: size, ..EntityBase::default() },
+            base: EntityBase {
+                pos: Vec2::new(tx as f32 * T + T / 2.0, (ty * TILE + TILE - 1) as f32),
+                width: size,
+                height: size,
+                ..EntityBase::default()
+            },
             texture,
             offset,
             blocks_tile,
@@ -430,7 +458,11 @@ impl Entity for Decor {
     }
 
     fn update(&mut self, world: &mut World, _dt: f32) {
-        if self.blocks_tile && !self.blocked && self.restored(world) && !self.base.hitbox().inflate(8.0).intersects(&world.hero.hitbox) {
+        if self.blocks_tile
+            && !self.blocked
+            && self.restored(world)
+            && !self.base.hitbox().inflate(8.0).intersects(&world.hero.hitbox)
+        {
             self.block_tiles(world);
             Particle::burst(world, self.base.pos - Vec2::new(0.0, 8.0), Rgba::rgb(255, 240, 200), 20, 70.0, 0.6, true);
         }

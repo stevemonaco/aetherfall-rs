@@ -154,7 +154,8 @@ impl Entity for TetherHook {
         }
 
         let t = TILE as f32;
-        let wall = world.map.blocks_flying((self.base.pos.x / t).floor() as i32, ((self.base.pos.y + 8.0) / t).floor() as i32);
+        let wall =
+            world.map.blocks_flying((self.base.pos.x / t).floor() as i32, ((self.base.pos.y + 8.0) / t).floor() as i32);
         if self.travelled > Self::range(world) || wall {
             self.returning = true;
             audio::play(Sound::Clink, 0.3, 0.2);
@@ -171,6 +172,16 @@ impl Entity for TetherHook {
             batch.draw(art::chain_link(), snap(at - Vec2::splat(1.5)), color);
         }
         let rotation = self.velocity.y.atan2(self.velocity.x);
-        batch.draw_ex(art::hook(), snap(self.base.pos), None, Rgba::WHITE, rotation, Vec2::splat(3.5), Vec2::ONE, false, false);
+        batch.draw_ex(
+            art::hook(),
+            snap(self.base.pos),
+            None,
+            Rgba::WHITE,
+            rotation,
+            Vec2::splat(3.5),
+            Vec2::ONE,
+            false,
+            false,
+        );
     }
 }

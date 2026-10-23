@@ -38,7 +38,11 @@ fn store() -> std::sync::MutexGuard<'static, Store> {
 pub fn from_canvas(canvas: Canvas) -> TexId {
     let mut s = store();
     let id = TexId(s.textures.len() as u32);
-    s.textures.push(Texture { width: canvas.width, height: canvas.height, pixels: Some(Arc::new(canvas.pixels.clone())) });
+    s.textures.push(Texture {
+        width: canvas.width,
+        height: canvas.height,
+        pixels: Some(Arc::new(canvas.pixels.clone())),
+    });
     s.uploads.push((id, canvas));
     id
 }
@@ -215,7 +219,17 @@ impl Batch {
             return;
         }
         let scale = Vec2::new(dest.w as f32 / src.w as f32, dest.h as f32 / src.h as f32);
-        self.draw_ex(tex, Vec2::new(dest.x as f32, dest.y as f32), Some(src), color, 0.0, Vec2::ZERO, scale, false, false);
+        self.draw_ex(
+            tex,
+            Vec2::new(dest.x as f32, dest.y as f32),
+            Some(src),
+            color,
+            0.0,
+            Vec2::ZERO,
+            scale,
+            false,
+            false,
+        );
     }
 
     pub fn fill_rect(&mut self, x: f32, y: f32, w: f32, h: f32, color: Rgba) {
@@ -277,6 +291,16 @@ impl FrameStrip {
     pub fn draw(&self, batch: &mut Batch, feet: Vec2, frame: i32, color: Rgba, flip_x: bool, flash: bool, scale: f32) {
         let origin = Vec2::new(self.frame_width as f32 / 2.0, self.frame_height as f32);
         let tex = if flash { self.silhouette() } else { self.texture };
-        batch.draw_ex(tex, super::geom::snap(feet), Some(self.source(frame)), color, 0.0, origin, Vec2::splat(scale), flip_x, false);
+        batch.draw_ex(
+            tex,
+            super::geom::snap(feet),
+            Some(self.source(frame)),
+            color,
+            0.0,
+            origin,
+            Vec2::splat(scale),
+            flip_x,
+            false,
+        );
     }
 }

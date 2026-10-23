@@ -195,7 +195,9 @@ impl GameState {
         MODES
             .iter()
             .copied()
-            .filter(|&m| m == Element::None || self.swords.iter().any(|s| items::sword(s).is_some_and(|d| d.element == m)))
+            .filter(|&m| {
+                m == Element::None || self.swords.iter().any(|s| items::sword(s).is_some_and(|d| d.element == m))
+            })
             .collect()
     }
 
@@ -209,7 +211,9 @@ impl GameState {
     }
 
     pub fn def(&self, mode: Element) -> f32 {
-        (combat::player_base_def(self.level) + power_of(self.armor.as_deref()) as f32 + power_of(self.shield.as_deref()) as f32)
+        (combat::player_base_def(self.level)
+            + power_of(self.armor.as_deref()) as f32
+            + power_of(self.shield.as_deref()) as f32)
             * self.acc().def
             * combat::mode_mods(mode).def
             * self.mods().def
@@ -299,7 +303,8 @@ impl GameState {
             if !self.swords.iter().any(|s| s == id) {
                 self.swords.push(id.to_string());
             }
-            let melee: Vec<&str> = arts::for_element(sword.element).filter(|a| a.slot == ArtSlot::Melee).map(|a| a.id).collect();
+            let melee: Vec<&str> =
+                arts::for_element(sword.element).filter(|a| a.slot == ArtSlot::Melee).map(|a| a.id).collect();
             for art in melee {
                 self.learn(art);
             }
@@ -395,7 +400,8 @@ impl GameState {
     pub fn restoration(&self, town: &str) -> f32 {
         match data().towns.get(town) {
             Some(def) if !def.rifts.is_empty() => {
-                def.rifts.iter().filter(|r| self.flags.contains(&format!("rift:{r}"))).count() as f32 / def.rifts.len() as f32
+                def.rifts.iter().filter(|r| self.flags.contains(&format!("rift:{r}"))).count() as f32
+                    / def.rifts.len() as f32
             }
             _ => 0.0,
         }

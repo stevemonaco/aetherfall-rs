@@ -73,7 +73,15 @@ pub struct Appearance {
 }
 
 impl Appearance {
-    fn new(key: &str, skin: Vec<Rgba>, hair: Vec<Rgba>, top: Vec<Rgba>, legs: Vec<Rgba>, boots: Vec<Rgba>, hair_style: HairStyle) -> Appearance {
+    fn new(
+        key: &str,
+        skin: Vec<Rgba>,
+        hair: Vec<Rgba>,
+        top: Vec<Rgba>,
+        legs: Vec<Rgba>,
+        boots: Vec<Rgba>,
+        hair_style: HairStyle,
+    ) -> Appearance {
         Appearance {
             key: key.to_string(),
             skin,
@@ -191,17 +199,43 @@ impl PersonSprite {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn draw(batch: &mut Batch, look: &Appearance, feet: Vec2, facing: Direction, pose: HeroPose, frame: i32, color: Rgba, silhouette: bool, scale: f32, rotation: f32) {
+    pub fn draw(
+        batch: &mut Batch,
+        look: &Appearance,
+        feet: Vec2,
+        facing: Direction,
+        pose: HeroPose,
+        frame: i32,
+        color: Rgba,
+        silhouette: bool,
+        scale: f32,
+        rotation: f32,
+    ) {
         let view = match facing {
             Direction::Up => 1,
             Direction::Left | Direction::Right => 2,
             Direction::Down => 0,
         };
-        let src = IRect::new(Self::column(pose, frame) * Self::FRAME_WIDTH, view * Self::FRAME_HEIGHT, Self::FRAME_WIDTH, Self::FRAME_HEIGHT);
+        let src = IRect::new(
+            Self::column(pose, frame) * Self::FRAME_WIDTH,
+            view * Self::FRAME_HEIGHT,
+            Self::FRAME_WIDTH,
+            Self::FRAME_HEIGHT,
+        );
         let sheet = Self::sheet(look);
         let tex = if silhouette { gfx::silhouette(sheet) } else { sheet };
         let origin = Vec2::new(Self::FRAME_WIDTH as f32 / 2.0, (Self::FRAME_HEIGHT - 1) as f32);
-        batch.draw_ex(tex, snap(feet), Some(src), color, rotation, origin, Vec2::splat(scale), facing == Direction::Left, false);
+        batch.draw_ex(
+            tex,
+            snap(feet),
+            Some(src),
+            color,
+            rotation,
+            origin,
+            Vec2::splat(scale),
+            facing == Direction::Left,
+            false,
+        );
     }
 }
 
@@ -214,7 +248,17 @@ pub mod hero_sprite {
     pub static LOOK: LazyLock<Appearance> = LazyLock::new(Appearance::hero);
 
     #[allow(clippy::too_many_arguments)]
-    pub fn draw(batch: &mut Batch, feet: Vec2, facing: Direction, pose: HeroPose, frame: i32, color: Rgba, silhouette: bool, scale: f32, rotation: f32) {
+    pub fn draw(
+        batch: &mut Batch,
+        feet: Vec2,
+        facing: Direction,
+        pose: HeroPose,
+        frame: i32,
+        color: Rgba,
+        silhouette: bool,
+        scale: f32,
+        rotation: f32,
+    ) {
         PersonSprite::draw(batch, &LOOK, feet, facing, pose, frame, color, silhouette, scale, rotation);
     }
 }
@@ -271,43 +315,123 @@ pub mod people {
         use Headwear::*;
         let a = Appearance::new;
         let list = vec![
-            a("oldman1", skin(0), white(), cloth(0x3A2A1A, 0x6A4A2A, 0x8A6A3A, 0xB08A5A), brown_pants(), boots(), Bald).robed().bearded(),
-            a("oldman2", skin(1), grey(), cloth(0x1E3A2A, 0x2E5A3E, 0x427A52, 0x6AA070), brown_pants(), boots(), Short).robed().bearded(),
-            a("oldman3", skin(2), white(), cloth(0x22305A, 0x3A4A88, 0x5A6AB0, 0x8A9AD0), dark_pants(), boots(), Long).robed().bearded(),
-            a("adventurer_f2", skin(1), red(), cloth(0x2A4A1E, 0x3E6A2E, 0x5A8A3E, 0x8AB060), brown_pants(), boots(), Long),
-            a("adventurer_f3", skin(3), black(), cloth(0x5A1E3A, 0x8A2E5A, 0xB04A7A, 0xD87AA0), dark_pants(), boots(), Bun),
-            a("adventurer_f4", skin(0), blond(), cloth(0x2A3A6A, 0x3E5A9A, 0x5A7ACA, 0x8AA8E8), dark_pants(), boots(), Long)
-                .wear(Headband, Some(ramp(&[0x8A1E1E, 0xC03A3A, 0xE05A5A, 0xF08A8A]))),
-            a("adventurer_m3", skin(2), brown(), cloth(0x5A3A12, 0x8A5A1E, 0xB07A30, 0xD8A050), dark_pants(), boots(), Spiky),
-            a("adventurer_m4", skin(1), black(), cloth(0x3A1A1A, 0x6A2A2A, 0x9A3E3E, 0xC06A5A), brown_pants(), boots(), Short)
-                .wear(Cap, Some(ramp(&[0x1A2A4A, 0x2A4A7A, 0x3E6AA8, 0x6A9AD0]))),
+            a("oldman1", skin(0), white(), cloth(0x3A2A1A, 0x6A4A2A, 0x8A6A3A, 0xB08A5A), brown_pants(), boots(), Bald)
+                .robed()
+                .bearded(),
+            a("oldman2", skin(1), grey(), cloth(0x1E3A2A, 0x2E5A3E, 0x427A52, 0x6AA070), brown_pants(), boots(), Short)
+                .robed()
+                .bearded(),
+            a("oldman3", skin(2), white(), cloth(0x22305A, 0x3A4A88, 0x5A6AB0, 0x8A9AD0), dark_pants(), boots(), Long)
+                .robed()
+                .bearded(),
+            a(
+                "adventurer_f2",
+                skin(1),
+                red(),
+                cloth(0x2A4A1E, 0x3E6A2E, 0x5A8A3E, 0x8AB060),
+                brown_pants(),
+                boots(),
+                Long,
+            ),
+            a(
+                "adventurer_f3",
+                skin(3),
+                black(),
+                cloth(0x5A1E3A, 0x8A2E5A, 0xB04A7A, 0xD87AA0),
+                dark_pants(),
+                boots(),
+                Bun,
+            ),
+            a(
+                "adventurer_f4",
+                skin(0),
+                blond(),
+                cloth(0x2A3A6A, 0x3E5A9A, 0x5A7ACA, 0x8AA8E8),
+                dark_pants(),
+                boots(),
+                Long,
+            )
+            .wear(Headband, Some(ramp(&[0x8A1E1E, 0xC03A3A, 0xE05A5A, 0xF08A8A]))),
+            a(
+                "adventurer_m3",
+                skin(2),
+                brown(),
+                cloth(0x5A3A12, 0x8A5A1E, 0xB07A30, 0xD8A050),
+                dark_pants(),
+                boots(),
+                Spiky,
+            ),
+            a(
+                "adventurer_m4",
+                skin(1),
+                black(),
+                cloth(0x3A1A1A, 0x6A2A2A, 0x9A3E3E, 0xC06A5A),
+                brown_pants(),
+                boots(),
+                Short,
+            )
+            .wear(Cap, Some(ramp(&[0x1A2A4A, 0x2A4A7A, 0x3E6AA8, 0x6A9AD0]))),
             {
-                let mut l = a("cleric1", skin(1), blond(), white(), dark_pants(), boots(), Short).wear(Hood, Some(white())).robed();
+                let mut l = a("cleric1", skin(1), blond(), white(), dark_pants(), boots(), Short)
+                    .wear(Hood, Some(white()))
+                    .robed();
                 l.belt = Some(Rgba::hex(0xC8A040));
                 l
             },
             {
-                let mut l = a("cleric2", skin(2), grey(), cloth(0x8A8A9A, 0xC0C0CC, 0xE8E8F0, 0xFFFFFF), dark_pants(), boots(), Bald).robed();
+                let mut l = a(
+                    "cleric2",
+                    skin(2),
+                    grey(),
+                    cloth(0x8A8A9A, 0xC0C0CC, 0xE8E8F0, 0xFFFFFF),
+                    dark_pants(),
+                    boots(),
+                    Bald,
+                )
+                .robed();
                 l.belt = Some(Rgba::hex(0x3A6AB0));
                 l
             },
-            a("cleric3", skin(3), black(), cloth(0x5A4A12, 0x8A7A2A, 0xB0A048, 0xD8C870), dark_pants(), boots(), Bun).robed(),
+            a("cleric3", skin(3), black(), cloth(0x5A4A12, 0x8A7A2A, 0xB0A048, 0xD8C870), dark_pants(), boots(), Bun)
+                .robed(),
             a("fighter1", skin(1), brown(), grey(), dark_pants(), boots(), Short)
                 .wear(Headband, Some(ramp(&[0x6A1A1A, 0x9A2A2A, 0xC03A3A, 0xE06A6A]))),
             a("fighter3", skin(2), red(), grey(), brown_pants(), boots(), Spiky),
-            a("warrior2", skin(3), black(), cloth(0x4A2A12, 0x6A4A22, 0x8A6A3A, 0xB08A5A), brown_pants(), boots(), Short).wear(Helmet, Some(grey())),
+            a(
+                "warrior2",
+                skin(3),
+                black(),
+                cloth(0x4A2A12, 0x6A4A22, 0x8A6A3A, 0xB08A5A),
+                brown_pants(),
+                boots(),
+                Short,
+            )
+            .wear(Helmet, Some(grey())),
             {
-                let mut l = a("knight3", skin(0), blond(), grey(), dark_pants(), boots(), Short).wear(Helmet, Some(grey()));
+                let mut l =
+                    a("knight3", skin(0), blond(), grey(), dark_pants(), boots(), Short).wear(Helmet, Some(grey()));
                 l.cape = true;
                 l
             },
-            a("guard1", skin(1), brown(), cloth(0x1A2A5A, 0x2A4A8A, 0x3E6AB8, 0x6A9AE0), dark_pants(), boots(), Short).wear(Helmet, Some(grey())),
-            a("guard2", skin(2), black(), cloth(0x5A1A1A, 0x8A2A2A, 0xB03E3E, 0xD86A6A), dark_pants(), boots(), Short).wear(Helmet, Some(grey())),
-            a("guard3", skin(3), brown(), cloth(0x1A4A3A, 0x2A6A54, 0x3E8A70, 0x6AB09A), dark_pants(), boots(), Short).wear(Helmet, Some(grey())),
-            a("hunter1", skin(1), brown(), cloth(0x1E3A1A, 0x2E5A26, 0x427A36, 0x6AA05A), brown_pants(), boots(), Short)
-                .wear(Hood, Some(cloth(0x1E3A1A, 0x2E5A26, 0x427A36, 0x6AA05A))),
+            a("guard1", skin(1), brown(), cloth(0x1A2A5A, 0x2A4A8A, 0x3E6AB8, 0x6A9AE0), dark_pants(), boots(), Short)
+                .wear(Helmet, Some(grey())),
+            a("guard2", skin(2), black(), cloth(0x5A1A1A, 0x8A2A2A, 0xB03E3E, 0xD86A6A), dark_pants(), boots(), Short)
+                .wear(Helmet, Some(grey())),
+            a("guard3", skin(3), brown(), cloth(0x1A4A3A, 0x2A6A54, 0x3E8A70, 0x6AB09A), dark_pants(), boots(), Short)
+                .wear(Helmet, Some(grey())),
+            a(
+                "hunter1",
+                skin(1),
+                brown(),
+                cloth(0x1E3A1A, 0x2E5A26, 0x427A36, 0x6AA05A),
+                brown_pants(),
+                boots(),
+                Short,
+            )
+            .wear(Hood, Some(cloth(0x1E3A1A, 0x2E5A26, 0x427A36, 0x6AA05A))),
             a("hunter2", skin(2), blond(), cloth(0x3A2A12, 0x5A4220, 0x7A5A30, 0xA07A48), brown_pants(), boots(), Long),
-            a("hunter3", skin(0), red(), cloth(0x2A3A1A, 0x3E5426, 0x566E36, 0x7A9450), dark_pants(), boots(), Bun).wear(Cap, Some(brown())),
+            a("hunter3", skin(0), red(), cloth(0x2A3A1A, 0x3E5426, 0x566E36, 0x7A9450), dark_pants(), boots(), Bun)
+                .wear(Cap, Some(brown())),
             a("mage3", skin(1), white(), cloth(0x2A1A4A, 0x4A2E7A, 0x6A46A8, 0x9A72D0), dark_pants(), boots(), Long)
                 .wear(WizardHat, Some(cloth(0x2A1A4A, 0x4A2E7A, 0x6A46A8, 0x9A72D0)))
                 .robed(),
@@ -317,15 +441,31 @@ pub mod people {
                 .bearded(),
             a("ninja1", skin(1), black(), black(), dark_pants(), boots(), Short).wear(Hood, Some(black())),
             {
-                let mut l = a("thief2", skin(2), brown(), cloth(0x2A2A3A, 0x3E3E54, 0x56566E, 0x7A7A94), dark_pants(), boots(), Spiky);
+                let mut l = a(
+                    "thief2",
+                    skin(2),
+                    brown(),
+                    cloth(0x2A2A3A, 0x3E3E54, 0x56566E, 0x7A7A94),
+                    dark_pants(),
+                    boots(),
+                    Spiky,
+                );
                 l.scarf = Some(ramp(&[0x5A1A1A, 0x8A2A2A, 0xC04A4A]));
                 l
             },
             a("thief3", skin(1), red(), cloth(0x3A2A12, 0x5A4220, 0x7A5A30, 0xA07A48), dark_pants(), boots(), Short)
                 .wear(Hood, Some(cloth(0x2A2A3A, 0x3E3E54, 0x56566E, 0x7A7A94))),
             {
-                let mut l = a("rogue1", skin(1), brown(), cloth(0x3A2A1A, 0x5A4228, 0x7A5A3A, 0xA07A54), brown_pants(), boots(), Short)
-                    .wear(Cap, Some(cloth(0x5A1A1A, 0x8A2A2A, 0xB03E3E, 0xD86A6A)));
+                let mut l = a(
+                    "rogue1",
+                    skin(1),
+                    brown(),
+                    cloth(0x3A2A1A, 0x5A4228, 0x7A5A3A, 0xA07A54),
+                    brown_pants(),
+                    boots(),
+                    Short,
+                )
+                .wear(Cap, Some(cloth(0x5A1A1A, 0x8A2A2A, 0xB03E3E, 0xD86A6A)));
                 l.scarf = Some(ramp(&[0x6A5A1A, 0x9A8A2A, 0xC8B850]));
                 l
             },

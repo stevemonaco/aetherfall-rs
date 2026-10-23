@@ -75,7 +75,10 @@ impl TileObstacle {
             },
             kind,
             cell,
-            flag: data.str("flag").map(str::to_string).unwrap_or_else(|| format!("{}:{map_id}:{}_{}", kind.key(), cell.0, cell.1)),
+            flag: data
+                .str("flag")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("{}:{map_id}:{}_{}", kind.key(), cell.0, cell.1)),
             shake: 0.0,
             time: 0.0,
             burning: -1.0,
@@ -188,8 +191,10 @@ impl Entity for TileObstacle {
                 }
                 self.burning += dt;
                 if world.rng.next_f32() < 0.6 {
-                    let at = self.area().center() + Vec2::new(world.rng.range(-6, 7) as f32, world.rng.range(-4, 6) as f32);
-                    let color = if world.rng.next_f32() < 0.5 { Rgba::rgb(255, 200, 70) } else { Rgba::rgb(255, 100, 40) };
+                    let at =
+                        self.area().center() + Vec2::new(world.rng.range(-6, 7) as f32, world.rng.range(-4, 6) as f32);
+                    let color =
+                        if world.rng.next_f32() < 0.5 { Rgba::rgb(255, 200, 70) } else { Rgba::rgb(255, 100, 40) };
                     world.add(Particle::new(at, Vec2::new(0.0, -26.0), color, 0.5));
                 }
                 if self.burning > 0.35 {
@@ -250,7 +255,11 @@ impl Entity for TileObstacle {
             }
             ObstacleKind::IceWall => {
                 if matches!(hit.element, Element::Fire | Element::Aether) {
-                    self.melt += if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher) { 1.0 } else { 0.34 };
+                    self.melt += if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher) {
+                        1.0
+                    } else {
+                        0.34
+                    };
                     self.shake = 0.1;
                     world.add(SteamCloud::new(self.area().center() + Vec2::new(0.0, 8.0), false));
                     if self.melt >= 1.0 {
@@ -278,7 +287,8 @@ impl Entity for TileObstacle {
             }
             ObstacleKind::ShockLock => {
                 if matches!(hit.element, Element::Thunder | Element::Aether) {
-                    self.charge += if matches!(hit.kind, HitKind::Melee | HitKind::Bolt | HitKind::Tether) { 0.34 } else { 1.0 };
+                    self.charge +=
+                        if matches!(hit.kind, HitKind::Melee | HitKind::Bolt | HitKind::Tether) { 0.34 } else { 1.0 };
                     self.shake = 0.15;
                     Particle::burst(world, self.area().center(), Element::Thunder.glow(), 6, 40.0, 0.3, true);
                     if self.charge >= 1.0 {
@@ -289,7 +299,8 @@ impl Entity for TileObstacle {
                 self.resist()
             }
             ObstacleKind::Rock => {
-                let strong = matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher | HitKind::Environment);
+                let strong =
+                    matches!(hit.kind, HitKind::ChargedBolt | HitKind::Art | HitKind::Finisher | HitKind::Environment);
                 let windy = matches!(hit.element, Element::Wind | Element::Aether);
                 if (windy && strong) || (hit.kind == HitKind::Environment && hit.power >= 1.0) {
                     self.clear(world, Sound::Break, Rgba::rgb(170, 130, 90));
@@ -313,8 +324,12 @@ impl Entity for TileObstacle {
             ObstacleKind::Thicket => "Dry, thorny brush. It looks like it would go up in flames.",
             ObstacleKind::IceWall => "A wall of thick blue ice. Heat would melt it.",
             ObstacleKind::FlameWall => "Unnatural fire roars across the way. Water might quench it.",
-            ObstacleKind::ShockLock => "A sealed metal door with a lightning sigil. Its lock wants a jolt of electricity.",
-            ObstacleKind::Rock => "The rock is riddled with cracks. A strong gust, or something heavy, might shatter it.",
+            ObstacleKind::ShockLock => {
+                "A sealed metal door with a lightning sigil. Its lock wants a jolt of electricity."
+            }
+            ObstacleKind::Rock => {
+                "The rock is riddled with cracks. A strong gust, or something heavy, might shatter it."
+            }
             ObstacleKind::Secret => return,
         };
         world.show_message(text);
@@ -327,15 +342,24 @@ impl Entity for TileObstacle {
                 batch.draw(art::thorns(), at, Rgba::WHITE.lerp(Rgba::rgb(255, 120, 60), self.burning.clamp(0.0, 1.0)));
                 if self.burning >= 0.0 {
                     let frame = (self.time * 10.0) as i32 % 4;
-                    batch.draw_src(art_combat::flames(), at + Vec2::new(0.0, -6.0), Some(IRect::new(frame * 16, 0, 16, 22)), Rgba::WHITE);
+                    batch.draw_src(
+                        art_combat::flames(),
+                        at + Vec2::new(0.0, -6.0),
+                        Some(IRect::new(frame * 16, 0, 16, 22)),
+                        Rgba::WHITE,
+                    );
                 }
             }
-            ObstacleKind::IceWall => batch.draw(art::ice_wall(), at, Rgba::WHITE.lerp(Rgba::rgb(160, 200, 255), self.melt)),
+            ObstacleKind::IceWall => {
+                batch.draw(art::ice_wall(), at, Rgba::WHITE.lerp(Rgba::rgb(160, 200, 255), self.melt))
+            }
             ObstacleKind::FlameWall => {
                 let frame = (self.time * 8.0) as i32 % 2;
                 batch.draw_src(art::flame_wall(), at, Some(IRect::new(frame * 16, 0, 16, 16)), Rgba::WHITE);
             }
-            ObstacleKind::ShockLock => batch.draw(art::iron_wall(), at, Rgba::WHITE.lerp(Rgba::rgb(255, 250, 180), self.charge.min(1.0))),
+            ObstacleKind::ShockLock => {
+                batch.draw(art::iron_wall(), at, Rgba::WHITE.lerp(Rgba::rgb(255, 250, 180), self.charge.min(1.0)))
+            }
             ObstacleKind::Rock => batch.draw(art::cracked_rock(), at, Rgba::WHITE),
             ObstacleKind::Secret => {
                 let rock = art_combat::secret_rock(world.theme_name());
@@ -547,7 +571,12 @@ impl Entity for Brazier {
         batch.draw(art_combat::brazier(), snap(pos - Vec2::new(8.0, 15.0)), Rgba::WHITE);
         if self.lit {
             let frame = (self.time * 10.0) as i32 % 4;
-            batch.draw_src(art_combat::flames(), snap(pos - Vec2::new(8.0, 32.0)), Some(IRect::new(frame * 16, 0, 16, 22)), Rgba::WHITE);
+            batch.draw_src(
+                art_combat::flames(),
+                snap(pos - Vec2::new(8.0, 32.0)),
+                Some(IRect::new(frame * 16, 0, 16, 22)),
+                Rgba::WHITE,
+            );
         }
     }
 }

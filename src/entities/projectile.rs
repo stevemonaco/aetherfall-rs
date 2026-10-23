@@ -105,7 +105,14 @@ impl Projectile {
     }
 
     /// A standard enemy shot of the given kind.
-    pub fn enemy_shot(kind: &str, from: Vec2, direction: Vec2, attacker: CombatStats, power: f32, speed_scale: f32) -> Projectile {
+    pub fn enemy_shot(
+        kind: &str,
+        from: Vec2,
+        direction: Vec2,
+        attacker: CombatStats,
+        power: f32,
+        speed_scale: f32,
+    ) -> Projectile {
         let (tint, speed, size, element) = match kind {
             "spore" => (Rgba::rgb(220, 140, 255), 70.0, 6.0, Element::None),
             "seed" => (Rgba::rgb(180, 255, 120), 100.0, 5.0, Element::None),
@@ -136,7 +143,9 @@ impl Projectile {
     }
 
     fn can_hit(&self, id: EntityId, faction: Faction) -> bool {
-        faction != self.owner && !(faction == Faction::Neutral && self.owner != Faction::Player) && !self.already_hit.contains(&id)
+        faction != self.owner
+            && !(faction == Faction::Neutral && self.owner != Faction::Player)
+            && !self.already_hit.contains(&id)
     }
 
     /// Hits a target; returns whether it connected. Applies any reaction (reflect, expire) the target asked for.
@@ -170,7 +179,9 @@ impl Projectile {
 
     fn hit_around(&mut self, world: &mut World, radius: f32) {
         for (id, faction, hurtbox) in world.damageables() {
-            if self.can_hit(id, faction) && hurtbox.center().distance(self.base.pos - Vec2::new(0.0, 4.0)) < radius + hurtbox.w / 2.0 {
+            if self.can_hit(id, faction)
+                && hurtbox.center().distance(self.base.pos - Vec2::new(0.0, 4.0)) < radius + hurtbox.w / 2.0
+            {
                 self.already_hit.push(id);
                 self.strike(world, id, faction);
             }
@@ -223,7 +234,10 @@ impl Projectile {
         let p = self.base.pos;
         let mut tile = ((p.x / t).floor() as i32, ((p.y - 2.0) / t).floor() as i32);
         if world.map.blocks_flying(tile.0, tile.1) {
-            tile = (((p.x - self.velocity.x * 0.02) / t).floor() as i32, ((p.y - self.velocity.y * 0.02 - 2.0) / t).floor() as i32);
+            tile = (
+                ((p.x - self.velocity.x * 0.02) / t).floor() as i32,
+                ((p.y - self.velocity.y * 0.02 - 2.0) / t).floor() as i32,
+            );
         }
         world.chem_apply(tile.0, tile.1, self.element, matches!(self.kind, HitKind::ChargedBolt | HitKind::Art));
         let color = if self.trail_color.a > 0 { self.trail_color } else { self.tint };
@@ -292,7 +306,12 @@ impl Entity for Projectile {
 
         if self.trail_color.a > 0 && world.rng.next_f32() < 0.6 {
             let jitter = Vec2::new(world.rng.range(-2, 3) as f32, world.rng.range(-2, 3) as f32);
-            world.add(Particle::new(self.base.pos - Vec2::new(0.0, self.z) + jitter, -self.velocity * 0.1, self.trail_color, 0.3));
+            world.add(Particle::new(
+                self.base.pos - Vec2::new(0.0, self.z) + jitter,
+                -self.velocity * 0.1,
+                self.trail_color,
+                0.3,
+            ));
         }
 
         let damage_box = self.damage_box();
@@ -318,7 +337,8 @@ impl Entity for Projectile {
         let frames = if self.frame_width > 0 { tw / self.frame_width } else { 1 };
         let fw = if self.frame_width > 0 { self.frame_width } else { tw };
         let src = IRect::new((self.age * self.frame_rate) as i32 % frames.max(1) * fw, 0, fw, th);
-        let rotation = if self.rotate_to_velocity { self.velocity.y.atan2(self.velocity.x) } else { self.age * self.spin };
+        let rotation =
+            if self.rotate_to_velocity { self.velocity.y.atan2(self.velocity.x) } else { self.age * self.spin };
         batch.draw_ex(
             self.texture,
             snap(self.base.pos - Vec2::new(0.0, self.z)),

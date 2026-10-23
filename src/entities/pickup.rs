@@ -33,7 +33,15 @@ pub struct Pickup {
 
 impl Pickup {
     pub fn new(pos: Vec2, kind: PickupKind, amount: i32) -> Pickup {
-        Pickup { base: EntityBase { pos, width: 10.0, height: 8.0, ..EntityBase::default() }, kind, amount, age: 0.0, z: 6.0, vz: 50.0, scatter: Vec2::ZERO }
+        Pickup {
+            base: EntityBase { pos, width: 10.0, height: 8.0, ..EntityBase::default() },
+            kind,
+            amount,
+            age: 0.0,
+            z: 6.0,
+            vz: 50.0,
+            scatter: Vec2::ZERO,
+        }
     }
 
     pub fn gold(pos: Vec2, amount: i32) -> Pickup {
@@ -101,7 +109,11 @@ impl Entity for Pickup {
             PickupKind::Gold => {
                 world.state.gold += self.amount;
                 audio::sfx(Sound::Coin);
-                world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, 14.0), format!("{}G", self.amount), palette::GOLD));
+                world.add(FloatingText::new(
+                    self.base.pos - Vec2::new(0.0, 14.0),
+                    format!("{}G", self.amount),
+                    palette::GOLD,
+                ));
             }
         }
     }
@@ -121,9 +133,12 @@ impl Entity for Pickup {
                     batch.draw(props::spark(), snap(pos + Vec2::new(6.0, -4.0 - bob)), Rgba::WHITE);
                 }
             }
-            PickupKind::Gold => {
-                batch.draw_src(props::coin(), pos, Some(IRect::new((self.age * 10.0) as i32 % 4 * 8, 0, 8, 8)), Rgba::WHITE)
-            }
+            PickupKind::Gold => batch.draw_src(
+                props::coin(),
+                pos,
+                Some(IRect::new((self.age * 10.0) as i32 % 4 * 8, 0, 8, 8)),
+                Rgba::WHITE,
+            ),
         }
     }
 }

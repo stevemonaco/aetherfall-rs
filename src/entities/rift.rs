@@ -63,7 +63,13 @@ impl Rift {
                 ..EntityBase::default()
             },
             id: data.str("id").map(str::to_string).unwrap_or_else(|| format!("{}_{}", data.x, data.y)),
-            kinds: data.str_or("kinds", "slime").split(',').map(str::trim).filter(|s| !s.is_empty()).map(str::to_string).collect(),
+            kinds: data
+                .str_or("kinds", "slime")
+                .split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .collect(),
             then: data.strings("do"),
             quota: data.int("count", 6),
             alive: data.int("alive", 3),
@@ -95,11 +101,7 @@ impl Rift {
     }
 
     fn remaining(&self, world: &World) -> i32 {
-        if self.elite.is_some() {
-            if self.killed > 0 { 0 } else { 1 }
-        } else {
-            self.quota(world) - self.killed
-        }
+        if self.elite.is_some() { if self.killed > 0 { 0 } else { 1 } } else { self.quota(world) - self.killed }
     }
 
     fn pour(&mut self, world: &mut World, dt: f32) {
@@ -126,7 +128,11 @@ impl Rift {
         if self.remaining(world) <= 0 {
             self.state = RiftState::Unstable;
             audio::play(Sound::ChargeLevel, 1.0, 0.3);
-            world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, 40.0), "The rift wavers... strike it!", palette::HIGHLIGHT));
+            world.add(FloatingText::new(
+                self.base.pos - Vec2::new(0.0, 40.0),
+                "The rift wavers... strike it!",
+                palette::HIGHLIGHT,
+            ));
             return;
         }
 
@@ -143,16 +149,18 @@ impl Rift {
             return;
         }
         self.spawn_timer = 1.1;
-        let kind = self.elite.clone().unwrap_or_else(|| self.kinds[world.rng.below(self.kinds.len() as i32) as usize].clone());
+        let kind =
+            self.elite.clone().unwrap_or_else(|| self.kinds[world.rng.below(self.kinds.len() as i32) as usize].clone());
         let Some(def) = data().enemies.get(&kind) else { return };
         let angle = world.rng.next_f32() * TAU;
         let at = self.base.pos + Vec2::new(angle.cos() * 14.0, angle.sin() * 8.0 + 6.0);
         let zone = world.chem.zone_level;
         let level = self.level.unwrap_or(if zone > 1 { zone } else { def.level });
-        let elite = self.elite.is_some() || (Self::swarm(world) && {
-            self.spawn_count += 1;
-            self.spawn_count % 3 == 0
-        });
+        let elite = self.elite.is_some()
+            || (Self::swarm(world) && {
+                self.spawn_count += 1;
+                self.spawn_count % 3 == 0
+            });
         let enemy = if elite { Enemy::elite(def, at, Some(level), world) } else { Enemy::new(def, at, Some(level)) };
         let id = world.add(enemy);
         self.spawned.push(id);
@@ -216,13 +224,18 @@ impl Entity for Rift {
                     self.spawn_timer = 0.6;
                     audio::play(Sound::BossRoar, 0.5, 0.5);
                     world.camera.shake(0.3, 1.0);
-                    world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, 40.0), "A rift tears open!", Rgba::rgb(220, 160, 255)));
+                    world.add(FloatingText::new(
+                        self.base.pos - Vec2::new(0.0, 40.0),
+                        "A rift tears open!",
+                        Rgba::rgb(220, 160, 255),
+                    ));
                 }
             }
             RiftState::Pouring => self.pour(world, dt),
             RiftState::Unstable => {
                 if world.rng.next_f32() < 0.3 {
-                    let at = self.base.pos - Vec2::new(world.rng.range(-10, 11) as f32, 14.0 + world.rng.below(10) as f32);
+                    let at =
+                        self.base.pos - Vec2::new(world.rng.range(-10, 11) as f32, 14.0 + world.rng.below(10) as f32);
                     world.add(Particle::new(at, Vec2::new(0.0, -20.0), Rgba::WHITE, 0.4).spark());
                 }
             }
@@ -267,10 +280,26 @@ impl Entity for Rift {
         };
         batch.draw(art::shadow(24), snap(self.base.pos - Vec2::new(12.0, 4.0)), Rgba::WHITE.mul(0.6));
         let src = Some(IRect::new(frame * 32, 0, 32, 40));
-        batch.draw_ex(art_combat::rift_portal(), snap(center), src, tint, 0.0, Vec2::new(16.0, 20.0), Vec2::splat(size * pulse), false, false);
+        batch.draw_ex(
+            art_combat::rift_portal(),
+            snap(center),
+            src,
+            tint,
+            0.0,
+            Vec2::new(16.0, 20.0),
+            Vec2::splat(size * pulse),
+            false,
+            false,
+        );
         if self.state == RiftState::Pouring {
             let text = self.remaining(world).to_string();
-            font::draw_centered(batch, &text, snap(center - Vec2::new(0.0, 30.0)), Rgba::rgb(230, 200, 255), Some(palette::TEXT_SHADOW));
+            font::draw_centered(
+                batch,
+                &text,
+                snap(center - Vec2::new(0.0, 30.0)),
+                Rgba::rgb(230, 200, 255),
+                Some(palette::TEXT_SHADOW),
+            );
         }
     }
 }

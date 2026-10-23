@@ -295,8 +295,10 @@ impl Player {
     }
 
     fn move_speed(&self, world: &World) -> f32 {
-        let mut speed =
-            BASE_SPEED * combat::mode_mods(Self::mode(world)).speed * world.state.acc().speed * self.status.speed_factor();
+        let mut speed = BASE_SPEED
+            * combat::mode_mods(Self::mode(world)).speed
+            * world.state.acc().speed
+            * self.status.speed_factor();
         let under = self.terrain_underfoot(world);
         if !self.airborne() && under == Terrain::Bog {
             speed *= 0.55;
@@ -398,7 +400,11 @@ impl Player {
         }
         self.update_heat(world, self.frame_dt);
         self.update_blight(world, self.frame_dt);
-        if self.since_hurt > 4.0 && !world.in_combat() && world.state.hp < world.state.max_hp() && self.status.burn <= 0.0 {
+        if self.since_hurt > 4.0
+            && !world.in_combat()
+            && world.state.hp < world.state.max_hp()
+            && self.status.burn <= 0.0
+        {
             self.regen += world.state.max_hp() as f32 * 0.04 * self.frame_dt;
         }
         if self.regen >= 1.0 {
@@ -547,7 +553,10 @@ impl Player {
                 return true;
             }
             let at = hit.owner.and_then(|id| world.get(id)).map(|e| e.base().pos).unwrap_or(hit.from);
-            let blocked = world.companion.and_then(|id| world.with_as::<Companion, _>(id, |c, w| c.try_block(w, at))).unwrap_or(false);
+            let blocked = world
+                .companion
+                .and_then(|id| world.with_as::<Companion, _>(id, |c, w| c.try_block(w, at)))
+                .unwrap_or(false);
             if blocked {
                 hit.expire_owner = true;
                 return true;
@@ -620,7 +629,8 @@ impl Player {
 
     fn knock(&mut self, from: Vec2, speed: f32, time: f32) {
         let away = self.base.hitbox().center() - from;
-        self.knock_velocity = if away.length_squared() > 0.01 { away.normalize() } else { -self.facing.to_vec() } * speed;
+        self.knock_velocity =
+            if away.length_squared() > 0.01 { away.normalize() } else { -self.facing.to_vec() } * speed;
         self.knock_time = time;
     }
 
@@ -688,7 +698,9 @@ impl Player {
             if self.static_tick <= 0.0 {
                 self.static_tick = 0.5;
                 let center = self.center();
-                self.strike_area(world, center, 40.0, None, |p, w| p.make_hit(w, 0.35, HitKind::Art, Some(Element::Thunder), 0.5, 1.5, 30.0));
+                self.strike_area(world, center, 40.0, None, |p, w| {
+                    p.make_hit(w, 0.35, HitKind::Art, Some(Element::Thunder), 0.5, 1.5, 30.0)
+                });
                 if world.rng.next_f32() < 0.5 {
                     audio::play(Sound::Clink, 0.3, 0.8);
                 }
@@ -786,7 +798,11 @@ impl Player {
             }
         }
 
-        if input::pressed(GameAction::Dodge) && !self.airborne() && self.dodge_charges >= 1.0 && self.dodge_lockout <= 0.0 {
+        if input::pressed(GameAction::Dodge)
+            && !self.airborne()
+            && self.dodge_charges >= 1.0
+            && self.dodge_lockout <= 0.0
+        {
             let movement = input::movement();
             let dir = if movement != Vec2::ZERO { movement.normalize() } else { self.facing.to_vec() };
             self.start_dodge(world, dir, 0.2, 235.0, true);
@@ -843,7 +859,14 @@ impl Player {
             let n = modes.len() as i32;
             target = Some(modes[((index + step + n) % n) as usize]);
         }
-        let direct = [GameAction::Mode1, GameAction::Mode2, GameAction::Mode3, GameAction::Mode4, GameAction::Mode5, GameAction::Mode6];
+        let direct = [
+            GameAction::Mode1,
+            GameAction::Mode2,
+            GameAction::Mode3,
+            GameAction::Mode4,
+            GameAction::Mode5,
+            GameAction::Mode6,
+        ];
         for (i, action) in direct.iter().enumerate() {
             if input::pressed(*action) && modes.contains(&MODES[i]) {
                 target = Some(MODES[i]);
@@ -885,7 +908,14 @@ impl Player {
         self.facing = Direction::from_vec(self.aim, self.facing);
         audio::play(Sound::Swing, 1.0, self.combo_step as f32 * 0.12);
         let finisher = self.combo_step == 2;
-        world.add(SlashEffect::new(self.center(), self.aim, Self::mode(world), if finisher { 30.0 } else { 23.0 }, finisher, self.combo_step % 2 == 1));
+        world.add(SlashEffect::new(
+            self.center(),
+            self.aim,
+            Self::mode(world),
+            if finisher { 30.0 } else { 23.0 },
+            finisher,
+            self.combo_step % 2 == 1,
+        ));
     }
 
     fn update_swing(&mut self, world: &mut World, dt: f32) {
@@ -902,7 +932,10 @@ impl Player {
         if self.attack_time >= active_start && self.attack_time <= active_end {
             let radius = if finisher { 30.0 } else { 23.0 };
             for (id, faction, hurtbox) in world.damageables() {
-                if faction == Faction::Player || self.swing_hit.contains(&id) || !self.in_arc(&hurtbox, radius, if finisher { 105.0 } else { 80.0 }) {
+                if faction == Faction::Player
+                    || self.swing_hit.contains(&id)
+                    || !self.in_arc(&hurtbox, radius, if finisher { 105.0 } else { 80.0 })
+                {
                     continue;
                 }
                 self.swing_hit.push(id);
@@ -1001,7 +1034,12 @@ impl Player {
 
     pub fn make_bolt(&self, world: &World, dir: Vec2, charged: bool, power: f32) -> Projectile {
         let mode = Self::mode(world);
-        let mut bolt = Projectile::new(Faction::Player, Self::stats(world), self.base.pos + dir * 6.0 - Vec2::new(0.0, 2.0), dir * if charged { 320.0 } else { 280.0 });
+        let mut bolt = Projectile::new(
+            Faction::Player,
+            Self::stats(world),
+            self.base.pos + dir * 6.0 - Vec2::new(0.0, 2.0),
+            dir * if charged { 320.0 } else { 280.0 },
+        );
         bolt.power = if power >= 0.0 {
             power
         } else if charged {
@@ -1138,7 +1176,8 @@ impl Player {
         let heavy = hit.power >= 1.5;
         if heavy {
             let mode = Self::mode(world);
-            let result = combat::resolve(hit, world.state.stats(mode), combat::mode_resist(mode, hit.element), 0.3, &world.rng);
+            let result =
+                combat::resolve(hit, world.state.stats(mode), combat::mode_resist(mode, hit.element), 0.3, &world.rng);
             self.apply_damage(world, result.amount, hit.element, false);
         }
         hit.result = DamageResult::blocked(false);
@@ -1186,7 +1225,8 @@ impl Player {
         };
         let resonance = if world.state.resonates(mode) { 0.75 } else { 1.0 };
         let volatile = if pacts::active(&world.state, "volatility") { 2.0 } else { 1.0 };
-        self.overload += amount * world.state.acc().overload * world.state.mods().overload_for(mode) * resonance * volatile;
+        self.overload +=
+            amount * world.state.acc().overload * world.state.mods().overload_for(mode) * resonance * volatile;
         self.overload_idle = 0.0;
         if self.overload >= 100.0 {
             self.overheat_now(world);
@@ -1275,7 +1315,16 @@ impl Player {
     // ---- Shared helpers -----------------------------------------------------------------------------------------
 
     #[allow(clippy::too_many_arguments)]
-    pub fn make_hit(&self, world: &World, power: f32, kind: HitKind, element: Option<Element>, poise: f32, status: f32, knock: f32) -> Hit {
+    pub fn make_hit(
+        &self,
+        world: &World,
+        power: f32,
+        kind: HitKind,
+        element: Option<Element>,
+        poise: f32,
+        status: f32,
+        knock: f32,
+    ) -> Hit {
         Hit {
             power,
             element: element.unwrap_or(Self::mode(world)),
@@ -1360,7 +1409,11 @@ impl Player {
         if input::mouse_aiming() && input::direct_aim().is_none() {
             let mouse = world.camera.screen_to_world(input::mouse_screen()) + Vec2::new(0.0, 8.0);
             let to = mouse - self.base.pos;
-            return if to.length() <= max_distance { mouse } else { self.base.pos + to.normalize_or_zero() * max_distance };
+            return if to.length() <= max_distance {
+                mouse
+            } else {
+                self.base.pos + to.normalize_or_zero() * max_distance
+            };
         }
         let mut best: Option<Vec2> = None;
         let mut best_score = f32::MAX;
@@ -1457,7 +1510,16 @@ impl Player {
         }
         if self.attack_time >= 0.0 {
             let t = self.attack_time / SWING_LENGTH[self.combo_step];
-            return (HeroPose::Slash, if t < 0.25 { 0 } else if t < 0.65 { 1 } else { 2 });
+            return (
+                HeroPose::Slash,
+                if t < 0.25 {
+                    0
+                } else if t < 0.65 {
+                    1
+                } else {
+                    2
+                },
+            );
         }
         if self.art.is_some() {
             return (HeroPose::Slash, 1);
@@ -1498,7 +1560,17 @@ impl Player {
         let angle = self.aim.y.atan2(self.aim.x) + swing;
         let dir = Vec2::new(angle.cos(), angle.sin());
         let hand = self.center() + lift + Vec2::new(0.0, 2.0) + dir * 3.0;
-        batch.draw_ex(art::blade(Self::mode(world)), snap(hand), None, Rgba::WHITE, angle, Vec2::new(1.0, 3.5), Vec2::ONE, false, false);
+        batch.draw_ex(
+            art::blade(Self::mode(world)),
+            snap(hand),
+            None,
+            Rgba::WHITE,
+            angle,
+            Vec2::new(1.0, 3.5),
+            Vec2::ONE,
+            false,
+            false,
+        );
     }
 
     fn draw_shield(&self, world: &World, batch: &mut Batch, lift: Vec2) {
@@ -1509,7 +1581,17 @@ impl Player {
         let origin = Vec2::new(5.0, 6.0);
         batch.draw_ex(art::guard_shield(), at, None, color, 0.0, origin, Vec2::ONE, false, false);
         if perfect {
-            batch.draw_ex(art::guard_shield(), at, None, Rgba::WHITE.mul(0.5), 0.0, origin, Vec2::splat(1.3), false, false);
+            batch.draw_ex(
+                art::guard_shield(),
+                at,
+                None,
+                Rgba::WHITE.mul(0.5),
+                0.0,
+                origin,
+                Vec2::splat(1.3),
+                false,
+                false,
+            );
         }
     }
 
@@ -1538,7 +1620,11 @@ impl Player {
         let center = self.center() + lift;
         for i in 0..6 {
             let a = world.time as f32 * 7.0 + i as f32 * TAU / 6.0;
-            batch.draw(props::spark(), snap(center + Vec2::new(a.cos() * radius, a.sin() * radius * 0.6) - Vec2::ONE), color);
+            batch.draw(
+                props::spark(),
+                snap(center + Vec2::new(a.cos() * radius, a.sin() * radius * 0.6) - Vec2::ONE),
+                color,
+            );
         }
     }
 }
@@ -1592,10 +1678,17 @@ impl Entity for Player {
     fn draw(&self, world: &World, batch: &mut Batch) {
         let fall = if self.fall_time >= 0.0 { self.fall_time / FALL_DURATION } else { 0.0 };
         if fall < 0.15 || self.fall_time < 0.0 {
-            batch.draw(props::shadow(12), snap(self.base.pos - Vec2::new(6.0, 3.0)), Rgba::WHITE.mul(1.0 - self.z / 30.0));
+            batch.draw(
+                props::shadow(12),
+                snap(self.base.pos - Vec2::new(6.0, 3.0)),
+                Rgba::WHITE.mul(1.0 - self.z / 30.0),
+            );
         }
 
-        let blink = self.invulnerable > 0.0 && self.knock_time <= 0.0 && (self.invulnerable * 20.0) as i32 % 2 == 0 && !self.is_dead();
+        let blink = self.invulnerable > 0.0
+            && self.knock_time <= 0.0
+            && (self.invulnerable * 20.0) as i32 % 2 == 0
+            && !self.is_dead();
         let lift = Vec2::new(0.0, -self.z.round());
         let (pose, frame) = self.current_pose();
         let swing = self.swing_angle();
@@ -1622,13 +1715,33 @@ impl Entity for Player {
             let mode = Self::mode(world);
             if self.mode_flash > 0.0 {
                 for offset in [Vec2::new(-1.0, 0.0), Vec2::new(1.0, 0.0), Vec2::new(0.0, -1.0), Vec2::new(0.0, 1.0)] {
-                    hero_sprite::draw(batch, feet + offset, self.facing, pose, frame, mode.glow().mul(self.mode_flash / 0.35), true, 1.0, 0.0);
+                    hero_sprite::draw(
+                        batch,
+                        feet + offset,
+                        self.facing,
+                        pose,
+                        frame,
+                        mode.glow().mul(self.mode_flash / 0.35),
+                        true,
+                        1.0,
+                        0.0,
+                    );
                 }
             }
             let rotation = if self.is_dead() { (self.death_time * 3.0).min(1.0) * FRAC_PI_2 } else { 0.0 };
             hero_sprite::draw(batch, feet, self.facing, pose, frame, tint, false, 1.0 - fall * 0.7, rotation);
             if self.overheat > 0.0 && (self.overheat * 8.0) as i32 % 2 == 0 {
-                hero_sprite::draw(batch, feet, self.facing, pose, frame, Rgba::rgb(255, 90, 40).mul(0.35), true, 1.0, 0.0);
+                hero_sprite::draw(
+                    batch,
+                    feet,
+                    self.facing,
+                    pose,
+                    frame,
+                    Rgba::rgb(255, 90, 40).mul(0.35),
+                    true,
+                    1.0,
+                    0.0,
+                );
             }
         }
 
@@ -1648,7 +1761,11 @@ impl Entity for Player {
             self.draw_orbit(world, batch, lift, Element::Thunder.light(), 20.0, self.static_time);
         }
         if self.mirror_time > 0.0 {
-            batch.draw(props::barrier_bubble(), snap(self.center() + lift - Vec2::new(14.0, 14.0)), Rgba::rgb(200, 240, 255).mul(0.8));
+            batch.draw(
+                props::barrier_bubble(),
+                snap(self.center() + lift - Vec2::new(14.0, 14.0)),
+                Rgba::rgb(200, 240, 255).mul(0.8),
+            );
         }
         if self.counter_time > 0.0 {
             self.draw_orbit(world, batch, lift, Rgba::WHITE, 14.0, self.counter_time);
@@ -1668,4 +1785,3 @@ impl Entity for Player {
         }
     }
 }
-

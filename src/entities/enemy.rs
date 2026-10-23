@@ -9,11 +9,11 @@ use std::f32::consts::{PI, TAU};
 use bevy::math::Vec2;
 
 use super::boss::{self, BossCore};
-use super::combat_effects::{ClawEffect, Exclaim, GroundMarker, LightningArc, LineMarker, Shockwave, Beam};
-use super::obstacles::{ObstacleKind, TileObstacle};
+use super::combat_effects::{Beam, ClawEffect, Exclaim, GroundMarker, LightningArc, LineMarker, Shockwave};
 use super::effects::{DamageNumber, FloatingText, Particle, Puff};
 use super::entity::{Entity, EntityBase, EntityId, TetherResponse};
 use super::hazards::GasCloud;
+use super::obstacles::{ObstacleKind, TileObstacle};
 use super::projectile::Projectile;
 use crate::art::{combat as art, props};
 use crate::core::audio::{self, Sound};
@@ -393,7 +393,8 @@ impl Enemy {
         }
 
         let max_range = self.def.attacks.iter().map(|a| a.range).fold(0.0, f32::max);
-        let preferred = if self.def.attacks.is_empty() { 0.0 } else { max_range * if self.ranged() { 0.75 } else { 0.5 } };
+        let preferred =
+            if self.def.attacks.is_empty() { 0.0 } else { max_range * if self.ranged() { 0.75 } else { 0.5 } };
         let mut dir = safe_normalize(to);
         if self.sidestep > 0.0 {
             self.sidestep -= dt;
@@ -410,7 +411,11 @@ impl Enemy {
 
     fn ranged(&self) -> bool {
         !self.def.attacks.is_empty()
-            && self.def.attacks.iter().all(|a| matches!(a.kind.as_str(), "shoot" | "ring" | "beam" | "spores" | "summon"))
+            && self
+                .def
+                .attacks
+                .iter()
+                .all(|a| matches!(a.kind.as_str(), "shoot" | "ring" | "beam" | "spores" | "summon"))
     }
 
     fn locomote(&mut self, world: &mut World, dt: f32, dir: Vec2, speed: f32) {
@@ -482,7 +487,13 @@ impl Enemy {
                 world.add(LineMarker::new(mouth, end, width, attack.windup, color));
             }
             "lunge" => {
-                world.add(LineMarker::new(mouth, mouth + self.locked_dir * attack.distance, self.base.width, attack.windup, color));
+                world.add(LineMarker::new(
+                    mouth,
+                    mouth + self.locked_dir * attack.distance,
+                    self.base.width,
+                    attack.windup,
+                    color,
+                ));
             }
             _ => {}
         }
@@ -587,8 +598,11 @@ impl Enemy {
             }
             "shoot" => {
                 for i in 0..attack.count {
-                    let angle =
-                        if attack.count == 1 { 0.0 } else { (i as f32 - (attack.count - 1) as f32 / 2.0) * attack.spread };
+                    let angle = if attack.count == 1 {
+                        0.0
+                    } else {
+                        (i as f32 - (attack.count - 1) as f32 / 2.0) * attack.spread
+                    };
                     let dir = rotate(self.locked_dir, angle);
                     world.add(Projectile::enemy_shot(&attack.projectile, from, dir, stats, attack.power, attack.speed));
                 }
@@ -599,7 +613,14 @@ impl Enemy {
                 let offset = world.rng.next_f32() * TAU;
                 for i in 0..attack.count {
                     let a = offset + i as f32 * TAU / attack.count as f32;
-                    world.add(Projectile::enemy_shot(&attack.projectile, from, Vec2::new(a.cos(), a.sin()), stats, attack.power, attack.speed));
+                    world.add(Projectile::enemy_shot(
+                        &attack.projectile,
+                        from,
+                        Vec2::new(a.cos(), a.sin()),
+                        stats,
+                        attack.power,
+                        attack.speed,
+                    ));
                 }
                 audio::play(Sound::ShootFire, 0.6, 0.2);
             }
@@ -620,7 +641,8 @@ impl Enemy {
                     let alive = world.entities_of::<Enemy>().filter(|e| e.def.id == minion.id).count();
                     if alive < 4 {
                         for _ in 0..attack.count {
-                            let at = self.base.pos + Vec2::new(world.rng.range(-20, 21) as f32, world.rng.range(-8, 16) as f32);
+                            let at = self.base.pos
+                                + Vec2::new(world.rng.range(-20, 21) as f32, world.rng.range(-8, 16) as f32);
                             world.add(Enemy::new(minion, at, Some(self.level)));
                         }
                     }
@@ -630,7 +652,11 @@ impl Enemy {
             "beam" => {
                 let start = self.base.pos - Vec2::new(0.0, 4.0);
                 let end = ray_end(world, start, self.locked_dir, attack.distance);
-                world.add(Beam::new(self.base.pos - Vec2::new(0.0, 6.0), end - Vec2::new(0.0, 2.0), attack_color(attack)));
+                world.add(Beam::new(
+                    self.base.pos - Vec2::new(0.0, 6.0),
+                    end - Vec2::new(0.0, 2.0),
+                    attack_color(attack),
+                ));
                 let player = world.hero.pos;
                 let along = (player - start).dot(self.locked_dir).clamp(0.0, start.distance(end));
                 if (start + self.locked_dir * along).distance(player - Vec2::new(0.0, 4.0)) < 10.0 {
@@ -694,7 +720,11 @@ impl Enemy {
     }
 
     fn touch_target(&mut self, world: &mut World) {
-        if self.contact_cooldown > 0.0 || self.hp <= 0 || self.z >= 6.0 || !world.hero.hurtbox.intersects(&self.hurtbox()) {
+        if self.contact_cooldown > 0.0
+            || self.hp <= 0
+            || self.z >= 6.0
+            || !world.hero.hurtbox.intersects(&self.hurtbox())
+        {
             return;
         }
         self.contact_cooldown = 0.8;
@@ -742,7 +772,12 @@ impl Enemy {
     // ---- Taking hits --------------------------------------------------------------------------------------------
 
     fn take_hit_inner(&mut self, world: &mut World, hit: &mut Hit) -> bool {
-        if self.hp <= 0 || self.base.removed || hit.source == Faction::Enemy || self.spawn_fade > 0.2 || self.phase == Phase::Burrowed {
+        if self.hp <= 0
+            || self.base.removed
+            || hit.source == Faction::Enemy
+            || self.spawn_fade > 0.2
+            || self.phase == Phase::Burrowed
+        {
             return false;
         }
         if let Some(result) = boss::with_brain(self, |brain, e| brain.before_hit(e, world, hit)).flatten() {
@@ -755,14 +790,25 @@ impl Enemy {
         let element = if hit.element == Element::Aether { self.best_element_against(world) } else { hit.element };
         self.alert(world);
 
-        if self.aura && hit.kind != HitKind::Environment && (element == self.aura_element.opposite() || element == Element::Aether) {
+        if self.aura
+            && hit.kind != HitKind::Environment
+            && (element == self.aura_element.opposite() || element == Element::Aether)
+        {
             self.aura = false;
             audio::play(Sound::Break, 0.8, 0.3);
-            world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, self.base.height + 14.0), "AURA BROKEN", element.glow()));
+            world.add(FloatingText::new(
+                self.base.pos - Vec2::new(0.0, self.base.height + 14.0),
+                "AURA BROKEN",
+                element.glow(),
+            ));
             self.break_for(2.0);
         }
 
-        if self.shield && !matches!(hit.kind, HitKind::Environment | HitKind::Status) && self.phase != Phase::Broken && self.front_hit(world, hit.from) {
+        if self.shield
+            && !matches!(hit.kind, HitKind::Environment | HitKind::Status)
+            && self.phase != Phase::Broken
+            && self.front_hit(world, hit.from)
+        {
             audio::play(Sound::Clink, 0.8, 0.0);
             let at = self.hurtbox().center() + safe_dir(hit.from - self.base.pos, Vec2::Y) * 6.0;
             Particle::burst(world, at, Rgba::WHITE, 5, 40.0, 0.2, true);
@@ -796,7 +842,11 @@ impl Enemy {
 
         if element_mod <= 0.0 {
             audio::sfx(Sound::Clink);
-            world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, self.base.height + 8.0), "Immune", palette::TEXT_DIM));
+            world.add(FloatingText::new(
+                self.base.pos - Vec2::new(0.0, self.base.height + 8.0),
+                "Immune",
+                palette::TEXT_DIM,
+            ));
             return true;
         }
 
@@ -815,7 +865,11 @@ impl Enemy {
         let color = if element == Element::None { Rgba::WHITE } else { element.glow() };
         Particle::burst(world, self.hurtbox().center(), color, if resolved.crit { 10 } else { 5 }, 60.0, 0.25, true);
         if shatter {
-            world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, self.base.height + 14.0), "SHATTER", Rgba::rgb(200, 240, 255)));
+            world.add(FloatingText::new(
+                self.base.pos - Vec2::new(0.0, self.base.height + 14.0),
+                "SHATTER",
+                Rgba::rgb(200, 240, 255),
+            ));
             Particle::burst(world, self.hurtbox().center(), Rgba::rgb(200, 240, 255), 18, 90.0, 0.5, true);
             audio::play(Sound::Break, 0.8, 0.5);
         }
@@ -836,8 +890,6 @@ impl Enemy {
         true
     }
 
-
-
     fn apply_ailments(&mut self, world: &mut World, hit: &Hit, element: Element, element_mod: f32) {
         let resonance = if hit.is_player() && world.state.resonates(element) { 1.3 } else { 1.0 };
         let mut trait_mod = match element {
@@ -853,7 +905,12 @@ impl Enemy {
             };
             trait_mod *= world.state.mods().buildup_for(element) * soul;
         }
-        let buildup = 34.0 * hit.status_power * (1.0 + hit.attacker.foc / 120.0) * element_mod.clamp(0.25, 1.5) * resonance * trait_mod;
+        let buildup = 34.0
+            * hit.status_power
+            * (1.0 + hit.attacker.foc / 120.0)
+            * element_mod.clamp(0.25, 1.5)
+            * resonance
+            * trait_mod;
         let was_burning = self.status.burn > 0.0;
         let can_freeze = !self.heavy() && self.boss.is_none();
         let ailment = self.status.add(element, buildup, hit.attacker, can_freeze);
@@ -960,10 +1017,14 @@ impl Enemy {
         audio::play(Sound::Break, 0.6, 0.4);
         let me = self.hurtbox();
         let stats = self.stats();
-        let rocks: Vec<EntityId> =
-            world.entities_of::<TileObstacle>().filter(|r| r.kind == ObstacleKind::Rock && r.hurtbox().inflate(6.0).intersects(&me)).map(|r| r.base().id).collect();
+        let rocks: Vec<EntityId> = world
+            .entities_of::<TileObstacle>()
+            .filter(|r| r.kind == ObstacleKind::Rock && r.hurtbox().inflate(6.0).intersects(&me))
+            .map(|r| r.base().id)
+            .collect();
         for id in rocks {
-            let mut hit = Hit { power: 1.0, kind: HitKind::Environment, from: self.base.pos, ..Hit::new(Faction::Player, stats) };
+            let mut hit =
+                Hit { power: 1.0, kind: HitKind::Environment, from: self.base.pos, ..Hit::new(Faction::Player, stats) };
             world.hit(id, &mut hit);
         }
     }
@@ -1081,7 +1142,13 @@ impl Enemy {
     }
 
     pub fn kill_info(&self) -> KillInfo {
-        KillInfo { def: self.def, level: self.level, pos: self.base.pos, boss: self.boss.is_some(), blighted: self.blighted }
+        KillInfo {
+            def: self.def,
+            level: self.level,
+            pos: self.base.pos,
+            boss: self.boss.is_some(),
+            blighted: self.blighted,
+        }
     }
 
     // ---- Bosses -------------------------------------------------------------------------------------------------
@@ -1098,7 +1165,8 @@ impl Enemy {
         }
         boss.dying_time += dt;
         if world.rng.next_f32() < 0.3 {
-            let at = self.hurtbox().center() + Vec2::new(world.rng.range(-14, 15) as f32, world.rng.range(-14, 15) as f32);
+            let at =
+                self.hurtbox().center() + Vec2::new(world.rng.range(-14, 15) as f32, world.rng.range(-14, 15) as f32);
             world.add(Puff::new(at, boss.death_color()));
             audio::play(Sound::Hit, 0.5, world.rng.next_f32() * 0.5 - 0.25);
         }
@@ -1201,13 +1269,25 @@ impl Enemy {
             if seen <= 0.0 {
                 if (self.anim_time * 3.0 + self.base.pos.x) as i32 % 4 == 0 {
                     let feet = self.base.pos - Vec2::new(0.0, self.z.round());
-                    self.strip.draw(batch, feet, self.anim_frame(), Rgba::rgb(120, 90, 160).mul(0.12), self.facing_right, true, scale);
+                    self.strip.draw(
+                        batch,
+                        feet,
+                        self.anim_frame(),
+                        Rgba::rgb(120, 90, 160).mul(0.12),
+                        self.facing_right,
+                        true,
+                        scale,
+                    );
                 }
                 return;
             }
         }
         let shadow_width = (self.base.width * scale) as i32 + 2;
-        batch.draw(props::shadow(shadow_width), snap(self.base.pos - Vec2::new(shadow_width as f32 / 2.0, 2.0)), Rgba::WHITE.mul((1.0 - self.z / 30.0) * seen));
+        batch.draw(
+            props::shadow(shadow_width),
+            snap(self.base.pos - Vec2::new(shadow_width as f32 / 2.0, 2.0)),
+            Rgba::WHITE.mul((1.0 - self.z / 30.0) * seen),
+        );
 
         let feet = self.base.pos - Vec2::new(0.0, self.z.round());
         if self.aura {
@@ -1234,12 +1314,30 @@ impl Enemy {
         if self.phase == Phase::Windup {
             let tex = if flash { self.strip.silhouette() } else { self.strip.texture };
             let origin = Vec2::new(self.strip.frame_width as f32 / 2.0, self.strip.frame_height as f32);
-            batch.draw_ex(tex, snap(feet), Some(self.strip.source(self.anim_frame())), tint.mul(alpha), 0.0, origin, Vec2::new(1.1, 0.9) * scale, self.facing_right, false);
+            batch.draw_ex(
+                tex,
+                snap(feet),
+                Some(self.strip.source(self.anim_frame())),
+                tint.mul(alpha),
+                0.0,
+                origin,
+                Vec2::new(1.1, 0.9) * scale,
+                self.facing_right,
+                false,
+            );
         } else {
             self.strip.draw(batch, feet, self.anim_frame(), tint.mul(alpha), self.facing_right, flash, scale);
         }
         if telegraph {
-            self.strip.draw(batch, feet, self.anim_frame(), Rgba::rgb(255, 80, 60).mul(0.5), self.facing_right, true, scale);
+            self.strip.draw(
+                batch,
+                feet,
+                self.anim_frame(),
+                Rgba::rgb(255, 80, 60).mul(0.5),
+                self.facing_right,
+                true,
+                scale,
+            );
         }
 
         if self.frozen() {
@@ -1255,10 +1353,22 @@ impl Enemy {
         }
         if self.blighted && !self.revived && self.hp > 0 {
             let at = snap(self.base.pos - Vec2::new(3.0, self.base.height * scale + 14.0 + self.z));
-            batch.draw_ex(art::boss_gem(self.blight_mark.glow()), at, None, Rgba::WHITE.mul(0.9), 0.0, Vec2::ZERO, Vec2::splat(0.55), false, false);
+            batch.draw_ex(
+                art::boss_gem(self.blight_mark.glow()),
+                at,
+                None,
+                Rgba::WHITE.mul(0.9),
+                0.0,
+                Vec2::ZERO,
+                Vec2::splat(0.55),
+                false,
+                false,
+            );
         }
         if self.marked > 0.0 {
-            let at = snap(self.base.pos - Vec2::new(0.0, self.base.height * scale + 16.0 + self.z + (self.anim_time * 8.0).sin()));
+            let at = snap(
+                self.base.pos - Vec2::new(0.0, self.base.height * scale + 16.0 + self.z + (self.anim_time * 8.0).sin()),
+            );
             font::draw_centered(batch, "v", at, Rgba::rgb(255, 120, 80), Some(palette::TEXT_SHADOW));
         }
         self.draw_bars(batch);

@@ -171,7 +171,17 @@ pub fn draw_scaled(batch: &mut Batch, text: &str, pos: Vec2, color: Rgba, scale:
     let mut pen = pos.round();
     for c in text.chars() {
         if let Some(&(src, _)) = FONT.layout.get(&c) {
-            batch.draw_ex(FONT.texture, pen, Some(src), color, 0.0, Vec2::ZERO, Vec2::splat(scale as f32), false, false);
+            batch.draw_ex(
+                FONT.texture,
+                pen,
+                Some(src),
+                color,
+                0.0,
+                Vec2::ZERO,
+                Vec2::splat(scale as f32),
+                false,
+                false,
+            );
         }
         pen.x += (advance(c) * scale) as f32;
     }

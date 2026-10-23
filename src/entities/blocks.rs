@@ -131,10 +131,12 @@ impl Entity for IceBlock {
             return;
         }
         let saved = world.state.flags.iter().find(|f| f.starts_with(&prefix)).cloned();
-        if let Some(place) = saved.and_then(|s| s[prefix.len()..].split_once('_').map(|(x, y)| (x.parse().ok(), y.parse().ok())))
-            && let (Some(x), Some(y)) = place {
-                self.base.pos = tile_center(x, y) + Vec2::new(0.0, 8.0);
-            }
+        if let Some(place) =
+            saved.and_then(|s| s[prefix.len()..].split_once('_').map(|(x, y)| (x.parse().ok(), y.parse().ok())))
+            && let (Some(x), Some(y)) = place
+        {
+            self.base.pos = tile_center(x, y) + Vec2::new(0.0, 8.0);
+        }
     }
 
     fn take_hit(&mut self, world: &mut World, hit: &mut Hit) -> bool {
@@ -146,7 +148,9 @@ impl Entity for IceBlock {
             }
             return true;
         }
-        if matches!(hit.kind, HitKind::Melee | HitKind::Finisher | HitKind::ChargedBolt | HitKind::Art) || hit.element == Element::Wind {
+        if matches!(hit.kind, HitKind::Melee | HitKind::Finisher | HitKind::ChargedBolt | HitKind::Art)
+            || hit.element == Element::Wind
+        {
             self.push(safe_dir(self.base.pos - hit.from, Vec2::Y));
         }
         true
@@ -197,7 +201,11 @@ impl Entity for IceBlock {
     fn draw(&self, _world: &World, batch: &mut Batch) {
         batch.draw(art::shadow(16), snap(self.base.pos - Vec2::new(8.0, 3.0)), Rgba::WHITE);
         let tex = if self.stone { art_combat::stone_block() } else { art_combat::ice_block() };
-        batch.draw(tex, snap(self.base.pos - Vec2::new(8.0, 18.0)), Rgba::WHITE.lerp(Rgba::rgb(150, 190, 255), self.melt));
+        batch.draw(
+            tex,
+            snap(self.base.pos - Vec2::new(8.0, 18.0)),
+            Rgba::WHITE.lerp(Rgba::rgb(150, 190, 255), self.melt),
+        );
     }
 }
 
@@ -212,7 +220,12 @@ pub struct PressurePlate {
 impl PressurePlate {
     pub fn new(data: &EntityData) -> PressurePlate {
         PressurePlate {
-            base: EntityBase { pos: tile_feet(data.x as i32, data.y as i32), width: 10.0, height: 8.0, ..EntityBase::default() },
+            base: EntityBase {
+                pos: tile_feet(data.x as i32, data.y as i32),
+                width: 10.0,
+                height: 8.0,
+                ..EntityBase::default()
+            },
             flag: data.str_or("flag", "plate").to_string(),
             latch: data.bool("latch", false),
             down: false,
@@ -235,7 +248,8 @@ impl Entity for PressurePlate {
         let area = self.base.hitbox();
         let weighed = world.entities().any(|e| {
             let any = e.as_any();
-            let heavy = any.is::<IceBlock>() || any.is::<Crate>() || any.downcast_ref::<Enemy>().is_some_and(|en| en.frozen());
+            let heavy =
+                any.is::<IceBlock>() || any.is::<Crate>() || any.downcast_ref::<Enemy>().is_some_and(|en| en.frozen());
             heavy && e.base().hitbox().intersects(&area)
         });
         let pressed = (world.hero.hitbox.intersects(&area) && !world.hero.airborne) || weighed;
@@ -376,7 +390,13 @@ pub struct LensShard {
 impl LensShard {
     pub fn new(data: &EntityData) -> LensShard {
         LensShard {
-            base: EntityBase { pos: tile_feet(data.x as i32, data.y as i32), solid: true, width: 10.0, height: 6.0, ..EntityBase::default() },
+            base: EntityBase {
+                pos: tile_feet(data.x as i32, data.y as i32),
+                solid: true,
+                width: 10.0,
+                height: 6.0,
+                ..EntityBase::default()
+            },
             time: 0.0,
         }
     }
@@ -437,7 +457,10 @@ impl AetherSeal {
                 ..EntityBase::default()
             },
             cell,
-            flag: data.str("flag").map(str::to_string).unwrap_or_else(|| format!("seal:{map_id}:{}_{}", cell.0, cell.1)),
+            flag: data
+                .str("flag")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("seal:{map_id}:{}_{}", cell.0, cell.1)),
             shake: 0.0,
             time: 0.0,
         }

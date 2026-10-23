@@ -30,7 +30,13 @@ pub struct Cyclone {
 
 impl Cyclone {
     pub fn new(at: Vec2, direction: Vec2) -> Cyclone {
-        Cyclone { base: EntityBase::at(at + Vec2::new(0.0, 8.0)), velocity: direction * 55.0, age: 0.0, tick: 0.0, burning: false }
+        Cyclone {
+            base: EntityBase::at(at + Vec2::new(0.0, 8.0)),
+            velocity: direction * 55.0,
+            age: 0.0,
+            tick: 0.0,
+            burning: false,
+        }
     }
 }
 
@@ -47,7 +53,15 @@ impl Entity for Cyclone {
         let (tx, ty) = self.base.tile_pos();
         if self.age > 2.6 || world.map.blocks_flying(tx, ty) {
             self.base.removed = true;
-            Particle::burst(world, self.base.pos - Vec2::new(0.0, 10.0), Rgba::rgb(200, 255, 240), 12, 50.0, 0.4, false);
+            Particle::burst(
+                world,
+                self.base.pos - Vec2::new(0.0, 10.0),
+                Rgba::rgb(200, 255, 240),
+                12,
+                50.0,
+                0.4,
+                false,
+            );
             return;
         }
         let dir = self.velocity.normalize_or_zero();
@@ -97,7 +111,17 @@ impl Entity for Cyclone {
         let frame = (self.age * 16.0) as i32 % 4;
         let tint = if self.burning { Rgba::rgb(255, 170, 110) } else { Rgba::WHITE };
         let src = IRect::new(frame * 16, 0, 16, 22);
-        batch.draw_ex(props::tornado(), snap(self.base.pos - Vec2::new(16.0, 40.0)), Some(src), tint, 0.0, Vec2::ZERO, Vec2::splat(2.0), false, false);
+        batch.draw_ex(
+            props::tornado(),
+            snap(self.base.pos - Vec2::new(16.0, 40.0)),
+            Some(src),
+            tint,
+            0.0,
+            Vec2::ZERO,
+            Vec2::splat(2.0),
+            false,
+            false,
+        );
     }
 }
 
@@ -147,7 +171,12 @@ impl Entity for FirePatch {
         let alpha = ((self.life - self.age) * 2.0).min(1.0);
         let frame = (self.age * 12.0 + self.base.pos.x) as i32 % 4;
         let src = IRect::new(frame * 16, 0, 16, 22);
-        batch.draw_src(art::flames(), snap(self.base.pos - Vec2::new(8.0, 18.0)), Some(src), Rgba::WHITE.mul(alpha * 0.85));
+        batch.draw_src(
+            art::flames(),
+            snap(self.base.pos - Vec2::new(8.0, 18.0)),
+            Some(src),
+            Rgba::WHITE.mul(alpha * 0.85),
+        );
     }
 }
 
@@ -183,7 +212,17 @@ impl Entity for Decoy {
 
     fn draw(&self, _world: &World, batch: &mut Batch) {
         let alpha = 0.45 + (self.age * 12.0).sin() * 0.15;
-        hero_sprite::draw(batch, self.base.pos, Direction::Down, HeroPose::Idle, 0, Rgba::rgb(180, 210, 255).mul(alpha), true, 1.0, 0.0);
+        hero_sprite::draw(
+            batch,
+            self.base.pos,
+            Direction::Down,
+            HeroPose::Idle,
+            0,
+            Rgba::rgb(180, 210, 255).mul(alpha),
+            true,
+            1.0,
+            0.0,
+        );
     }
 }
 
@@ -283,7 +322,10 @@ impl GasCloud {
                 knockback: 200.0,
                 poise: 4.0,
                 status_power: 2.0,
-                ..Hit::new(if to_player { Faction::Neutral } else { Faction::Player }, if to_player { self.source } else { stats })
+                ..Hit::new(
+                    if to_player { Faction::Neutral } else { Faction::Player },
+                    if to_player { self.source } else { stats },
+                )
             };
             world.hit(id, &mut hit);
         }
@@ -359,8 +401,16 @@ impl Entity for GasCloud {
     fn draw(&self, _world: &World, batch: &mut Batch) {
         let alpha = (self.age * 3.0).min(1.0) * ((9.0 - self.age) / 1.5).min(1.0) * 0.75;
         let wobble = (self.age * 3.0).sin() * 1.5;
-        batch.draw(art::cloud(), snap(self.base.pos - Vec2::new(12.0 + wobble, 20.0)), Rgba::rgb(190, 140, 230).mul(alpha));
-        batch.draw(art::cloud(), snap(self.base.pos - Vec2::new(8.0 - wobble, 16.0)), Rgba::rgb(160, 220, 120).mul(alpha * 0.6));
+        batch.draw(
+            art::cloud(),
+            snap(self.base.pos - Vec2::new(12.0 + wobble, 20.0)),
+            Rgba::rgb(190, 140, 230).mul(alpha),
+        );
+        batch.draw(
+            art::cloud(),
+            snap(self.base.pos - Vec2::new(8.0 - wobble, 16.0)),
+            Rgba::rgb(160, 220, 120).mul(alpha * 0.6),
+        );
     }
 }
 

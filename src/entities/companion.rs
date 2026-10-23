@@ -32,8 +32,10 @@ struct AnimalSheet {
     index: i32,
 }
 
-const HOUND: AnimalSheet = AnimalSheet { path: "external/Animals/animals1.png", frame_width: 26, frame_height: 36, index: 1 };
-const HAWK: AnimalSheet = AnimalSheet { path: "external/Animals/birds2.png", frame_width: 42, frame_height: 36, index: 0 };
+const HOUND: AnimalSheet =
+    AnimalSheet { path: "external/Animals/animals1.png", frame_width: 26, frame_height: 36, index: 1 };
+const HAWK: AnimalSheet =
+    AnimalSheet { path: "external/Animals/birds2.png", frame_width: 42, frame_height: 36, index: 0 };
 
 fn draw_animal(batch: &mut Batch, sheet: AnimalSheet, feet: Vec2, facing: Direction, frame: i32) {
     let texture = gfx::external(sheet.path);
@@ -45,7 +47,12 @@ fn draw_animal(batch: &mut Batch, sheet: AnimalSheet, feet: Vec2, facing: Direct
         Direction::Up => 3,
         Direction::Down => 0,
     };
-    let src = IRect::new(block_x + frame % 3 * sheet.frame_width, block_y + row * sheet.frame_height, sheet.frame_width, sheet.frame_height);
+    let src = IRect::new(
+        block_x + frame % 3 * sheet.frame_width,
+        block_y + row * sheet.frame_height,
+        sheet.frame_width,
+        sheet.frame_height,
+    );
     let origin = Vec2::new(sheet.frame_width as f32 / 2.0, (sheet.frame_height - 4) as f32);
     batch.draw_ex(texture, snap(feet), Some(src), Rgba::WHITE, 0.0, origin, Vec2::ONE, false, false);
 }
@@ -297,7 +304,11 @@ impl Entity for Companion {
     fn draw(&self, _world: &World, batch: &mut Batch) {
         let flies = self.flies();
         let z = if flies { 12.0 + (self.time * 3.0).sin() * 2.0 } else { 0.0 };
-        batch.draw(art::shadow(8), snap(self.base.pos - Vec2::new(4.0, 2.0)), Rgba::WHITE.mul(if flies { 0.5 } else { 0.8 }));
+        batch.draw(
+            art::shadow(8),
+            snap(self.base.pos - Vec2::new(4.0, 2.0)),
+            Rgba::WHITE.mul(if flies { 0.5 } else { 0.8 }),
+        );
         let feet = self.base.pos - Vec2::new(0.0, z);
         match self.soul.id {
             "hound" => {
@@ -308,12 +319,32 @@ impl Entity for Companion {
             _ => {
                 let src = IRect::new((self.time * 6.0) as i32 % 2 * 12, 0, 12, 14);
                 let tex = art_combat::spirit(self.soul.id, self.soul.glow);
-                batch.draw_ex(tex, snap(feet), Some(src), Rgba::WHITE, 0.0, Vec2::new(6.0, 13.0), Vec2::ONE, false, false);
+                batch.draw_ex(
+                    tex,
+                    snap(feet),
+                    Some(src),
+                    Rgba::WHITE,
+                    0.0,
+                    Vec2::new(6.0, 13.0),
+                    Vec2::ONE,
+                    false,
+                    false,
+                );
             }
         }
         if self.guard_ready() {
             let ring = art_combat::ring();
-            batch.draw_ex(ring, snap(feet - Vec2::new(0.0, 7.0)), None, self.soul.glow.mul(0.5), 0.0, Vec2::splat(16.0), Vec2::splat(0.4), false, false);
+            batch.draw_ex(
+                ring,
+                snap(feet - Vec2::new(0.0, 7.0)),
+                None,
+                self.soul.glow.mul(0.5),
+                0.0,
+                Vec2::splat(16.0),
+                Vec2::splat(0.4),
+                false,
+                false,
+            );
         }
     }
 }
@@ -346,7 +377,9 @@ impl DigSpot {
     }
 
     fn sensed(&self, world: &World) -> bool {
-        world.state.soul.as_deref() == Some("hound") && world.companion.is_some() && world.hero.pos.distance(self.base.pos) < 110.0
+        world.state.soul.as_deref() == Some("hound")
+            && world.companion.is_some()
+            && world.hero.pos.distance(self.base.pos) < 110.0
     }
 }
 
@@ -392,6 +425,10 @@ impl Entity for DigSpot {
         }
         let pulse = 0.5 + 0.5 * (self.time * 5.0).sin();
         batch.draw(art_combat::vent(), snap(self.base.pos - Vec2::new(8.0, 10.0)), Rgba::rgb(160, 120, 80).mul(0.8));
-        batch.draw(art::spark(), snap(self.base.pos - Vec2::new(1.0, 12.0 + pulse * 3.0)), palette::HIGHLIGHT.mul(pulse));
+        batch.draw(
+            art::spark(),
+            snap(self.base.pos - Vec2::new(1.0, 12.0 + pulse * 3.0)),
+            palette::HIGHLIGHT.mul(pulse),
+        );
     }
 }

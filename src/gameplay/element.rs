@@ -11,7 +11,8 @@ pub enum Element {
     Aether,
 }
 
-pub const MODES: [Element; 6] = [Element::None, Element::Wind, Element::Fire, Element::Water, Element::Thunder, Element::Aether];
+pub const MODES: [Element; 6] =
+    [Element::None, Element::Wind, Element::Fire, Element::Water, Element::Thunder, Element::Aether];
 pub const BASIC: [Element; 4] = [Element::Wind, Element::Fire, Element::Water, Element::Thunder];
 
 impl Element {

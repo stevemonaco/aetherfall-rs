@@ -140,7 +140,9 @@ impl Ambience {
                         batch.fill_rect(p.x, p.y, s, s, Rgba::WHITE.mul(0.9));
                     }
                     "rain" => batch.fill_rect(p.x, p.y, 1.0, 5.0, Rgba::rgb(170, 200, 255).mul(0.5)),
-                    "ash" => batch.fill_rect(p.x, p.y, 1.0 + (m.size - 1.0).trunc(), 1.0, Rgba::rgb(70, 60, 60).mul(0.75)),
+                    "ash" => {
+                        batch.fill_rect(p.x, p.y, 1.0 + (m.size - 1.0).trunc(), 1.0, Rgba::rgb(70, 60, 60).mul(0.75))
+                    }
                     "leaves" | "petals" => {
                         let color = if kind == "leaves" {
                             if m.size > 1.5 { Rgba::rgb(150, 200, 80) } else { Rgba::rgb(220, 170, 60) }
@@ -149,16 +151,39 @@ impl Ambience {
                         };
                         let flip = (m.phase * 4.0).sin() > 0.0;
                         batch.fill_rect(p.x, p.y, if flip { 3.0 } else { 2.0 }, if flip { 2.0 } else { 3.0 }, color);
-                        batch.fill_rect(p.x, p.y + if flip { 1.0 } else { 2.0 }, 1.0, 1.0, color.lerp(Rgba::BLACK, 0.35));
+                        batch.fill_rect(
+                            p.x,
+                            p.y + if flip { 1.0 } else { 2.0 },
+                            1.0,
+                            1.0,
+                            color.lerp(Rgba::BLACK, 0.35),
+                        );
                     }
-                    "dust" => batch.fill_rect(p.x, p.y, 1.0, 1.0, Rgba::rgb(200, 190, 170).mul(0.25 + 0.2 * (m.phase * 2.0).sin())),
+                    "dust" => batch.fill_rect(
+                        p.x,
+                        p.y,
+                        1.0,
+                        1.0,
+                        Rgba::rgb(200, 190, 170).mul(0.25 + 0.2 * (m.phase * 2.0).sin()),
+                    ),
                     "bubbles" => {
                         batch.fill_rect(p.x, p.y, 2.0, 2.0, Rgba::rgb(190, 240, 255).mul(0.35));
                         batch.fill_rect(p.x, p.y, 1.0, 1.0, Rgba::WHITE.mul(0.5));
                     }
                     "fog" | "clouds" => {
-                        let tint = if kind == "fog" { Rgba::rgb(200, 220, 210).mul(0.09) } else { Rgba::WHITE.mul(0.16) };
-                        batch.draw_ex(art::cloud(), p, None, tint, 0.0, Vec2::new(12.0, 10.0), Vec2::splat(m.size * 2.2), false, false);
+                        let tint =
+                            if kind == "fog" { Rgba::rgb(200, 220, 210).mul(0.09) } else { Rgba::WHITE.mul(0.16) };
+                        batch.draw_ex(
+                            art::cloud(),
+                            p,
+                            None,
+                            tint,
+                            0.0,
+                            Vec2::new(12.0, 10.0),
+                            Vec2::splat(m.size * 2.2),
+                            false,
+                            false,
+                        );
                     }
                     _ => {}
                 }

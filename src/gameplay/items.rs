@@ -106,7 +106,14 @@ pub struct ItemDef {
     pub ring: Element,
 }
 
-const fn item(id: &'static str, name: &'static str, kind: ItemKind, price: i32, power: i32, description: &'static str) -> ItemDef {
+const fn item(
+    id: &'static str,
+    name: &'static str,
+    kind: ItemKind,
+    price: i32,
+    power: i32,
+    description: &'static str,
+) -> ItemDef {
     ItemDef { id, name, kind, price, power, description, accessory: AccessoryStats::NONE, hp: 0, ring: Element::None }
 }
 
@@ -145,7 +152,8 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
         item("frost_plate", "Frost Plate", Armor, 2200, 25, "Mountain-forged plate. DEF +25, life +55.").with_hp(55),
         item("glass_mail", "Glassweave Mail", Armor, 4200, 34, "Spun from storm glass. DEF +34, life +75.").with_hp(75),
         item("aether_mail", "Aether Mail", Armor, 0, 44, "Woven from sky-city silk. DEF +44, life +100.").with_hp(100),
-        item("blight_plate", "Blightforged Plate", Armor, 0, 62, "Tempered in blightfire. DEF +62, life +150.").with_hp(150),
+        item("blight_plate", "Blightforged Plate", Armor, 0, 62, "Tempered in blightfire. DEF +62, life +150.")
+            .with_hp(150),
         item("wood_shield", "Wood Shield", Shield, 40, 2, "A simple shield. DEF +2."),
         item("iron_shield", "Iron Shield", Shield, 200, 5, "A heavy shield. DEF +5."),
         item("coral_shield", "Coral Shield", Shield, 700, 9, "Light and strong. DEF +9. Wider perfect guard.")
@@ -156,9 +164,13 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
         item("sacred_shield", "Sacred Shield", Shield, 0, 25, "The Concord's own ward. DEF +25. Wider perfect guard.")
             .with_acc(AccessoryStats { perfect_window: 0.05, ..N }),
         item("power_charm", "Power Charm", Accessory, 400, 0, "ATK +10%.").with_acc(AccessoryStats { atk: 1.1, ..N }),
-        item("guard_charm", "Guard Charm", Accessory, 400, 0, "DEF +10%, life +10%.")
-            .with_acc(AccessoryStats { def: 1.1, hp: 1.1, ..N }),
-        item("swift_anklet", "Swift Anklet", Accessory, 0, 0, "Move 20% faster.").with_acc(AccessoryStats { speed: 1.2, ..N }),
+        item("guard_charm", "Guard Charm", Accessory, 400, 0, "DEF +10%, life +10%.").with_acc(AccessoryStats {
+            def: 1.1,
+            hp: 1.1,
+            ..N
+        }),
+        item("swift_anklet", "Swift Anklet", Accessory, 0, 0, "Move 20% faster.")
+            .with_acc(AccessoryStats { speed: 1.2, ..N }),
         item("focus_band", "Focus Band", Accessory, 0, 0, "FOC +25%: more critical hits and stronger ailments.")
             .with_acc(AccessoryStats { foc: 1.25, ..N }),
         item("fortune_coin", "Fortune Coin", Accessory, 350, 0, "Enemies drop 60% more gold.")
@@ -181,12 +193,26 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { perfect_window: 0.08, ..N }),
         item("phoenix_plume", "Phoenix Plume", Accessory, 0, 0, "Once per area, survive a fatal blow.")
             .with_acc(AccessoryStats { auto_revive: true, ..N }),
-        item("ember_crown", "Ember Crown", Accessory, 0, 0, "The Warlock's echo, crowned. ATK +15%, fire damage halved.")
-            .with_acc(AccessoryStats { atk: 1.15, fire_taken: 0.5, ..N }),
+        item(
+            "ember_crown",
+            "Ember Crown",
+            Accessory,
+            0,
+            0,
+            "The Warlock's echo, crowned. ATK +15%, fire damage halved.",
+        )
+        .with_acc(AccessoryStats { atk: 1.15, fire_taken: 0.5, ..N }),
         item("tide_locket", "Tide Locket", Accessory, 0, 0, "Holds a drowned tide. SP gain +30%, life +10%.")
             .with_acc(AccessoryStats { sp_gain: 1.3, hp: 1.1, ..N }),
-        item("night_eye", "Night Eye", Accessory, 0, 0, "Sees what hides. FOC +30%, EXP +20%, cloaked foes show farther.")
-            .with_acc(AccessoryStats { foc: 1.3, exp: 1.2, ..N }),
+        item(
+            "night_eye",
+            "Night Eye",
+            Accessory,
+            0,
+            0,
+            "Sees what hides. FOC +30%, EXP +20%, cloaked foes show farther.",
+        )
+        .with_acc(AccessoryStats { foc: 1.3, exp: 1.2, ..N }),
         item("storm_greaves", "Storm Greaves", Accessory, 0, 0, "Move 15% faster. One extra dodge charge.")
             .with_acc(AccessoryStats { speed: 1.15, dodge_charges: 1, ..N }),
         item("corsair_coin", "Corsair's Coin", Accessory, 0, 0, "Double gold. Recover 4% life per defeated foe.")
@@ -258,8 +284,15 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             "Thunder resonance: Thunder ailments build 30% faster and overload 25% slower.",
         )
         .with_ring(Element::Thunder),
-        item("prism_band", "Prism Band", Powerup, 0, 0, "Every element resonates: ailments build faster and overload slower.")
-            .with_ring(Element::Aether),
+        item(
+            "prism_band",
+            "Prism Band",
+            Powerup,
+            0,
+            0,
+            "Every element resonates: ailments build faster and overload slower.",
+        )
+        .with_ring(Element::Aether),
         item("grotto_key", "Grotto Key", Key, 0, 0, "Opens the sealed door in the Mossy Grotto."),
         item("temple_key", "Coral Key", Key, 0, 0, "Opens a sealed door in the Sunken Temple."),
         item("spire_key", "Storm Key", Key, 0, 0, "Opens a sealed door in the Storm Spire."),
@@ -336,5 +369,8 @@ pub fn name_of(id: &str) -> String {
 }
 
 /// Save crystals that fast travel can reach once activated, with the tile the player arrives on.
-pub const TOWNS: [(&str, &str, (i32, i32)); 3] =
-    [("leafhollow", "Leafhollow", (19, 13)), ("brinewatch", "Brinewatch", (15, 16)), ("highcrag", "Highcrag", (17, 16))];
+pub const TOWNS: [(&str, &str, (i32, i32)); 3] = [
+    ("leafhollow", "Leafhollow", (19, 13)),
+    ("brinewatch", "Brinewatch", (15, 16)),
+    ("highcrag", "Highcrag", (17, 16)),
+];

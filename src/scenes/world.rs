@@ -599,7 +599,9 @@ impl World {
         }
         let Ok(other) = TileMap::new(&MapData::load(&pair)) else { return };
         let hitbox = self.hero.hitbox;
-        if other.box_blocked(&hitbox, |x, y| other.blocks_walking(x, y)) && !other.box_blocked(&hitbox, |x, y| !other.in_bounds(x, y)) {
+        if other.box_blocked(&hitbox, |x, y| other.blocks_walking(x, y))
+            && !other.box_blocked(&hitbox, |x, y| !other.in_bounds(x, y))
+        {
             audio::sfx(Sound::MenuCancel);
             self.toast("Something solid stands here in the other time.");
             return;

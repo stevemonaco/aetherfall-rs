@@ -3,8 +3,8 @@
 //! animated water layer underneath shows through. A direct port of TerrainBaker.cs.
 
 use crate::core::color::Rgba;
-use crate::world::map::{TILE, Terrain, TileMap};
 use crate::core::noise::{self, worley};
+use crate::world::map::{TILE, Terrain, TileMap};
 use crate::world::theme::TerrainTheme;
 
 const CORNER_RADIUS: f32 = 6.0;

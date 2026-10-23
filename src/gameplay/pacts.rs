@@ -11,7 +11,13 @@ pub struct PactDef {
 }
 
 pub const ALL: [PactDef; 8] = [
-    PactDef { id: "haste", name: "Haste", description: "Enemy wind-ups are 30% shorter.", heat: 1, unlock: "boss_warlock" },
+    PactDef {
+        id: "haste",
+        name: "Haste",
+        description: "Enemy wind-ups are 30% shorter.",
+        heat: 1,
+        unlock: "boss_warlock",
+    },
     PactDef {
         id: "volatility",
         name: "Volatility",
@@ -19,7 +25,13 @@ pub const ALL: [PactDef; 8] = [
         heat: 1,
         unlock: "boss_warlock",
     },
-    PactDef { id: "abstinence", name: "Abstinence", description: "Healing items cannot be used.", heat: 1, unlock: "boss_serpent" },
+    PactDef {
+        id: "abstinence",
+        name: "Abstinence",
+        description: "Healing items cannot be used.",
+        heat: 1,
+        unlock: "boss_serpent",
+    },
     PactDef {
         id: "swarm",
         name: "Swarm",
@@ -41,8 +53,20 @@ pub const ALL: [PactDef; 8] = [
         heat: 1,
         unlock: "boss_golem",
     },
-    PactDef { id: "ironhide", name: "Ironhide", description: "Enemies have 50% more life.", heat: 2, unlock: "boss_warden" },
-    PactDef { id: "glass", name: "Glass Bones", description: "You take 50% more damage.", heat: 3, unlock: "boss_warden" },
+    PactDef {
+        id: "ironhide",
+        name: "Ironhide",
+        description: "Enemies have 50% more life.",
+        heat: 2,
+        unlock: "boss_warden",
+    },
+    PactDef {
+        id: "glass",
+        name: "Glass Bones",
+        description: "You take 50% more damage.",
+        heat: 3,
+        unlock: "boss_warden",
+    },
 ];
 
 pub fn heat(state: &GameState) -> i32 {

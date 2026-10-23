@@ -83,7 +83,12 @@ pub struct FloorSwitch {
 impl FloorSwitch {
     pub fn new(data: &EntityData) -> FloorSwitch {
         FloorSwitch {
-            base: EntityBase { pos: tile_feet(data.x as i32, data.y as i32), width: 8.0, height: 6.0, ..EntityBase::default() },
+            base: EntityBase {
+                pos: tile_feet(data.x as i32, data.y as i32),
+                width: 8.0,
+                height: 6.0,
+                ..EntityBase::default()
+            },
             flag: data.str_or("flag", "").to_string(),
             message: data.str("message").map(str::to_string),
         }
@@ -108,7 +113,11 @@ impl Entity for FloorSwitch {
     }
 
     fn draw(&self, world: &World, batch: &mut Batch) {
-        batch.draw(art::floor_switch(world.state.flags.contains(&self.flag)), snap(self.base.pos - Vec2::new(8.0, 14.0)), Rgba::WHITE);
+        batch.draw(
+            art::floor_switch(world.state.flags.contains(&self.flag)),
+            snap(self.base.pos - Vec2::new(8.0, 14.0)),
+            Rgba::WHITE,
+        );
     }
 }
 
@@ -131,7 +140,10 @@ impl LockedDoor {
             },
             tile,
             key: data.str_or("key", "grotto_key").to_string(),
-            flag: data.str("flag").map(str::to_string).unwrap_or_else(|| format!("door:{map_id}:{}_{}", tile.0, tile.1)),
+            flag: data
+                .str("flag")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("door:{map_id}:{}_{}", tile.0, tile.1)),
         }
     }
 }
@@ -165,7 +177,11 @@ impl Entity for LockedDoor {
     }
 
     fn draw(&self, _world: &World, batch: &mut Batch) {
-        batch.draw(art::locked_door(), Vec2::new((self.tile.0 * TILE) as f32, (self.tile.1 * TILE) as f32), Rgba::WHITE);
+        batch.draw(
+            art::locked_door(),
+            Vec2::new((self.tile.0 * TILE) as f32, (self.tile.1 * TILE) as f32),
+            Rgba::WHITE,
+        );
     }
 }
 
@@ -178,7 +194,13 @@ pub struct SaveCrystal {
 impl SaveCrystal {
     pub fn new(data: &EntityData) -> SaveCrystal {
         SaveCrystal {
-            base: EntityBase { pos: tile_feet(data.x as i32, data.y as i32), solid: true, width: 10.0, height: 6.0, ..EntityBase::default() },
+            base: EntityBase {
+                pos: tile_feet(data.x as i32, data.y as i32),
+                solid: true,
+                width: 10.0,
+                height: 6.0,
+                ..EntityBase::default()
+            },
             time: 0.0,
         }
     }
@@ -242,7 +264,10 @@ impl Trigger {
                 ..EntityBase::default()
             },
             dialogue: data.str_or("dialogue", "").to_string(),
-            flag: data.str("flag").map(str::to_string).unwrap_or_else(|| format!("trigger:{map_id}:{}_{}", data.x, data.y)),
+            flag: data
+                .str("flag")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("trigger:{map_id}:{}_{}", data.x, data.y)),
             condition: data.str("if").map(str::to_string),
         }
     }

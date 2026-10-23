@@ -52,7 +52,8 @@ pub struct DamageResult {
 }
 
 impl DamageResult {
-    pub const NONE: DamageResult = DamageResult { amount: 0, crit: false, element_mod: 1.0, blocked: false, perfect: false };
+    pub const NONE: DamageResult =
+        DamageResult { amount: 0, crit: false, element_mod: 1.0, blocked: false, perfect: false };
 
     pub fn new(amount: i32, crit: bool, element_mod: f32) -> DamageResult {
         DamageResult { amount, crit, element_mod, ..DamageResult::NONE }
@@ -187,11 +188,8 @@ pub fn resolve(hit: &Hit, defender: CombatStats, element_mod: f32, extra_mod: f3
         raw *= (1.0 - 0.06 * (defender.level - hit.attacker.level) as f32).max(0.4);
     }
     let crit = hit.can_crit && rng.next_f32() < crit_chance(hit.attacker.foc);
-    let amount = raw
-        * element_mod
-        * extra_mod
-        * if crit { CRIT_MULTIPLIER } else { 1.0 }
-        * (0.95 + rng.next_f32() * 0.1);
+    let amount =
+        raw * element_mod * extra_mod * if crit { CRIT_MULTIPLIER } else { 1.0 } * (0.95 + rng.next_f32() * 0.1);
     DamageResult::new(if element_mod <= 0.0 { 0 } else { (amount.round() as i32).max(1) }, crit, element_mod)
 }
 

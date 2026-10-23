@@ -4,7 +4,9 @@ use std::f32::consts::TAU;
 
 use bevy::math::Vec2;
 
-use super::combat_effects::{Afterimage, Beam, GroundMarker, LightningArc, LightningStrike, Shockwave, SlashEffect, SpinEffect};
+use super::combat_effects::{
+    Afterimage, Beam, GroundMarker, LightningArc, LightningStrike, Shockwave, SlashEffect, SpinEffect,
+};
 use super::effects::{DamageNumber, Particle};
 use super::entity::{Entity, EntityId};
 use super::hazards::{Cyclone, Decoy, FirePatch, SteamCloud};
@@ -42,14 +44,40 @@ enum Effect {
 }
 
 enum Kind {
-    Instant { duration: f32, effect: Effect, started: bool },
-    Whirl { first: Vec<EntityId>, second: Vec<EntityId> },
-    Dodge { length: f32, speed: f32, start: Effect, ram: Element, trail: bool, rammed: Vec<EntityId>, last_tile: (i32, i32) },
-    CinderRush { hit: Vec<EntityId>, last_tile: (i32, i32), wave: i32 },
-    FrostBloom { done: bool },
-    StormCall { target: Vec2, struck: bool },
+    Instant {
+        duration: f32,
+        effect: Effect,
+        started: bool,
+    },
+    Whirl {
+        first: Vec<EntityId>,
+        second: Vec<EntityId>,
+    },
+    Dodge {
+        length: f32,
+        speed: f32,
+        start: Effect,
+        ram: Element,
+        trail: bool,
+        rammed: Vec<EntityId>,
+        last_tile: (i32, i32),
+    },
+    CinderRush {
+        hit: Vec<EntityId>,
+        last_tile: (i32, i32),
+        wave: i32,
+    },
+    FrostBloom {
+        done: bool,
+    },
+    StormCall {
+        target: Vec2,
+        struck: bool,
+    },
     ArcStep,
-    PrismEdge { next: usize },
+    PrismEdge {
+        next: usize,
+    },
 }
 
 pub struct ArtAction {
@@ -117,11 +145,15 @@ impl ArtAction {
                 }
                 if (0.08..0.2).contains(&t) {
                     let c = p.center();
-                    p.strike_area(world, c, 32.0, Some(first), |p, w| p.make_hit(w, 1.3, HitKind::Art, None, 2.0, 1.2, 160.0));
+                    p.strike_area(world, c, 32.0, Some(first), |p, w| {
+                        p.make_hit(w, 1.3, HitKind::Art, None, 2.0, 1.2, 160.0)
+                    });
                 }
                 if (0.28..0.4).contains(&t) {
                     let c = p.center();
-                    p.strike_area(world, c, 32.0, Some(second), |p, w| p.make_hit(w, 1.3, HitKind::Art, None, 2.0, 1.2, 180.0));
+                    p.strike_area(world, c, 32.0, Some(second), |p, w| {
+                        p.make_hit(w, 1.3, HitKind::Art, None, 2.0, 1.2, 180.0)
+                    });
                 }
                 t >= 0.45
             }
@@ -138,7 +170,9 @@ impl ArtAction {
                 p.update_dodge(world, dt);
                 if *ram != Element::None {
                     let (c, ram) = (p.center(), *ram);
-                    p.strike_area(world, c, 16.0, Some(rammed), move |p, w| p.make_hit(w, 1.2, HitKind::Art, Some(ram), 2.0, 2.5, 280.0));
+                    p.strike_area(world, c, 16.0, Some(rammed), move |p, w| {
+                        p.make_hit(w, 1.2, HitKind::Art, Some(ram), 2.0, 2.5, 280.0)
+                    });
                 }
                 if *trail && p.tile_pos() != *last_tile {
                     *last_tile = p.tile_pos();
@@ -163,7 +197,9 @@ impl ArtAction {
                     world.add(SlashEffect::new(p.center(), aim, Element::Fire, 24.0, false, current % 2 == 0));
                 }
                 let c = p.center() + aim * 8.0;
-                p.strike_area(world, c, 20.0, Some(hit), |p, w| p.make_hit(w, 0.8, HitKind::Art, Some(Element::Fire), 1.5, 1.2, 60.0));
+                p.strike_area(world, c, 20.0, Some(hit), |p, w| {
+                    p.make_hit(w, 0.8, HitKind::Art, Some(Element::Fire), 1.5, 1.2, 60.0)
+                });
                 if p.tile_pos() != *last_tile {
                     *last_tile = p.tile_pos();
                     world.add(FirePatch::new(p.pos(), 2.5));
@@ -185,7 +221,10 @@ impl ArtAction {
                     }
                     for i in 0..8 {
                         let a = i as f32 * TAU / 8.0;
-                        world.add(Particle::new(p.pos(), Vec2::new(a.cos(), a.sin()) * 90.0, Rgba::rgb(200, 240, 255), 0.5).spark());
+                        world.add(
+                            Particle::new(p.pos(), Vec2::new(a.cos(), a.sin()) * 90.0, Rgba::rgb(200, 240, 255), 0.5)
+                                .spark(),
+                        );
                     }
                 }
                 t >= 0.4
@@ -243,7 +282,8 @@ impl ArtAction {
                 false
             }
             Kind::PrismEdge { next } => {
-                const ORDER: [Element; 5] = [Element::Wind, Element::Fire, Element::Water, Element::Thunder, Element::Aether];
+                const ORDER: [Element; 5] =
+                    [Element::Wind, Element::Fire, Element::Water, Element::Thunder, Element::Aether];
                 if *next < ORDER.len() && t >= *next as f32 * 0.08 {
                     let element = ORDER[*next];
                     *next += 1;
@@ -277,7 +317,12 @@ fn run(effect: Effect, p: &mut Player, world: &mut World) {
         Effect::Counter => p.begin_counter(1.2),
         Effect::GaleSlash => {
             world.add(SlashEffect::new(p.center(), p.aim, Element::Wind, 30.0, true, false));
-            let mut shot = Projectile::new(Faction::Player, world.state.stats(Element::Wind), p.pos() + p.aim * 10.0, p.aim * 210.0);
+            let mut shot = Projectile::new(
+                Faction::Player,
+                world.state.stats(Element::Wind),
+                p.pos() + p.aim * 10.0,
+                p.aim * 210.0,
+            );
             shot.power = 1.7;
             shot.element = Element::Wind;
             shot.kind = HitKind::Art;
@@ -301,7 +346,8 @@ fn run(effect: Effect, p: &mut Player, world: &mut World) {
         Effect::TempestWall => p.begin_reflect(3.0),
         Effect::Meteor => {
             let target = p.aim_point(world, 120.0);
-            let mut shot = Projectile::new(Faction::Player, world.state.stats(Element::Fire), p.pos(), (target - p.pos()) / 0.6);
+            let mut shot =
+                Projectile::new(Faction::Player, world.state.stats(Element::Fire), p.pos(), (target - p.pos()) / 0.6);
             shot.power = 0.0;
             shot.element = Element::Fire;
             shot.kind = HitKind::Art;
@@ -319,7 +365,12 @@ fn run(effect: Effect, p: &mut Player, world: &mut World) {
         }
         Effect::FlameAegis => burst(p, world, 36.0, Element::Fire, 1.6, 1),
         Effect::Lance => {
-            let mut shot = Projectile::new(Faction::Player, world.state.stats(Element::Water), p.pos() + p.aim * 8.0, p.aim * 300.0);
+            let mut shot = Projectile::new(
+                Faction::Player,
+                world.state.stats(Element::Water),
+                p.pos() + p.aim * 8.0,
+                p.aim * 300.0,
+            );
             shot.power = 2.0;
             shot.element = Element::Water;
             shot.kind = HitKind::Art;
@@ -362,7 +413,9 @@ fn run(effect: Effect, p: &mut Player, world: &mut World) {
                 let next = world
                     .damageables()
                     .into_iter()
-                    .filter(|(id, f, b)| *f == Faction::Enemy && !struck.iter().any(|s| s.0 == *id) && b.center().distance(origin) < 64.0)
+                    .filter(|(id, f, b)| {
+                        *f == Faction::Enemy && !struck.iter().any(|s| s.0 == *id) && b.center().distance(origin) < 64.0
+                    })
                     .min_by(|a, b| a.2.center().distance(origin).total_cmp(&b.2.center().distance(origin)));
                 let Some((id, _, b)) = next else { break };
                 world.add(LightningArc::new(origin, b.center()));
@@ -420,7 +473,9 @@ fn run(effect: Effect, p: &mut Player, world: &mut World) {
 
 fn burst(p: &mut Player, world: &mut World, radius: f32, element: Element, power: f32, ignite: i32) {
     let c = p.center();
-    p.strike_area(world, c, radius, None, move |p, w| p.make_hit(w, power, HitKind::Art, Some(element), 3.0, 2.2, 200.0));
+    p.strike_area(world, c, radius, None, move |p, w| {
+        p.make_hit(w, power, HitKind::Art, Some(element), 3.0, 2.2, 200.0)
+    });
     if ignite > 0 {
         ignite_around(world, p.pos(), ignite);
     }

@@ -205,7 +205,9 @@ impl EntityData {
 
     pub fn strings(&self, key: &str) -> Vec<String> {
         match self.extra.get(key) {
-            Some(serde_json::Value::Array(items)) => items.iter().map(|i| i.as_str().unwrap_or("").to_string()).collect(),
+            Some(serde_json::Value::Array(items)) => {
+                items.iter().map(|i| i.as_str().unwrap_or("").to_string()).collect()
+            }
             _ => Vec::new(),
         }
     }

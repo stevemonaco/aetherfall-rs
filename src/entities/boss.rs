@@ -259,7 +259,16 @@ pub fn shoot(enemy: &Enemy, world: &mut World, kind: &str, from: Vec2, direction
 
 /// `count` shots spread evenly around a circle, starting at angle `offset`.
 #[allow(clippy::too_many_arguments)]
-pub fn ring(enemy: &Enemy, world: &mut World, kind: &str, from: Vec2, count: i32, offset: f32, speed_scale: f32, power: f32) {
+pub fn ring(
+    enemy: &Enemy,
+    world: &mut World,
+    kind: &str,
+    from: Vec2,
+    count: i32,
+    offset: f32,
+    speed_scale: f32,
+    power: f32,
+) {
     for i in 0..count {
         let a = offset + i as f32 * std::f32::consts::TAU / count as f32;
         shoot(enemy, world, kind, from, Vec2::new(a.cos(), a.sin()), speed_scale, power);
@@ -308,7 +317,15 @@ pub struct BossPart {
 }
 
 impl BossPart {
-    pub fn new(owner: EntityId, name: &str, hp: i32, index: usize, art: TexId, size: Vec2, drop: Option<&str>) -> BossPart {
+    pub fn new(
+        owner: EntityId,
+        name: &str,
+        hp: i32,
+        index: usize,
+        art: TexId,
+        size: Vec2,
+        drop: Option<&str>,
+    ) -> BossPart {
         BossPart {
             base: EntityBase { width: size.x, height: size.y, ..EntityBase::default() },
             owner,
@@ -349,7 +366,11 @@ impl BossPart {
         world.camera.shake(0.4, 2.0);
         let center = self.hurtbox().center();
         Particle::burst(world, center, Rgba::WHITE, 30, 110.0, 0.7, true);
-        world.add(FloatingText::new(center - Vec2::new(0.0, 16.0), format!("{} BROKEN", self.name.to_uppercase()), palette::HIGHLIGHT));
+        world.add(FloatingText::new(
+            center - Vec2::new(0.0, 16.0),
+            format!("{} BROKEN", self.name.to_uppercase()),
+            palette::HIGHLIGHT,
+        ));
         world.rank.style(3.0);
         if let Some(drop) = &self.drop {
             world.add(Pickup::item(center + Vec2::new(0.0, 10.0), drop));
@@ -415,7 +436,12 @@ impl Entity for BossPart {
         self.hp -= result.amount;
         self.flash = 0.12;
         audio::play(Sound::Hit, 0.9, 0.2);
-        world.add(DamageNumber::new(self.hurtbox().center() - Vec2::new(0.0, 8.0), result.amount, element, result.crit));
+        world.add(DamageNumber::new(
+            self.hurtbox().center() - Vec2::new(0.0, 8.0),
+            result.amount,
+            element,
+            result.crit,
+        ));
         let bleed = result.amount / 2;
         world.with_as::<Enemy, _>(self.owner, |e, w| e.bleed_from_part(w, bleed));
         if self.hp <= 0 {

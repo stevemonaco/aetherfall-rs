@@ -74,7 +74,8 @@ impl LaunchOptions {
             let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).cloned();
             let list = |name: &str| value(name).map(|v| v.split(',').map(str::to_string).collect()).unwrap_or_default();
             options.map = value("--map");
-            options.at = value("--at").and_then(|v| v.split_once(',').and_then(|(x, y)| Some((x.parse().ok()?, y.parse().ok()?))));
+            options.at = value("--at")
+                .and_then(|v| v.split_once(',').and_then(|(x, y)| Some((x.parse().ok()?, y.parse().ok()?))));
             options.give = list("--give");
             options.level = value("--level").and_then(|v| v.parse().ok());
             options.flags = list("--flags");
@@ -171,8 +172,16 @@ impl Material2d for LightMaterial {
         _layout: &MeshVertexBufferLayoutRef,
         _key: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        let multiply = BlendComponent { src_factor: BlendFactor::Dst, dst_factor: BlendFactor::Zero, operation: BlendOperation::Add };
-        let keep_alpha = BlendComponent { src_factor: BlendFactor::Zero, dst_factor: BlendFactor::One, operation: BlendOperation::Add };
+        let multiply = BlendComponent {
+            src_factor: BlendFactor::Dst,
+            dst_factor: BlendFactor::Zero,
+            operation: BlendOperation::Add,
+        };
+        let keep_alpha = BlendComponent {
+            src_factor: BlendFactor::Zero,
+            dst_factor: BlendFactor::One,
+            operation: BlendOperation::Add,
+        };
         if let Some(fragment) = descriptor.fragment.as_mut() {
             for target in fragment.targets.iter_mut().flatten() {
                 target.blend = Some(BlendState { color: multiply, alpha: keep_alpha });
@@ -210,7 +219,11 @@ pub fn run() {
                         canvas: Some("#aetherfall".into()),
                         fit_canvas_to_parent: true,
                         prevent_default_event_handling: true,
-                        mode: if fullscreen { WindowMode::BorderlessFullscreen(MonitorSelection::Current) } else { WindowMode::Windowed },
+                        mode: if fullscreen {
+                            WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+                        } else {
+                            WindowMode::Windowed
+                        },
                         ..default()
                     }),
                     ..default()
@@ -224,7 +237,12 @@ pub fn run() {
         .init_resource::<SpritePool>()
         .add_systems(Startup, setup)
         .add_systems(Update, finish_loading.run_if(in_state(Phase::Loading)))
-        .add_systems(Update, (run_game, sync_textures, draw_frame, play_audio, update_lights, take_shot).chain().run_if(in_state(Phase::Running)))
+        .add_systems(
+            Update,
+            (run_game, sync_textures, draw_frame, play_audio, update_lights, take_shot)
+                .chain()
+                .run_if(in_state(Phase::Running)),
+        )
         .add_systems(Update, (fit_screen, window_keys))
         .run();
 }
@@ -237,7 +255,12 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LightMaterial>>,
 ) {
-    let screen = images.add(Image::new_target_texture(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, TextureFormat::Rgba8UnormSrgb, None));
+    let screen = images.add(Image::new_target_texture(
+        SCREEN_WIDTH as u32,
+        SCREEN_HEIGHT as u32,
+        TextureFormat::Rgba8UnormSrgb,
+        None,
+    ));
     commands.spawn((
         WorldCamera,
         Camera2d,
@@ -273,7 +296,8 @@ fn setup(
         Visibility::Hidden,
     ));
 
-    let effects = Sound::ALL.iter().map(|&s| (s, sounds.add(AudioSource { bytes: audio::synthesize(s).into() }))).collect();
+    let effects =
+        Sound::ALL.iter().map(|&s| (s, sounds.add(AudioSource { bytes: audio::synthesize(s).into() }))).collect();
     commands.insert_resource(Sounds { effects });
 
     let images = IMAGE_FILES.iter().map(|&path| (path, assets.load::<Image>(path))).collect();
@@ -281,9 +305,7 @@ fn setup(
     let _ = data();
 }
 
-fn finish_loading(
-    world: &mut bevy::prelude::World,
-) {
+fn finish_loading(world: &mut bevy::prelude::World) {
     let loading_done = {
         let loading = world.resource::<Loading>();
         let server = world.resource::<AssetServer>();
@@ -463,7 +485,9 @@ fn gather_input(
         let factor = window.scale_factor();
         let (pw, ph) = (window.physical_width() as f32, window.physical_height() as f32);
         let scale = (pw / SCREEN_WIDTH as f32).min(ph / SCREEN_HEIGHT as f32).floor().max(1.0) / factor;
-        let origin = Vec2::new(window.width() - SCREEN_WIDTH as f32 * scale, window.height() - SCREEN_HEIGHT as f32 * scale) / 2.0;
+        let origin =
+            Vec2::new(window.width() - SCREEN_WIDTH as f32 * scale, window.height() - SCREEN_HEIGHT as f32 * scale)
+                / 2.0;
         raw.mouse_screen = Some((cursor - origin) / scale);
     }
     raw
@@ -488,7 +512,11 @@ fn run_game(
     let mut steps = 0;
     while game.accumulator >= STEP && steps < 4 {
         game.accumulator -= STEP;
-        input::update(if steps == 0 { raw.clone() } else { RawInput { mouse_moved: false, keys_pressed: Vec::new(), wheel: 0, ..raw.clone() } });
+        input::update(if steps == 0 {
+            raw.clone()
+        } else {
+            RawInput { mouse_moved: false, keys_pressed: Vec::new(), wheel: 0, ..raw.clone() }
+        });
         game.scenes.update(STEP);
         game.updates += 1;
         steps += 1;
@@ -552,7 +580,12 @@ fn draw_frame(
         transform.translation = Vec3::new(center.x - half.x, half.y - center.y, z);
         transform.rotation = Quat::from_rotation_z(-cmd.rotation);
         sprite.image = handle.clone();
-        sprite.rect = Some(Rect::new(cmd.src.x as f32, cmd.src.y as f32, (cmd.src.x + cmd.src.w) as f32, (cmd.src.y + cmd.src.h) as f32));
+        sprite.rect = Some(Rect::new(
+            cmd.src.x as f32,
+            cmd.src.y as f32,
+            (cmd.src.x + cmd.src.w) as f32,
+            (cmd.src.y + cmd.src.h) as f32,
+        ));
         sprite.custom_size = Some(Vec2::new(w * cmd.scale.x.abs(), h * cmd.scale.y.abs()));
         sprite.flip_x = cmd.flip_x;
         sprite.flip_y = cmd.flip_y;
@@ -580,9 +613,19 @@ fn update_lights(
     let base = [ambient.r as f32 / 255.0, ambient.g as f32 / 255.0, ambient.b as f32 / 255.0];
     let mut buffer = vec![base; (lw * lh) as usize];
     for (at, radius, color, intensity) in &frame.lights {
-        let tint = [color.r as f32 / 255.0 * intensity, color.g as f32 / 255.0 * intensity, color.b as f32 / 255.0 * intensity];
-        let (x0, x1) = (((at.x - radius) / LIGHT_SCALE as f32).floor() as i32, ((at.x + radius) / LIGHT_SCALE as f32).ceil() as i32);
-        let (y0, y1) = (((at.y - radius) / LIGHT_SCALE as f32).floor() as i32, ((at.y + radius) / LIGHT_SCALE as f32).ceil() as i32);
+        let tint = [
+            color.r as f32 / 255.0 * intensity,
+            color.g as f32 / 255.0 * intensity,
+            color.b as f32 / 255.0 * intensity,
+        ];
+        let (x0, x1) = (
+            ((at.x - radius) / LIGHT_SCALE as f32).floor() as i32,
+            ((at.x + radius) / LIGHT_SCALE as f32).ceil() as i32,
+        );
+        let (y0, y1) = (
+            ((at.y - radius) / LIGHT_SCALE as f32).floor() as i32,
+            ((at.y + radius) / LIGHT_SCALE as f32).ceil() as i32,
+        );
         for y in y0.max(0)..=y1.min(lh - 1) {
             for x in x0.max(0)..=x1.min(lw - 1) {
                 let p = Vec2::new((x * LIGHT_SCALE) as f32 + 2.0, (y * LIGHT_SCALE) as f32 + 2.0);
@@ -643,7 +686,11 @@ fn play_audio(
         commands.spawn((
             MusicPlayer { track },
             AudioPlayer::<AudioSource>(assets.load(path)),
-            PlaybackSettings { mode: PlaybackMode::Loop, volume: Volume::Linear(state.volume), ..PlaybackSettings::LOOP },
+            PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                volume: Volume::Linear(state.volume),
+                ..PlaybackSettings::LOOP
+            },
         ));
     }
 }
@@ -660,7 +707,12 @@ fn fit_screen(window: Single<&Window, With<PrimaryWindow>>, mut camera: Single<&
     }
 }
 
-fn take_shot(mut commands: Commands, options: Res<LaunchOptions>, mut game: NonSendMut<Game>, mut exit: MessageWriter<AppExit>) {
+fn take_shot(
+    mut commands: Commands,
+    options: Res<LaunchOptions>,
+    mut game: NonSendMut<Game>,
+    mut exit: MessageWriter<AppExit>,
+) {
     let Some(path) = options.shot.clone() else { return };
     if !game.shot_taken && game.updates >= options.frames {
         game.shot_taken = true;
@@ -668,7 +720,16 @@ fn take_shot(mut commands: Commands, options: Res<LaunchOptions>, mut game: NonS
             && let Some(world) = game.scenes.world()
         {
             let s = &world.state;
-            println!("DUMP map={} pos={:?} hp={}/{} level={} gold={} mode={:?}", s.map_id, world.hero.pos, s.hp, s.max_hp(), s.level, s.gold, s.mode);
+            println!(
+                "DUMP map={} pos={:?} hp={}/{} level={} gold={} mode={:?}",
+                s.map_id,
+                world.hero.pos,
+                s.hp,
+                s.max_hp(),
+                s.level,
+                s.gold,
+                s.mode
+            );
             println!("DUMP flags={:?}", s.flags);
             println!("DUMP inventory={:?} swords={:?} equipment={:?}", s.inventory, s.swords, s.equipment);
         }
@@ -695,11 +756,13 @@ fn window_keys(
     }
     let fullscreen = settings::current().fullscreen;
     if fullscreen != matches!(window.mode, WindowMode::BorderlessFullscreen(_)) && options.shot.is_none() {
-        window.mode = if fullscreen { WindowMode::BorderlessFullscreen(MonitorSelection::Current) } else { WindowMode::Windowed };
+        window.mode =
+            if fullscreen { WindowMode::BorderlessFullscreen(MonitorSelection::Current) } else { WindowMode::Windowed };
     }
     #[cfg(not(target_arch = "wasm32"))]
     if keys.just_pressed(KeyCode::F12) {
-        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let stamp =
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
         let path = std::env::current_dir().unwrap_or_default().join("screenshots").join(format!("shot-{stamp}.png"));
         let _ = std::fs::create_dir_all(path.parent().unwrap_or(std::path::Path::new(".")));
         commands.spawn(Screenshot::primary_window()).observe(save_to_disk(path));

@@ -30,7 +30,13 @@ pub fn draw(batch: &mut Batch, world: &World) {
     draw_quest(batch, state);
     draw_rank(batch, &world.rank);
     draw_toasts(batch, world);
-    font::draw(batch, &format!("{} G", state.gold), Vec2::new(8.0, (SCREEN_HEIGHT - 14) as f32), palette::GOLD, Some(palette::TEXT_SHADOW));
+    font::draw(
+        batch,
+        &format!("{} G", state.gold),
+        Vec2::new(8.0, (SCREEN_HEIGHT - 14) as f32),
+        palette::GOLD,
+        Some(palette::TEXT_SHADOW),
+    );
     if let Some(boss) = world.boss.and_then(|id| world.get_as::<Enemy>(id)) {
         draw_boss_bar(batch, boss);
     }
@@ -47,12 +53,19 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
     let (x, y) = (8, 8);
     let mode = state.mode;
     batch.fill(IRect::new(x + 9, y + 1, 150, 30), BACK.mul(0.55));
-    let emblem_tint = if player.overheated() && (player.overheat_time() * 6.0) as i32 % 2 == 0 { Rgba::GRAY } else { Rgba::WHITE };
+    let emblem_tint =
+        if player.overheated() && (player.overheat_time() * 6.0) as i32 % 2 == 0 { Rgba::GRAY } else { Rgba::WHITE };
     batch.draw(art::emblem(mode), Vec2::new(x as f32, y as f32), emblem_tint);
 
     let bx = x + 22;
     bar(batch, bx, y + 2, 118, 6, state.hp as f32 / state.max_hp() as f32, palette::LIFE);
-    font::draw(batch, &state.hp.to_string(), Vec2::new((bx + 121) as f32, y as f32), palette::TEXT, Some(palette::TEXT_SHADOW));
+    font::draw(
+        batch,
+        &state.hp.to_string(),
+        Vec2::new((bx + 121) as f32, y as f32),
+        palette::TEXT,
+        Some(palette::TEXT_SHADOW),
+    );
 
     // SP pips fill one after another.
     let sp = state.sp / 100.0;
@@ -79,7 +92,13 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
     }
     if state.corruption > 0.0 {
         let text = format!("BLIGHT -{}%", state.corruption as i32);
-        font::draw(batch, &text, Vec2::new((bx + 62) as f32, (y + 37) as f32), Rgba::rgb(200, 130, 255), Some(palette::TEXT_SHADOW));
+        font::draw(
+            batch,
+            &text,
+            Vec2::new((bx + 62) as f32, (y + 37) as f32),
+            Rgba::rgb(200, 130, 255),
+            Some(palette::TEXT_SHADOW),
+        );
     }
     if player.heat > 0.0 {
         let mut hot = Rgba::rgb(255, 200, 80).lerp(Rgba::rgb(255, 60, 30), player.heat / 100.0);
@@ -90,10 +109,22 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
         bar(batch, bx + 86, y + 30, 32, 2, player.heat / 100.0, hot);
     }
     if player.overheated() {
-        font::draw(batch, "OVERHEAT", Vec2::new((bx + 62) as f32, (y + 16) as f32), Rgba::rgb(255, 120, 60), Some(palette::TEXT_SHADOW));
+        font::draw(
+            batch,
+            "OVERHEAT",
+            Vec2::new((bx + 62) as f32, (y + 16) as f32),
+            Rgba::rgb(255, 120, 60),
+            Some(palette::TEXT_SHADOW),
+        );
     }
 
-    font::draw(batch, &format!("LV {}", state.level), Vec2::new((bx + 98) as f32, (y + 9) as f32), palette::TEXT_DIM, Some(palette::TEXT_SHADOW));
+    font::draw(
+        batch,
+        &format!("LV {}", state.level),
+        Vec2::new((bx + 98) as f32, (y + 9) as f32),
+        palette::TEXT_DIM,
+        Some(palette::TEXT_SHADOW),
+    );
     if state.exp_to_next() > 0 {
         bar(batch, bx, y + 25, 118, 1, state.exp as f32 / state.exp_to_next() as f32, palette::EXPERIENCE);
     }
@@ -102,7 +133,17 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
         let mut mx = x;
         for m in state.available_modes() {
             let tint = if m == mode { Rgba::WHITE } else { Rgba::WHITE.mul(0.4) };
-            batch.draw_ex(art::emblem(m), Vec2::new(mx as f32, (y + 32) as f32), None, tint, 0.0, Vec2::ZERO, Vec2::splat(0.75), false, false);
+            batch.draw_ex(
+                art::emblem(m),
+                Vec2::new(mx as f32, (y + 32) as f32),
+                None,
+                tint,
+                0.0,
+                Vec2::ZERO,
+                Vec2::splat(0.75),
+                false,
+                false,
+            );
             mx += 15;
         }
         if input::held(GameAction::Art) {
@@ -114,14 +155,38 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
 fn draw_soul(batch: &mut Batch, world: &World) {
     let Some(companion) = world.companion.and_then(|id| world.get_as::<Companion>(id)) else { return };
     let at = Vec2::new(166.0, 10.0);
-    batch.draw_ex(art::disc(), at + Vec2::splat(7.0), None, BACK.mul(0.7), 0.0, Vec2::splat(16.0), Vec2::splat(0.5), false, false);
+    batch.draw_ex(
+        art::disc(),
+        at + Vec2::splat(7.0),
+        None,
+        BACK.mul(0.7),
+        0.0,
+        Vec2::splat(16.0),
+        Vec2::splat(0.5),
+        false,
+        false,
+    );
     let soul = companion.soul();
     let tint = if companion.cooldown() > 0.0 { Rgba::GRAY.mul(0.6) } else { Rgba::WHITE };
     batch.draw_src(art::spirit(soul.id, soul.glow), at, Some(IRect::new(0, 0, 12, 14)), tint);
     if companion.cooldown() > 0.0 {
-        bar(batch, at.x as i32, at.y as i32 + 16, 13, 1, 1.0 - companion.cooldown() / companion.cooldown_max(), soul.glow);
+        bar(
+            batch,
+            at.x as i32,
+            at.y as i32 + 16,
+            13,
+            1,
+            1.0 - companion.cooldown() / companion.cooldown_max(),
+            soul.glow,
+        );
     } else {
-        font::draw(batch, &input::glyph(GameAction::Soul), at + Vec2::new(14.0, 4.0), palette::TEXT_DIM, Some(palette::TEXT_SHADOW));
+        font::draw(
+            batch,
+            &input::glyph(GameAction::Soul),
+            at + Vec2::new(14.0, 4.0),
+            palette::TEXT_DIM,
+            Some(palette::TEXT_SHADOW),
+        );
     }
 }
 
@@ -132,7 +197,13 @@ fn draw_quest(batch: &mut Batch, state: &GameState) {
     let y = SCREEN_HEIGHT - 30 - lines.len() as i32 * 10;
     font::draw(batch, &quest.title, Vec2::new(8.0, y as f32), palette::HIGHLIGHT.mul(0.9), Some(palette::TEXT_SHADOW));
     for (i, line) in lines.iter().enumerate() {
-        font::draw(batch, line, Vec2::new(8.0, (y + 10 + i as i32 * 10) as f32), palette::TEXT.mul(0.85), Some(palette::TEXT_SHADOW));
+        font::draw(
+            batch,
+            line,
+            Vec2::new(8.0, (y + 10 + i as i32 * 10) as f32),
+            palette::TEXT.mul(0.85),
+            Some(palette::TEXT_SHADOW),
+        );
     }
 }
 
@@ -147,7 +218,13 @@ fn draw_art_hints(batch: &mut Batch, state: &GameState, mode: Element, x: i32, m
         let Some(art) = state.equipped_art(mode, slot) else { continue };
         let affordable = state.sp >= art.cost as f32 * 100.0;
         let text = format!("{}: {} ({})", input::glyph(action), art.name, art.cost);
-        font::draw(batch, &text, Vec2::new(x as f32, y as f32), if affordable { mode.light() } else { palette::TEXT_DIM }, Some(palette::TEXT_SHADOW));
+        font::draw(
+            batch,
+            &text,
+            Vec2::new(x as f32, y as f32),
+            if affordable { mode.light() } else { palette::TEXT_DIM },
+            Some(palette::TEXT_SHADOW),
+        );
         y += 10;
     }
 }
@@ -200,7 +277,13 @@ fn draw_toasts(batch: &mut Batch, world: &World) {
         let rect = IRect::new(SCREEN_WIDTH - width - 8, y, width, 13);
         batch.fill(rect, BACK.mul(0.7 * alpha));
         batch.fill(IRect::new(rect.x, rect.y, 2, rect.h), palette::HIGHLIGHT.mul(alpha));
-        font::draw(batch, text, Vec2::new((rect.x + 6) as f32, (rect.y + 2) as f32), palette::TEXT.mul(alpha), Some(palette::TEXT_SHADOW.mul(alpha)));
+        font::draw(
+            batch,
+            text,
+            Vec2::new((rect.x + 6) as f32, (rect.y + 2) as f32),
+            palette::TEXT.mul(alpha),
+            Some(palette::TEXT_SHADOW.mul(alpha)),
+        );
         y += 15;
     }
 }

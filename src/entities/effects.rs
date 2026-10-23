@@ -26,7 +26,17 @@ pub struct Particle {
 
 impl Particle {
     pub fn new(pos: Vec2, velocity: Vec2, color: Rgba, life: f32) -> Particle {
-        Particle { base: EntityBase::at(pos), color, life, gravity: 0.0, spark: false, velocity, age: 0.0, z: 0.0, vz: 0.0 }
+        Particle {
+            base: EntityBase::at(pos),
+            color,
+            life,
+            gravity: 0.0,
+            spark: false,
+            velocity,
+            age: 0.0,
+            z: 0.0,
+            vz: 0.0,
+        }
     }
 
     pub fn spark(mut self) -> Particle {
@@ -112,7 +122,12 @@ impl Entity for Puff {
 
     fn draw(&self, _world: &World, batch: &mut Batch) {
         let frame = ((self.age / PUFF_FRAME) as i32).min(4);
-        batch.draw_src(props::puff(), snap(self.base.pos - Vec2::new(8.0, 8.0)), Some(IRect::new(frame * 16, 0, 16, 16)), self.tint);
+        batch.draw_src(
+            props::puff(),
+            snap(self.base.pos - Vec2::new(8.0, 8.0)),
+            Some(IRect::new(frame * 16, 0, 16, 16)),
+            self.tint,
+        );
     }
 }
 
@@ -172,7 +187,15 @@ impl DamageNumber {
         DamageNumber::styled(at, amount, Element::None, false, false, true, "")
     }
 
-    pub fn styled(at: Vec2, amount: i32, element: Element, crit: bool, hurts_player: bool, heal: bool, suffix: &str) -> DamageNumber {
+    pub fn styled(
+        at: Vec2,
+        amount: i32,
+        element: Element,
+        crit: bool,
+        hurts_player: bool,
+        heal: bool,
+        suffix: &str,
+    ) -> DamageNumber {
         let color = if heal {
             palette::EXPERIENCE
         } else if hurts_player {
