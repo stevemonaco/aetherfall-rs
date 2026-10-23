@@ -35,6 +35,8 @@ const TABS: [&str; 9] = ["Items", "Gear", "Arts", "Souls", "Circuit", "Quests", 
 const TAB_BOX: IRect = IRect::new(12, 12, 92, 120);
 const CONTENT_BOX: IRect = IRect::new(110, 12, 358, 246);
 const VISIBLE_ROWS: usize = 14;
+/// Leaves room under the gear picker for a three-line description inside the content window.
+const VISIBLE_GEAR_ROWS: usize = 8;
 const ART_SLOTS: [ArtSlot; 4] = [ArtSlot::Melee, ArtSlot::Throw, ArtSlot::Dodge, ArtSlot::Guard];
 
 /// Quests in the order the data file lists them.
@@ -113,6 +115,7 @@ pub struct MenuScene {
     gear_slot: Option<String>,
     gear_choices: Vec<String>,
     gear_row: usize,
+    gear_scroll: usize,
     time: f32,
     to_title: Rc<Cell<bool>>,
 }
@@ -127,6 +130,7 @@ impl MenuScene {
             gear_slot: None,
             gear_choices: Vec::new(),
             gear_row: 0,
+            gear_scroll: 0,
             time: 0.0,
             to_title: Rc::new(Cell::new(false)),
         }
@@ -183,6 +187,7 @@ impl MenuScene {
                 self.gear_choices = std::iter::once("(none)".to_string()).chain(choices.into_iter().cloned()).collect();
                 self.gear_slot = Some(row.id.clone());
                 self.gear_row = 0;
+                self.gear_scroll = 0;
                 audio::sfx(Sound::MenuSelect);
             }
             "Arts" => {
@@ -226,6 +231,8 @@ impl MenuScene {
 
     fn update_gear_choice(&mut self, state: &mut GameState) {
         move_index(&mut self.gear_row, self.gear_choices.len());
+        self.gear_scroll =
+            self.gear_scroll.clamp((self.gear_row + 1).saturating_sub(VISIBLE_GEAR_ROWS), self.gear_row);
         if input::pressed(GameAction::Cancel) {
             self.gear_slot = None;
             audio::sfx(Sound::MenuCancel);
@@ -352,11 +359,12 @@ impl MenuScene {
     }
 
     fn draw_gear_choices(&self, batch: &mut Batch) {
-        let rect = IRect::new(CONTENT_BOX.x + 40, CONTENT_BOX.y + 70, 280, 24 + self.gear_choices.len() as i32 * 13);
+        let shown = self.gear_choices.len().min(VISIBLE_GEAR_ROWS);
+        let rect = IRect::new(CONTENT_BOX.x + 40, CONTENT_BOX.y + 70, 280, 24 + shown as i32 * 13);
         batch.draw_window(rect);
         let x = rect.x as f32;
-        for (i, id) in self.gear_choices.iter().enumerate() {
-            let y = (rect.y + 8 + i as i32 * 13) as f32;
+        for (i, id) in self.gear_choices.iter().enumerate().skip(self.gear_scroll).take(shown) {
+            let y = (rect.y + 8 + (i - self.gear_scroll) as i32 * 13) as f32;
             if i > 0 {
                 batch.draw(props::icon(id), Vec2::new(x + 20.0, y - 2.0), Rgba::WHITE);
             }
@@ -366,6 +374,13 @@ impl MenuScene {
             if i == self.gear_row {
                 font::draw(batch, &CURSOR.to_string(), Vec2::new(x + 8.0, y), palette::HIGHLIGHT, None);
             }
+        }
+        let arrow_x = (rect.right() - 14) as f32;
+        if self.gear_scroll > 0 {
+            font::draw(batch, "^", Vec2::new(arrow_x, (rect.y + 4) as f32), palette::TEXT_DIM, None);
+        }
+        if self.gear_scroll + shown < self.gear_choices.len() {
+            font::draw(batch, "v", Vec2::new(arrow_x, (rect.bottom() - 14) as f32), palette::TEXT_DIM, None);
         }
         if self.gear_row > 0
             && let Some(item) = items::get(&self.gear_choices[self.gear_row])
