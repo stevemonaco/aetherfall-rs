@@ -1,0 +1,79 @@
+{
+  "name": "Hall of Echoes",
+  "theme": "interior",
+  "music": "Retro-EternalFountain",
+  "level": 1,
+  "rows": [
+    "HHHHHHHHHHHHHHHHHHHHHHHHHH",
+    "HHHHHHHHHHHHHHHHHHHHHHHHHH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HooooooooooooooooooooooooH",
+    "HHHHHHHHHHHHooHHHHHHHHHHHH"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 12.0,
+      "y": 17.0,
+      "w": 2,
+      "facing": "down",
+      "sound": "door",
+      "to": "leafhollow",
+      "tx": 31,
+      "ty": 15
+    },
+    {
+      "type": "save",
+      "x": 20.0,
+      "y": 13.0
+    },
+    {
+      "type": "sign",
+      "x": 5.0,
+      "y": 13.0,
+      "text": "The Hall of Echoes. The Concord trained here. These dummies never fall; each shows the damage it has taken over the last five seconds. Use the crystal to rework your Circuit."
+    },
+    {
+      "type": "dummy",
+      "x": 3.0,
+      "y": 6.0
+    },
+    {
+      "type": "dummy",
+      "x": 8.0,
+      "y": 6.0,
+      "weak": "wind"
+    },
+    {
+      "type": "dummy",
+      "x": 13.0,
+      "y": 6.0,
+      "weak": "fire"
+    },
+    {
+      "type": "dummy",
+      "x": 18.0,
+      "y": 6.0,
+      "weak": "water"
+    },
+    {
+      "type": "dummy",
+      "x": 23.0,
+      "y": 6.0,
+      "weak": "thunder"
+    }
+  ]
+}

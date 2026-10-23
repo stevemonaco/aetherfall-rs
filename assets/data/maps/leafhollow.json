@@ -38,6 +38,14 @@
   "entities": [
     {
       "type": "decor",
+      "x": 31.0,
+      "y": 14.0,
+      "kind": "altar",
+      "name": "Echo Stone",
+      "dialogue": "echo_stone"
+    },
+    {
+      "type": "decor",
       "x": 19.0,
       "y": 2.0,
       "kind": "cave"

@@ -541,6 +541,11 @@
       ] }
   ],
 
+  "echo_stone": [
+    { "speaker": "", "lines": [ "A smooth stone hums with old echoes. Beyond it lies the Hall of Echoes, where the Concord trained." ],
+      "ask": "Step into the Hall of Echoes?", "yes": [ "warp:training,12,15,up" ] }
+  ],
+
   "sorrel": [
     { "speaker": "Medic Sorrel", "lines": [ "Hold still. There. Good as new. Mostly." ], "do": [ "heal" ] }
   ],

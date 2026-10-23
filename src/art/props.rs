@@ -318,6 +318,25 @@ pub fn warlock() -> TexId {
     })
 }
 
+/// A straw training dummy on a post, 18x26, feet at the bottom centre.
+pub fn training_dummy() -> TexId {
+    gfx::cached("training_dummy", || {
+        let mut cv = Canvas::new(18, 26);
+        let wood = [c(0x5A3A1E), c(0x8A5A2E)];
+        let straw = [c(0x9A7A3A), c(0xD6BA70), c(0xF0DCA0)];
+        cv.rect(8, 8, 2, 18, wood[0]).rect(8, 8, 1, 18, wood[1]);
+        cv.rect(1, 11, 16, 2, wood[0]).rect(1, 11, 16, 1, wood[1]);
+        cv.ellipse(9.0, 15.5, 4.5, 5.5, straw[0]).ellipse(8.5, 15.0, 3.5, 4.5, straw[1]);
+        cv.line(6, 13, 11, 18, straw[0]).line(11, 13, 6, 18, straw[0]);
+        cv.circle(9.0, 5.0, 4.0, straw[1]).circle(8.5, 4.5, 2.5, straw[2]);
+        cv.set(7, 4, wood[0]);
+        cv.set(10, 4, wood[0]);
+        cv.line(7, 7, 10, 7, wood[0]);
+        cv.outline();
+        cv
+    })
+}
+
 pub fn save_crystal() -> TexId {
     gfx::cached("save_crystal", || {
         let mut cv = Canvas::new(12, 20);

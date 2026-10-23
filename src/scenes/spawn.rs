@@ -4,6 +4,7 @@ use crate::entities::blight_hazards::{BlightGate, Cannon, StormGrid};
 use crate::entities::blocks::{AetherSeal, IceBlock, LensShard, PressurePlate, TetherLever, TetherPost};
 use crate::entities::boss;
 use crate::entities::companion::DigSpot;
+use crate::entities::dummy::TrainingDummy;
 use crate::entities::enemy::Enemy;
 use crate::entities::entity::Entity;
 use crate::entities::hazards::GasVent;
@@ -42,6 +43,7 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
         "cannon" => Box::new(Cannon::new(entry)),
         "blightgate" => Box::new(BlightGate::new(entry)),
         "trial" => Box::new(TrialGate::new(entry)),
+        "dummy" => Box::new(TrainingDummy::new(entry)),
         "brazier" => Box::new(Brazier::new(entry)),
         "crate" => Box::new(Crate::new(entry)),
         "vent" => Box::new(GasVent::new(entry)),

@@ -4,6 +4,7 @@ pub mod boss;
 pub mod combat_effects;
 pub mod companion;
 pub mod concord;
+pub mod dummy;
 pub mod effects;
 pub mod enemy;
 pub mod entity;
