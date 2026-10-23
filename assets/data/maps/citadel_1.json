@@ -1,0 +1,204 @@
+{
+  "name": "Sky Citadel",
+  "theme": "citadel",
+  "music": "Action-KnightlyFighting",
+  "weather": "clouds,motes",
+  "level": 40,
+  "rows": [
+    "                                            ",
+    "                                            ",
+    "                                            ",
+    "               ______________               ",
+    "               ______________               ",
+    "               ______________               ",
+    "               ______________               ",
+    "               ______________               ",
+    "               ______________               ",
+    "                     =                      ",
+    "                     =                      ",
+    "                     =                      ",
+    "                     =                      ",
+    "                     =                      ",
+    "                     =                      ",
+    "  ________    ________________              ",
+    "  ________    ________________              ",
+    "  ________    __##________##__        ____  ",
+    "  ________    __##________##__        ____  ",
+    "  __ _____++ +________________++++++++____  ",
+    "  ________    ________________        ____  ",
+    "  _____ __    __##________##__        ____  ",
+    "  ________    ________________              ",
+    "  ________    ________________              ",
+    "                     ==                     ",
+    "                     ==                     ",
+    "                     ==                     ",
+    "                     ==                     ",
+    "                 _________                  ",
+    "                 _________                  ",
+    "                 _________                  ",
+    "                 _________                  ",
+    "                 _________                  ",
+    "                                            "
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 21.0,
+      "y": 30.0
+    },
+    {
+      "type": "save",
+      "x": 19.0,
+      "y": 29.0
+    },
+    {
+      "type": "warp",
+      "x": 24.0,
+      "y": 32.0,
+      "facing": "down",
+      "ty": 6,
+      "to": "highcrag",
+      "tx": 8,
+      "art": "stairs_down",
+      "sound": "door"
+    },
+    {
+      "type": "sign",
+      "x": 23.0,
+      "y": 29.0,
+      "text": "These stairs lead back down to the Sky Altar."
+    },
+    {
+      "type": "chest",
+      "x": 4.0,
+      "y": 17.0,
+      "item": "sky_key"
+    },
+    {
+      "type": "chest",
+      "x": 8.0,
+      "y": 22.0,
+      "item": "elixir"
+    },
+    {
+      "type": "barrier",
+      "x": 31.0,
+      "y": 19.0,
+      "element": "wind"
+    },
+    {
+      "type": "barrier",
+      "x": 33.0,
+      "y": 19.0,
+      "element": "fire"
+    },
+    {
+      "type": "barrier",
+      "x": 35.0,
+      "y": 19.0,
+      "element": "water"
+    },
+    {
+      "type": "barrier",
+      "x": 37.0,
+      "y": 19.0,
+      "element": "thunder"
+    },
+    {
+      "type": "chest",
+      "x": 40.0,
+      "y": 19.0,
+      "item": "prism_band",
+      "style": 3
+    },
+    {
+      "type": "door",
+      "x": 21.0,
+      "y": 9.0,
+      "flag": "sky_door",
+      "key": "sky_key"
+    },
+    {
+      "type": "seal",
+      "x": 21.0,
+      "y": 12.0
+    },
+    {
+      "type": "sign",
+      "x": 20.0,
+      "y": 15.0,
+      "text": "A Concord seal bars the bridge. Only the whole Aether will part it."
+    },
+    {
+      "type": "warp",
+      "x": 21.0,
+      "y": 4.0,
+      "facing": "up",
+      "ty": 30,
+      "to": "citadel_2",
+      "tx": 21,
+      "art": "stairs_up",
+      "sound": "door"
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 28.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "enemy",
+      "x": 18.0,
+      "y": 17.0,
+      "kind": "magus"
+    },
+    {
+      "type": "enemy",
+      "x": 26.0,
+      "y": 19.0,
+      "kind": "cleric"
+    },
+    {
+      "type": "enemy",
+      "x": 22.0,
+      "y": 21.0,
+      "kind": "darkknight"
+    },
+    {
+      "type": "enemy",
+      "x": 6.0,
+      "y": 18.0,
+      "kind": "aetherwisp"
+    },
+    {
+      "type": "enemy",
+      "x": 4.0,
+      "y": 22.0,
+      "kind": "voideye"
+    },
+    {
+      "type": "enemy",
+      "x": 18.0,
+      "y": 5.0,
+      "kind": "fiend"
+    },
+    {
+      "type": "enemy",
+      "x": 26.0,
+      "y": 6.0,
+      "kind": "magus"
+    },
+    {
+      "type": "enemy",
+      "x": 34.0,
+      "y": 22.0,
+      "kind": "aetherwisp"
+    }
+  ]
+}

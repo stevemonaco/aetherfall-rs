@@ -1,0 +1,185 @@
+{
+  "name": "Drowned Temple",
+  "theme": "temple",
+  "music": "Retro-Haunted",
+  "blightArea": "drowned_temple",
+  "level": 50,
+  "blighted": true,
+  "rows": [
+    "##############################################",
+    "##############################################",
+    "##############################################",
+    "##############################################",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss___~~__ssss_______ssss____#####",
+    "#######____ssss___~~__ssss__xx___ssss____#####",
+    "#######____ssss_______ssss__xxx__ssss____#####",
+    "#######____ssss_______ssss___x___ssss____#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss_______ssss________#",
+    "##_________ssss__xx___ssss_______ssss________#",
+    "##_________ssss__xx___ssss_______ssss________#",
+    "##_________ssss_xxx___ssss_______ssss________#",
+    "##_________ssss__xx___ssss_______ssss________#",
+    "##_________ssss_______ssss_______ssss________#",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss__~~___ssss__x_#####",
+    "#######____ssss_______ssss__~~___ssss_xx_#####",
+    "#######____ssss_______ssss_______ssss_xx_#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "#######____ssss_______ssss_______ssss____#####",
+    "##############################################",
+    "##############################################",
+    "##############################################",
+    "##############################################"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 4.0,
+      "y": 15.0
+    },
+    {
+      "type": "warp",
+      "x": 3.0,
+      "y": 13.0,
+      "to": "ashford",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "sign",
+      "x": 6.0,
+      "y": 17.0,
+      "text": "The tide here keeps three rhythms. Watch the ripples."
+    },
+    {
+      "type": "tide",
+      "x": 11.0,
+      "y": 4.0,
+      "period": 5,
+      "w": 4,
+      "h": 22
+    },
+    {
+      "type": "tide",
+      "x": 22.0,
+      "y": 4.0,
+      "period": 4,
+      "w": 4,
+      "h": 22,
+      "offset": 2
+    },
+    {
+      "type": "tide",
+      "x": 33.0,
+      "y": 4.0,
+      "period": 3.5,
+      "w": 4,
+      "h": 22,
+      "offset": 1
+    },
+    {
+      "type": "rift",
+      "x": 18.0,
+      "y": 6.0,
+      "count": 8,
+      "id": "run_dt_north",
+      "alive": 3,
+      "kinds": "inkling,seashade,icewisp"
+    },
+    {
+      "type": "rift",
+      "x": 29.0,
+      "y": 23.0,
+      "count": 8,
+      "id": "run_dt_south",
+      "alive": 3,
+      "kinds": "tidetoad,coil,seashade"
+    },
+    {
+      "type": "gate",
+      "x": 41.0,
+      "y": 14.0,
+      "open": "rift:run_dt_north,rift:run_dt_south"
+    },
+    {
+      "type": "gate",
+      "x": 41.0,
+      "y": 15.0,
+      "open": "rift:run_dt_north,rift:run_dt_south"
+    },
+    {
+      "type": "save",
+      "x": 43.0,
+      "y": 13.0
+    },
+    {
+      "type": "warp",
+      "x": 44.0,
+      "y": 14.0,
+      "to": "blight_temple_boss",
+      "facing": "up",
+      "sound": "door",
+      "tx": 10,
+      "h": 2,
+      "ty": 12,
+      "art": "stairs_down"
+    },
+    {
+      "type": "chest",
+      "x": 8.0,
+      "y": 24.0,
+      "item": "blight_core"
+    },
+    {
+      "type": "enemy",
+      "x": 18.0,
+      "y": 12.0,
+      "kind": "seashade"
+    },
+    {
+      "type": "enemy",
+      "x": 20.0,
+      "y": 20.0,
+      "kind": "inkling"
+    },
+    {
+      "type": "enemy",
+      "x": 28.0,
+      "y": 6.0,
+      "kind": "icewisp"
+    },
+    {
+      "type": "enemy",
+      "x": 30.0,
+      "y": 14.0,
+      "kind": "tidetoad"
+    },
+    {
+      "type": "enemy",
+      "x": 39.0,
+      "y": 8.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 38.0,
+      "y": 19.0,
+      "kind": "seashade"
+    },
+    {
+      "type": "enemy",
+      "x": 8.0,
+      "y": 6.0,
+      "kind": "inkling"
+    }
+  ]
+}

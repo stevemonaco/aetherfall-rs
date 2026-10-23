@@ -1,0 +1,116 @@
+{
+  "name": "Heart of Witherwood",
+  "theme": "field",
+  "music": "Retro-Haunted",
+  "blightArea": "witherwood",
+  "level": 56,
+  "blighted": true,
+  "dark": true,
+  "cloaked": true,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTT............TTTTTTTTT",
+    "TTTTT...............TTTTTTTT",
+    "TTTT.................TTTTTTT",
+    "TTTT.................TTTTTTT",
+    "TTTT..................TTTTTT",
+    "TTTT......xxxxx.......TTTTTT",
+    "TTT.......xxxxx........TTTTT",
+    "TTT.......xxxxxx.......TTTTT",
+    "TTT.......xxxxx.............",
+    "TTT.........................",
+    "TTTT.................TTTTTTT",
+    "TTTTTT.............TTTTTTTTT",
+    "TTTTTTTTT........TTTTTTTTTTT",
+    "TTTTTTTTTTT.....TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 27.0,
+      "y": 12.0,
+      "to": "blight_wood",
+      "facing": "right",
+      "ty": 23,
+      "h": 2,
+      "tx": 1
+    },
+    {
+      "type": "rift",
+      "x": 13.0,
+      "y": 9.0,
+      "restores": "an Echo, remembering",
+      "id": "run_ww_heart",
+      "soul": "echo",
+      "do": [
+        "grade:witherwood"
+      ],
+      "elite": "darkknight"
+    },
+    {
+      "type": "chest",
+      "x": 13.0,
+      "y": 5.0,
+      "item": "night_eye",
+      "style": 3,
+      "if": "rift:run_ww_heart"
+    },
+    {
+      "type": "warp",
+      "x": 8.0,
+      "y": 15.0,
+      "to": "ashford",
+      "if": "rift:run_ww_heart",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 7.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 19.0,
+      "y": 7.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 14.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 19.0,
+      "y": 14.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "enemy",
+      "x": 9.0,
+      "y": 10.0,
+      "kind": "wisp"
+    },
+    {
+      "type": "enemy",
+      "x": 18.0,
+      "y": 13.0,
+      "kind": "spider"
+    }
+  ]
+}

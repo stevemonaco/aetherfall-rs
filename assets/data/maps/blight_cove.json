@@ -1,0 +1,179 @@
+{
+  "name": "Black Tide Cove",
+  "theme": "field",
+  "music": "Action-PiratesAhoy",
+  "blightArea": "black_tide",
+  "level": 64,
+  "blighted": true,
+  "dark": true,
+  "rows": [
+    "~~##############################################",
+    "~~##############################################",
+    "~~##############################################",
+    "~~s,,,,,########,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,##",
+    "~~s,,,,#########,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,##",
+    "~~s,,,,##########,,,,,,,,,,,,,,,,,,,,,,,,,,,,,##",
+    "~~s,,,,##########,,,,,,,,,,,,,~~~~~~~~~~~~~~,,##",
+    "~~s,,,,########,,,,,,,,,,,,,,,~~~~~~~~~~~~~~,,##",
+    "~~s,,,,,,,,###,,,,,,,,,,,,,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,,,,,,,,,,,,,,,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,xx,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,xx,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~======,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~======,,,,,,,,ssssssssss======oooooooooo~~,,##",
+    "~~======,,,,,,,,ssssssssss======oooooooooo~~,,##",
+    "~~======,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,xx,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,xxx,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s,,,,,,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~ssssss,,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~s~~~~~s,,,,,,,ssssssssss,,,,~~oooooooooo~~,,##",
+    "~~~~~~~~~s,,,,,,ssssssssss,,,,~~~~~~~~~~~~~~,,##",
+    "~~~~~~~~~s,,,,,,ssssssssssxxxx~~~~~~~~~~~~~~,,##",
+    "~~~~~~~~~~s,,,,,ssssssssssxxx,,,,,,,,,,,,,,,,,##",
+    "~~~~~~~~~s,,,,,,ssssssssss,,,,,,,,,,,,,,,,,,,,##",
+    "~~ss~~~~s,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,##",
+    "~~s,ssss,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,##",
+    "~~ssssssssssssssssssssssssssssssssssssssssssss##",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 4.0,
+      "y": 16.0
+    },
+    {
+      "type": "warp",
+      "x": 3.0,
+      "y": 14.0,
+      "to": "ashford",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "save",
+      "x": 9.0,
+      "y": 18.0
+    },
+    {
+      "type": "sign",
+      "x": 13.0,
+      "y": 16.0,
+      "text": "The ghost ship rides at anchor. Its guns turn to follow you."
+    },
+    {
+      "type": "tide",
+      "x": 16.0,
+      "y": 10.0,
+      "period": 4,
+      "w": 10,
+      "h": 18
+    },
+    {
+      "type": "cannon",
+      "x": 33.0,
+      "y": 9.0,
+      "offset": 0,
+      "interval": 3
+    },
+    {
+      "type": "cannon",
+      "x": 40.0,
+      "y": 9.0,
+      "offset": 1.2,
+      "interval": 3
+    },
+    {
+      "type": "cannon",
+      "x": 33.0,
+      "y": 22.0,
+      "offset": 2.4,
+      "interval": 3
+    },
+    {
+      "type": "cannon",
+      "x": 40.0,
+      "y": 22.0,
+      "offset": 0.6,
+      "interval": 3
+    },
+    {
+      "type": "cannon",
+      "x": 37.0,
+      "y": 15.0,
+      "offset": 1.8,
+      "interval": 3
+    },
+    {
+      "type": "rift",
+      "x": 22.0,
+      "y": 4.0,
+      "count": 8,
+      "id": "run_bt_lookout",
+      "alive": 3,
+      "kinds": "inkling,seashade,crag"
+    },
+    {
+      "type": "gate",
+      "x": 38.0,
+      "y": 18.0,
+      "open": "rift:run_bt_lookout"
+    },
+    {
+      "type": "warp",
+      "x": 38.0,
+      "y": 19.0,
+      "to": "blight_ship",
+      "facing": "down",
+      "sound": "door",
+      "tx": 10,
+      "ty": 2,
+      "art": "stairs_down"
+    },
+    {
+      "type": "enemy",
+      "x": 20.0,
+      "y": 6.0,
+      "kind": "inkling"
+    },
+    {
+      "type": "enemy",
+      "x": 22.0,
+      "y": 22.0,
+      "kind": "seashade"
+    },
+    {
+      "type": "enemy",
+      "x": 12.0,
+      "y": 24.0,
+      "kind": "brute"
+    },
+    {
+      "type": "enemy",
+      "x": 35.0,
+      "y": 12.0,
+      "kind": "skeleton"
+    },
+    {
+      "type": "enemy",
+      "x": 39.0,
+      "y": 20.0,
+      "kind": "skeleton"
+    },
+    {
+      "type": "enemy",
+      "x": 36.0,
+      "y": 17.0,
+      "kind": "ghost"
+    }
+  ]
+}

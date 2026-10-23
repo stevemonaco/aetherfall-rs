@@ -1,0 +1,118 @@
+{
+  "name": "Coral Goods",
+  "theme": "interior",
+  "music": "Menu-NobleKingdom",
+  "rows": [
+    "HHHHHHHHHH",
+    "HHHHHHHHHH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HHHHHoHHHH"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 5.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 4.0,
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "npc",
+      "x": 4.0,
+      "y": 3.0,
+      "sprite": "adventurer_f3",
+      "name": "Coral",
+      "dialogue": "brine_shopkeeper"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 6.0,
+      "kind": "plant"
+    },
+    {
+      "type": "warp",
+      "x": 5.0,
+      "y": 8.0,
+      "facing": "down",
+      "sound": "door",
+      "tx": 4,
+      "to": "brinewatch",
+      "ty": 11
+    }
+  ]
+}

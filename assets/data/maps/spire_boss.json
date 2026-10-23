@@ -1,0 +1,89 @@
+{
+  "name": "Spire Summit",
+  "theme": "tower",
+  "music": "Action-TragicDuel",
+  "level": 29,
+  "rows": [
+    "                      ",
+    " #                  # ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #        __        # ",
+    "          __          ",
+    "          __          "
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 13.0,
+      "w": 2,
+      "art": "stairs_down",
+      "tx": 13,
+      "facing": "down",
+      "ty": 2,
+      "sound": "door",
+      "to": "spire_3"
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 11.0,
+      "open": "!golem_arena"
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 11.0,
+      "open": "!golem_arena"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 9.0,
+      "w": 10,
+      "dialogue": "golem_intro",
+      "if": "!boss_golem",
+      "flag": "golem_met"
+    },
+    {
+      "type": "boss",
+      "x": 11.0,
+      "y": 5.0,
+      "unless": "boss_golem",
+      "kind": "golem",
+      "if": "golem_arena",
+      "flag": "boss_golem",
+      "defeat": [
+        "unflag:golem_arena",
+        "give:storm_crystal"
+      ]
+    },
+    {
+      "type": "chest",
+      "x": 3.0,
+      "y": 9.0,
+      "item": "storm_ring",
+      "if": "boss_golem"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 2.0,
+      "kind": "torch"
+    }
+  ]
+}

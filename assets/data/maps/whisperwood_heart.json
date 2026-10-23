@@ -1,0 +1,92 @@
+{
+  "name": "Heart of the Wood",
+  "theme": "field",
+  "music": "Retro-Mysterious2",
+  "weather": "fireflies",
+  "level": 11,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTT............TTTTTTTTTT",
+    "TTTTTT...............TTTTTTTTT",
+    "TTTTT.................TTTTTTTT",
+    "TTTTT.................TTTTTTTT",
+    "TTTTT..................TTTTTTT",
+    "TTTTT......\"\"\"\"\".......TTTTTTT",
+    "TTTT.......\"\"\"\"\"........TTTTTT",
+    "TTTT.......\"\"\"\"\"\".......TTTTTT",
+    "TTTT.......\"\"\"\"\"........TTTTTT",
+    "TTTT...................TTTTTTT",
+    "TTTTT.................TTTTTTTT",
+    "TTTTTTT.............TTTTTTTTTT",
+    "TTTTTTTTTT........TTTTTTTTTTTT",
+    "TTTTTTTTTTTT.....TTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 14.0,
+      "y": 23.0,
+      "w": 2,
+      "ty": 2,
+      "tx": 22,
+      "facing": "down",
+      "to": "whisperwood"
+    },
+    {
+      "type": "rift",
+      "x": 14.0,
+      "y": 9.0,
+      "id": "ww_hawk",
+      "elite": "eye",
+      "restores": "a hawk, circling free",
+      "soul": "hawk"
+    },
+    {
+      "type": "chest",
+      "x": 14.0,
+      "y": 5.0,
+      "style": 2,
+      "item": "circuit_shard",
+      "if": "rift:ww_hawk"
+    },
+    {
+      "type": "sign",
+      "x": 11.0,
+      "y": 16.0,
+      "text": "An old ring of white stones. The air hums."
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 8.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 20.0,
+      "y": 8.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 14.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 20.0,
+      "y": 14.0,
+      "kind": "boulder"
+    }
+  ]
+}

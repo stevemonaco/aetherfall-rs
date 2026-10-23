@@ -1,0 +1,79 @@
+{
+  "name": "Elder's House",
+  "theme": "interior",
+  "music": "Menu-NobleKingdom",
+  "rows": [
+    "HHHHHHHHHHHH",
+    "HHHHHHHHHHHH",
+    "HooooooooooH",
+    "HooooooooooH",
+    "HooooooooooH",
+    "HooooooooooH",
+    "HooooooooooH",
+    "HooooooooooH",
+    "HooooooooooH",
+    "HHHHHHoHHHHH"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 5.0,
+      "y": 6.0,
+      "kind": "rug"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 9.0,
+      "y": 3.0,
+      "kind": "bed"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 6.0,
+      "kind": "table"
+    },
+    {
+      "type": "decor",
+      "x": 10.0,
+      "y": 7.0,
+      "kind": "plant"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 7.0,
+      "kind": "plant"
+    },
+    {
+      "type": "npc",
+      "x": 6.0,
+      "y": 4.0,
+      "name": "Elder Orin",
+      "dialogue": "elder",
+      "sprite": "oldman1"
+    },
+    {
+      "type": "warp",
+      "x": 6.0,
+      "y": 9.0,
+      "tx": 7,
+      "sound": "door",
+      "ty": 10,
+      "facing": "down",
+      "to": "leafhollow"
+    }
+  ]
+}

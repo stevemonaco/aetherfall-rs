@@ -1,0 +1,278 @@
+{
+  "name": "Highcrag",
+  "theme": "snow",
+  "music": "Menu-CastleMaster",
+  "level": 22,
+  "rows": [
+    "####################################",
+    "####################################",
+    "##****+++++***********************##",
+    "##****+++++***********************##",
+    "##****+++++***********************##",
+    "##****+++++***********************##",
+    "##******:*******************:*****##",
+    "##******:*******************:*****##",
+    "##******:*******************:*****##",
+    "##******:::::::********::::::*****##",
+    "##***:********:********:**********##",
+    "##***:********:********:***:******##",
+    "##***:******++:++++++++:***:******##",
+    "##***::::::::++++++++++:::::******##",
+    "##**********++++++++++++::::::::::::",
+    "##**********++++++++++++::::::::::::",
+    "##**********++++++++++++**********##",
+    "##****:::::::+++++++++++**********##",
+    "##****:*****++++++++++++**********##",
+    "##****:**********::***************##",
+    "##****:**********::***************##",
+    "##****:**********::**********TTTT*##",
+    "##****:**********::**********TTTTT##",
+    "##****:**********::**********TTTTT##",
+    "#TTTTT:**********::*********TTTTTTT#",
+    "#TTTTTT**********::**********TTTTT##",
+    "#TTTTTT**********::***********TT**##",
+    "##*TT************::***************##",
+    "#################::#################",
+    "#################::#################"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 17.0,
+      "y": 16.0
+    },
+    {
+      "type": "warp",
+      "x": 17.0,
+      "y": 29.0,
+      "w": 2,
+      "ty": 1,
+      "facing": "down",
+      "tx": 19,
+      "to": "frostpeak"
+    },
+    {
+      "type": "warp",
+      "x": 35.0,
+      "y": 14.0,
+      "ty": 20,
+      "if": "boss_golem",
+      "tx": 1,
+      "to": "ashen_reach",
+      "blocked": "Watchman Brann: The east pass runs down into the crater where the first sky-city fell. Nobody goes there while the Spire still storms.",
+      "h": 2,
+      "facing": "right"
+    },
+    {
+      "type": "sign",
+      "x": 31.0,
+      "y": 12.0,
+      "text": "East: the Ashen Reach."
+    },
+    {
+      "type": "building",
+      "x": 4.0,
+      "y": 7.0,
+      "door": 1,
+      "h": 3,
+      "facing": "up",
+      "ty": 7,
+      "w": 4,
+      "tx": 5,
+      "to": "crag_shop",
+      "roof": "blue"
+    },
+    {
+      "type": "building",
+      "x": 25.0,
+      "y": 7.0,
+      "door": 2,
+      "h": 4,
+      "facing": "up",
+      "ty": 8,
+      "w": 5,
+      "tx": 6,
+      "to": "crag_inn",
+      "roof": "red"
+    },
+    {
+      "type": "building",
+      "x": 4.0,
+      "y": 20.0,
+      "door": 2,
+      "h": 4,
+      "facing": "up",
+      "ty": 8,
+      "w": 5,
+      "tx": 6,
+      "to": "crag_sage",
+      "roof": "slate"
+    },
+    {
+      "type": "building",
+      "x": 26.0,
+      "y": 2.0,
+      "door": 2,
+      "h": 4,
+      "facing": "up",
+      "ty": 21,
+      "w": 5,
+      "tx": 13,
+      "to": "spire_1",
+      "roof": "slate"
+    },
+    {
+      "type": "sign",
+      "x": 31.0,
+      "y": 6.0,
+      "text": "The Storm Spire. Lightning has struck it every night for a hundred years."
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 3.0,
+      "name": "",
+      "dialogue": "sky_altar",
+      "kind": "altar"
+    },
+    {
+      "type": "sign",
+      "x": 11.0,
+      "y": 5.0,
+      "text": "The Sky Altar. \"Bring fire, tide and storm, and the sky shall open.\""
+    },
+    {
+      "type": "decor",
+      "x": 17.0,
+      "y": 15.0,
+      "kind": "well"
+    },
+    {
+      "type": "building",
+      "x": 24.0,
+      "y": 19.0,
+      "h": 4,
+      "restore": "rift:crag_arena",
+      "facing": "up",
+      "door": 2,
+      "w": 5,
+      "to": "arena",
+      "roof": "red",
+      "tx": 12,
+      "ty": 18
+    },
+    {
+      "type": "sign",
+      "x": 25.0,
+      "y": 23.0,
+      "text": "The Highcrag Arena. Its doors open again soon, they say.",
+      "if": "rift:crag_arena"
+    },
+    {
+      "type": "npc",
+      "x": 9.0,
+      "y": 23.0,
+      "facing": "left",
+      "sprite": "adventurer_m4",
+      "if": "rift:crag_apprentice",
+      "name": "Rook",
+      "dialogue": "rook"
+    },
+    {
+      "type": "brazier",
+      "x": 27.0,
+      "y": 15.0,
+      "lit": true,
+      "if": "rift:crag_hearth"
+    },
+    {
+      "type": "npc",
+      "x": 26.0,
+      "y": 16.0,
+      "facing": "left",
+      "sprite": "oldman3",
+      "if": "rift:crag_hearth",
+      "name": "Old Haldis",
+      "dialogue": "haldis"
+    },
+    {
+      "type": "sign",
+      "x": 27.0,
+      "y": 16.0,
+      "text": "A cold, empty fire pit. Highcrag's great hearth burned here until the rifts came.",
+      "unless": "rift:crag_hearth"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 16.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 30.0,
+      "y": 16.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 23.0,
+      "y": 23.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 12.0,
+      "y": 25.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 32.0,
+      "y": 11.0,
+      "kind": "tree"
+    },
+    {
+      "type": "npc",
+      "x": 32.0,
+      "y": 7.0,
+      "sprite": "guard3",
+      "facing": "down",
+      "name": "Watchman Brann",
+      "dialogue": "spire_watch"
+    },
+    {
+      "type": "npc",
+      "x": 14.0,
+      "y": 15.0,
+      "wander": 3,
+      "sprite": "hunter3",
+      "name": "Climber Vesk",
+      "dialogue": "climber"
+    },
+    {
+      "type": "npc",
+      "x": 21.0,
+      "y": 17.0,
+      "wander": 2,
+      "sprite": "adventurer_f4",
+      "name": "Edda",
+      "dialogue": "edda"
+    },
+    {
+      "type": "npc",
+      "x": 9.0,
+      "y": 7.0,
+      "sprite": "oldman3",
+      "facing": "down",
+      "name": "Altar Keeper",
+      "dialogue": "altar_keeper"
+    },
+    {
+      "type": "blightgate",
+      "x": 13.0,
+      "y": 22.0,
+      "if": "rift:ash_camp"
+    }
+  ]
+}

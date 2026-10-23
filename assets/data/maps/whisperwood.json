@@ -1,0 +1,223 @@
+{
+  "name": "Whisperwood",
+  "theme": "field",
+  "music": "Retro-Exploration1",
+  "weather": "leaves,fireflies",
+  "level": 10,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTT..TTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT..TTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT..TTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT..TTTTTTTTTTTTTTTTTTTT",
+    "TTTTTT....TTTTTTTTTTTT.....TTTTTTTT...TTTTTT",
+    "TTTTTT.....TTTTTTTTTTT......TTTTTT.....TTTTT",
+    "TTTTT.......TTTTTTTTTT......TTTTTTT....TTTTT",
+    "TTTTT.....TTTTTTTT..........TTTTTTT...TTTTTT",
+    "TTTTTTT...TTTTTTT..........TTTTTTTTTT.TTTTTT",
+    "TTTTTTTT.TTTTTTTT..........TTTTTTTTTT.TTTTTT",
+    "TTTTTTTT............w...........TTTTT.TTTTTT",
+    "TTTTTTTTTTTTTT....wwwww.........TTTTT.TTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTw..TTTTTT..TTTTT.TTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTT.TTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT........TTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "TTTTTTTTT~~TTT..TTTTTTTTTTTT......TTTTTTTTTT",
+    "TTTTTTTTT~~TTT..TTTTTTTTTTTT.......TTT.TTTTT",
+    "TTTTTTTTT~~TTT..TTTTTTTTTTTT................",
+    "TTTTTTTTT~~.....TTTTTTTTTTT..\"\"\"\"...........",
+    "TTTT...TT~~......TTTTTTTTTTT.\"\"\"\"..TTTTTTTTT",
+    "TT......T~~......TTTTTTTTTTTTT.\".TTTTTTTTTTT",
+    "TTT......~~.........TTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTT......~~..........TTTTTTTTTTTTTTTTTTTTTTT",
+    "TT.....TT~~T........TTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTT..TT~~TTTTT....TTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 43.0,
+      "y": 20.0,
+      "to": "leafhollow",
+      "ty": 22,
+      "tx": 1,
+      "facing": "right",
+      "h": 2
+    },
+    {
+      "type": "spawn",
+      "x": 41.0,
+      "y": 20.0
+    },
+    {
+      "type": "save",
+      "x": 36.0,
+      "y": 21.0
+    },
+    {
+      "type": "sign",
+      "x": 38.0,
+      "y": 19.0,
+      "text": "Whisperwood. Stay on the path. (Someone has scratched beneath it: \"What path?\")"
+    },
+    {
+      "type": "warp",
+      "x": 22.0,
+      "y": 0.0,
+      "w": 2,
+      "ty": 21,
+      "tx": 14,
+      "facing": "up",
+      "to": "whisperwood_heart"
+    },
+    {
+      "type": "thicket",
+      "x": 22.0,
+      "y": 5.0,
+      "w": 2,
+      "h": 1
+    },
+    {
+      "type": "span",
+      "x": 9.0,
+      "y": 24.0,
+      "w": 2,
+      "if": "rift:ww_ring",
+      "h": 2
+    },
+    {
+      "type": "rift",
+      "x": 18.0,
+      "y": 26.0,
+      "id": "ww_ring",
+      "restores": "a footbridge over the brook",
+      "alive": 3,
+      "count": 6,
+      "kinds": "mushroom,spider,wisp"
+    },
+    {
+      "type": "rift",
+      "x": 26.0,
+      "y": 6.0,
+      "id": "ww_glade",
+      "restores": "a lost glade",
+      "alive": 3,
+      "count": 6,
+      "kinds": "bee,plant,ghost"
+    },
+    {
+      "type": "npc",
+      "x": 32.0,
+      "y": 23.0,
+      "sprite": "hunter1",
+      "name": "Forager Ivy",
+      "unless": "found_ivy",
+      "facing": "left",
+      "dialogue": "forager_ivy"
+    },
+    {
+      "type": "npc",
+      "x": 8.0,
+      "y": 5.0,
+      "sprite": "thief2",
+      "name": "Forager Rook",
+      "unless": "found_rook",
+      "facing": "down",
+      "dialogue": "forager_rook"
+    },
+    {
+      "type": "npc",
+      "x": 4.0,
+      "y": 25.0,
+      "sprite": "adventurer_m3",
+      "name": "Forager Pim",
+      "unless": "found_pim",
+      "facing": "right",
+      "dialogue": "forager_pim"
+    },
+    {
+      "type": "secret",
+      "x": 37.0,
+      "y": 9.0,
+      "w": 1,
+      "h": 2
+    },
+    {
+      "type": "chest",
+      "x": 37.0,
+      "y": 5.0,
+      "item": "life_shard"
+    },
+    {
+      "type": "dig",
+      "x": 24.0,
+      "y": 8.0,
+      "item": "spirit_tonic"
+    },
+    {
+      "type": "dig",
+      "x": 6.0,
+      "y": 27.0,
+      "gold": 150
+    },
+    {
+      "type": "sign",
+      "x": 37.0,
+      "y": 12.0,
+      "text": "The trail ends at a wall of brambles that looks... not quite real."
+    },
+    {
+      "type": "enemy",
+      "x": 28.0,
+      "y": 18.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 26.0,
+      "y": 10.0,
+      "kind": "wisp"
+    },
+    {
+      "type": "enemy",
+      "x": 15.0,
+      "y": 14.0,
+      "kind": "mushroom"
+    },
+    {
+      "type": "enemy",
+      "x": 14.0,
+      "y": 20.0,
+      "kind": "ghost"
+    },
+    {
+      "type": "enemy",
+      "x": 7.0,
+      "y": 8.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 18.0,
+      "y": 10.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 31.0,
+      "y": 12.0,
+      "kind": "plant"
+    },
+    {
+      "type": "enemy",
+      "x": 11.0,
+      "y": 24.0,
+      "kind": "wisp"
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "name": "Witherwood",
+  "theme": "field",
+  "music": "Retro-Mysterious2",
+  "weather": "fireflies",
+  "blighted": true,
+  "level": 54,
+  "cloaked": true,
+  "blightArea": "witherwood",
+  "dark": true,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTT........TTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTT.....w...TTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTT...wwww...TTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT......www.........TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..................TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTT...TTTTTT..TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTTx.TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTTx.TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTw.TTTTTTTTTTTTTTx.TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTw.TTTTTTTTTTTTTTx.TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTwwTTTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTw.TTTTTTTTTTTT......TTTT..TTTT",
+    "TTTTTTTTTTTTTTw.TTTTTTTTTTTT.......TT......T",
+    "TTTTTTTTTTTTTTw.TTTTTTTTTTTT................",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTT.................",
+    "TTTTTTTTTTTTTTx.TTTTTTTTTTTT...............T",
+    "TTTTTTTTTTTTTTx.TTTTTTTTTTTTTT...TT........T",
+    "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "TTTT....TTT.....TTTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "TTT......T.......TTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "........xx.......TTTTTTTTTTTTT..TTTTTTTTTTTT",
+    "........xx.............TTTTTTT..TTTTTTTTTTTT",
+    "TTT..............T.....xxTTTTT..TTTTTTTTTTTT",
+    "TTTTTT..TTTT....TT......xx......TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTT..............TTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTT...TTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 41.0,
+      "y": 16.0
+    },
+    {
+      "type": "warp",
+      "x": 42.0,
+      "y": 18.0,
+      "to": "ashford",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "save",
+      "x": 36.0,
+      "y": 18.0
+    },
+    {
+      "type": "sign",
+      "x": 38.0,
+      "y": 15.0,
+      "text": "Witherwood. The hunters here wear the dark like a cloak. Carry a light."
+    },
+    {
+      "type": "rift",
+      "x": 22.0,
+      "y": 5.0,
+      "count": 8,
+      "id": "run_ww_glade",
+      "alive": 3,
+      "kinds": "spider,wisp,ghost"
+    },
+    {
+      "type": "rift",
+      "x": 21.0,
+      "y": 27.0,
+      "count": 8,
+      "id": "run_ww_hollow",
+      "alive": 3,
+      "kinds": "mirecap,plant,bee"
+    },
+    {
+      "type": "thicket",
+      "x": 4.0,
+      "y": 23.0,
+      "w": 1,
+      "h": 2
+    },
+    {
+      "type": "gate",
+      "x": 3.0,
+      "y": 23.0,
+      "open": "rift:run_ww_glade,rift:run_ww_hollow"
+    },
+    {
+      "type": "gate",
+      "x": 3.0,
+      "y": 24.0,
+      "open": "rift:run_ww_glade,rift:run_ww_hollow"
+    },
+    {
+      "type": "warp",
+      "x": 0.0,
+      "y": 23.0,
+      "to": "blight_wood_heart",
+      "facing": "left",
+      "ty": 12,
+      "h": 2,
+      "tx": 26
+    },
+    {
+      "type": "enemy",
+      "x": 28.0,
+      "y": 14.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 26.0,
+      "y": 7.0,
+      "kind": "wisp"
+    },
+    {
+      "type": "enemy",
+      "x": 15.0,
+      "y": 10.0,
+      "kind": "ghost"
+    },
+    {
+      "type": "enemy",
+      "x": 14.0,
+      "y": 21.0,
+      "kind": "mushroom"
+    },
+    {
+      "type": "enemy",
+      "x": 9.0,
+      "y": 25.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 31.0,
+      "y": 22.0,
+      "kind": "plant"
+    },
+    {
+      "type": "enemy",
+      "x": 24.0,
+      "y": 26.0,
+      "kind": "ghost"
+    },
+    {
+      "type": "enemy",
+      "x": 18.0,
+      "y": 6.0,
+      "kind": "wisp"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "name": "The Wyrm's Cradle",
+  "theme": "ash",
+  "music": "Boss-DangerousDuke",
+  "level": 34,
+  "heat": 3,
+  "lava": true,
+  "rows": [
+    "########################",
+    "########################",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##_____ __________ ___##",
+    "##____________________##",
+    "##____________________##",
+    "##_______ _____ ______##",
+    "##_ss_____________ss__##",
+    "##_ss_____________ss__##",
+    "##____________________##",
+    "##____________________##",
+    "##########___###########",
+    "##########___###########",
+    "##########___###########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 17.0,
+      "art": "stairs_down",
+      "w": 3,
+      "facing": "down",
+      "sound": "door",
+      "ty": 3,
+      "tx": 22,
+      "to": "cinderfall"
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 15.0,
+      "open": "!wyrm_arena"
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 15.0,
+      "open": "!wyrm_arena"
+    },
+    {
+      "type": "gate",
+      "x": 12.0,
+      "y": 15.0,
+      "open": "!wyrm_arena"
+    },
+    {
+      "type": "trigger",
+      "x": 4.0,
+      "y": 12.0,
+      "w": 16,
+      "flag": "wyrm_met",
+      "if": "!boss_wyrm",
+      "dialogue": "wyrm_intro"
+    },
+    {
+      "type": "boss",
+      "x": 12.0,
+      "y": 5.0,
+      "flag": "boss_wyrm",
+      "defeat": [
+        "unflag:wyrm_arena",
+        "give:circuit_shard",
+        "say:The wyrm sinks into the cooling stone. The caldera breathes out, and for a moment, it is merely warm."
+      ],
+      "unless": "boss_wyrm",
+      "kind": "wyrm",
+      "if": "wyrm_arena"
+    },
+    {
+      "type": "chest",
+      "x": 12.0,
+      "y": 3.0,
+      "style": 3,
+      "item": "phoenix_plume",
+      "if": "boss_wyrm"
+    }
+  ]
+}

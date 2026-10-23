@@ -1,0 +1,314 @@
+{
+  "name": "Mistmoor Marsh",
+  "theme": "marsh",
+  "music": "Action-GhoulPatrol",
+  "level": 11,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTT............................................TT",
+    "TTTTTTTTTT..............TTTTTT........................TT",
+    "TTTTTTTTTT..............TTTTTTT.......................TT",
+    "TTTTTTTTTTT............TTTTTTTTT...;;;;;;,,...:...TT..TT",
+    "TTTTTTTTTTT............TTTTTTT.....;;;;~~~~,,.:..TTT..TT",
+    "TTTTTTTTTTT...............TTT.....;;;~~~~~~~~,:TTTTTT.TT",
+    "TTTTTTTT..........................;;;~~~~~~~~,:TTTTTT.TT",
+    "TT...TTT...;;;;;;;...................,~~~~~~,.:TTTTTTTTT",
+    "TT........;;;;;;;;....................,,,,,,..:TTTTTTTTT",
+    "TT........;;;;;;;;;............wwww...........:TTTTTTTTT",
+    "TT.......;;;;;;;;;;;.:........\"\"\"\"\"w..........:TTTTTTTTT",
+    "TT........;;;;;;;;;..:........w\"\"\"\"w..........:TTTTTT.TT",
+    "TT..........;;;;.....:...........w............:.TTTT..TT",
+    "TT...................:........................:...TT..TT",
+    "TT...................:........................:.......TT",
+    "TT................::::::::::::::::::::........:.......TT",
+    "TT................::::::::::::::::::::................TT",
+    "TT................::................::................TT",
+    "::::::::::::::::::::................::::::::::::::::::::",
+    "::::::::::::::::::::................::::::::::::::::::::",
+    "TT.......\"\"\"\".........................................TT",
+    "TT.....wwww........;..;;;..sssssssss..................TT",
+    "TT....wwwwww.....;;;;;;;;;,~~~~~~~~~,....;;;;;........TT",
+    "TT....wwwwww.....;;;;;;~~~~~~~~,~~~~~,,.;;;;;;;.......TT",
+    "TT......TTT......;;;;~~~~~~~~~~~~~~~~~~,;;;;;;;.......TT",
+    "TTTTTTTTTTTT......;;;~~~~~~~~~~,~~~~~~~~~;;;;;;;......TT",
+    "TTTTTTTTTTTT........,~~~~~~~~~~~~~~~~~~~~;;;;;;.......TT",
+    "TTTTTTTTTTTT........,~~~~~~~~~,,,~~~~~~~~,;;;;........TT",
+    "TTTTTTTTTTTTTT......,~~~~~~~~~,,,~~~~~~~,.............TT",
+    "TTTTTTTTTTTTTT......,~~~~~~~~~~~~~~~~~~,wTTTTTTTT.....TT",
+    "TTTTTTTTTTTTTT.......,~~~~~~~~~~~~~~~~,TTTTTTTTTTT....TT",
+    "TTTTTTTTTTTT..........,~~~~~~~~~~~~~~,..TTTTTTTTTTTT..TT",
+    "TTTTTTTTTTT............,,,,,,,~~~~~,,...TTTTTTTTTTTT..TT",
+    "TT....TTTTT...................,,,,,.....TTTTTTTTTT....TT",
+    "TT......TT....................................TTT.....TT",
+    "TT....................................................TT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "vent",
+      "x": 15.0,
+      "y": 11.0,
+      "interval": 5
+    },
+    {
+      "type": "vent",
+      "x": 19.0,
+      "y": 25.0,
+      "interval": 6
+    },
+    {
+      "type": "vent",
+      "x": 45.0,
+      "y": 28.0,
+      "interval": 5
+    },
+    {
+      "type": "sign",
+      "x": 4.0,
+      "y": 18.0,
+      "text": "Mistmoor Marsh. Mind the bogs; they'll drag at your boots. And keep fire away from the gas."
+    },
+    {
+      "type": "rift",
+      "x": 25.0,
+      "y": 22.0,
+      "alive": 3,
+      "kinds": "toad,coil",
+      "restores": "Old Tam's net shed in Brinewatch",
+      "count": 7,
+      "id": "brine_fisher"
+    },
+    {
+      "type": "rift",
+      "x": 47.0,
+      "y": 6.0,
+      "alive": 3,
+      "kinds": "mirecap,coil,toad",
+      "restores": "the shipwright's yard in Brinewatch",
+      "count": 8,
+      "id": "brine_shipwright"
+    },
+    {
+      "type": "dig",
+      "x": 12.0,
+      "y": 18.0,
+      "gold": 260
+    },
+    {
+      "type": "dig",
+      "x": 52.0,
+      "y": 35.0,
+      "item": "life_shard"
+    },
+    {
+      "type": "sign",
+      "x": 52.0,
+      "y": 18.0,
+      "text": "East: Brinewatch."
+    },
+    {
+      "type": "warp",
+      "x": 0.0,
+      "y": 20.0,
+      "tx": 54,
+      "h": 2,
+      "facing": "left",
+      "to": "fields",
+      "ty": 26
+    },
+    {
+      "type": "warp",
+      "x": 55.0,
+      "y": 20.0,
+      "tx": 1,
+      "h": 2,
+      "facing": "right",
+      "to": "brinewatch",
+      "ty": 18
+    },
+    {
+      "type": "building",
+      "x": 20.0,
+      "y": 9.0,
+      "facing": "up",
+      "tx": 5,
+      "to": "witch_hut",
+      "roof": "green",
+      "h": 3,
+      "w": 4,
+      "door": 1,
+      "ty": 7
+    },
+    {
+      "type": "chest",
+      "x": 31.0,
+      "y": 30.0,
+      "item": "flame_ring"
+    },
+    {
+      "type": "chest",
+      "x": 46.0,
+      "y": 4.0,
+      "item": "swift_anklet"
+    },
+    {
+      "type": "chest",
+      "x": 5.0,
+      "y": 12.0,
+      "item": "herb",
+      "count": 3
+    },
+    {
+      "type": "decor",
+      "x": 12.0,
+      "y": 4.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 30.0,
+      "y": 10.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 27.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 24.0,
+      "y": 33.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 40.0,
+      "y": 14.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 47.0,
+      "y": 23.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 26.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 35.0,
+      "y": 22.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 26.0,
+      "y": 21.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 17.0,
+      "y": 9.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 41.0,
+      "y": 18.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 9.0,
+      "y": 16.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 50.0,
+      "y": 30.0,
+      "kind": "bush"
+    },
+    {
+      "type": "enemy",
+      "x": 13.0,
+      "y": 12.0,
+      "kind": "toad"
+    },
+    {
+      "type": "enemy",
+      "x": 19.0,
+      "y": 25.0,
+      "kind": "toad"
+    },
+    {
+      "type": "enemy",
+      "x": 44.0,
+      "y": 26.0,
+      "kind": "toad"
+    },
+    {
+      "type": "enemy",
+      "x": 28.0,
+      "y": 15.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 40.0,
+      "y": 22.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 10.0,
+      "y": 24.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 38.0,
+      "y": 11.0,
+      "kind": "mirecap"
+    },
+    {
+      "type": "enemy",
+      "x": 17.0,
+      "y": 24.0,
+      "kind": "mirecap"
+    },
+    {
+      "type": "enemy",
+      "x": 33.0,
+      "y": 19.0,
+      "kind": "fenplant"
+    },
+    {
+      "type": "enemy",
+      "x": 49.0,
+      "y": 24.0,
+      "kind": "fenplant"
+    },
+    {
+      "type": "enemy",
+      "x": 25.0,
+      "y": 8.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 52.0,
+      "y": 6.0,
+      "kind": "toad"
+    }
+  ]
+}

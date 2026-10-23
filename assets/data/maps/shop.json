@@ -1,0 +1,136 @@
+{
+  "name": "Brindle's Goods",
+  "theme": "interior",
+  "music": "Menu-NobleKingdom",
+  "rows": [
+    "HHHHHHHHHH",
+    "HHHHHHHHHH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HHHHHoHHHH"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 5.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 4.0,
+      "dialogue": "shopkeeper",
+      "kind": "counter",
+      "name": "Brindle"
+    },
+    {
+      "type": "npc",
+      "x": 4.0,
+      "y": 3.0,
+      "name": "Brindle",
+      "dialogue": "shopkeeper",
+      "sprite": "adventurer_m3"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 6.0,
+      "kind": "pot"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 6.0,
+      "kind": "plant"
+    },
+    {
+      "type": "warp",
+      "x": 5.0,
+      "y": 8.0,
+      "tx": 28,
+      "sound": "door",
+      "ty": 9,
+      "facing": "down",
+      "to": "leafhollow"
+    }
+  ]
+}

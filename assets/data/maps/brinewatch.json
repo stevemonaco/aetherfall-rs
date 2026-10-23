@@ -1,0 +1,376 @@
+{
+  "name": "Brinewatch",
+  "theme": "field",
+  "music": "Menu-NobleKingdom",
+  "level": 12,
+  "rows": [
+    "TTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~",
+    "TTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~",
+    "TT.TTTTT....::...........................,.,~~~~",
+    "TT.TTTTT....::....................,,,,,,,~,,~~~~",
+    "TTTTTTTTT...::.................,,,~~~~~~~~~~~~~~",
+    "TT..TTT.....::................,~~~~~~~~~~~~~~~~~",
+    "TT..........::...............,~~~~~~~~~~~~~~~~~~",
+    "TT..........::...............,~~~~~~~~~~~~~~~~~~",
+    "TT..........::......\"\"\".....,~~~~~~~~~~~~~~~~~~~",
+    "TT..........::......\"\"\"\"....,~~~~~~~~~~~~~~~~~~~",
+    "TT..........::...:..........,~~~~~~~~~~~~~~~~~~~",
+    "TT..:.......::...:..........,~~~~~~~~~~~~~~~~~~~",
+    "TT..:.......::...:.........,~~~~~~~~~~~~~~~~~~~~",
+    "TT..:....+++::+++:+++......,~~~~~~~~~~~~~~~~~~~~",
+    "TT..::::::++::+++++++......,~~~~~~~~~~~~~,,~~~~~",
+    "TT.......++++++++++++......,~~~~~~~~~~~,,..,~~~~",
+    "TT.......++++++++++++......,~~~~~~~~~~,.....,~~~",
+    "TT.......+++++++++++:::::::====~===~==,.....,~~~",
+    ":::::::::::+++++++++:::::::====~===~==,.....,~~~",
+    ":::::::::::++++++++++......,~~~~~~~~~~~,...,~~~~",
+    "TT....::::......:.........,~~~~~~~~~~~~~,,,~~~~~",
+    "TT....:.........:..........,~~~~~~~~~~~~~~~~~~~~",
+    "TT....:.........:..........,~~~~~~~~~~~~~~~~~~~~",
+    "TT....:.........:..........,~~~~~~~~~~~~~~~~~~~~",
+    "TT....:.........:..........,~~~~~~~~~~~~~~~~~~~~",
+    "TT....:.........:...........,~~~~~~~~~~~~~~~~~~~",
+    "TT....:.........:............,~~~~~~~~~~~~~~~~~~",
+    "TT....:.........:.............,~~~~~~~~~~~~~~~~~",
+    "TT...............TTTTTTTTT.....,~~~~~~~~~~~~~~~~",
+    "TT..\"\"\"\".........TTTTTTTTT......,,~~~~~~~~~~~~~~",
+    "TT..\"\"\"\".........TTTTTTTTTT.......,,~~~~~~~,~~~~",
+    "TT...................TTT............,,~~~~,,~~~~",
+    "TTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~",
+    "TTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 15.0,
+      "y": 16.0
+    },
+    {
+      "type": "warp",
+      "x": 0.0,
+      "y": 18.0,
+      "facing": "left",
+      "tx": 54,
+      "h": 2,
+      "to": "marsh",
+      "ty": 20
+    },
+    {
+      "type": "warp",
+      "x": 12.0,
+      "y": 0.0,
+      "facing": "up",
+      "if": "has:tide_crystal",
+      "tx": 19,
+      "blocked": "Guard: The pass is closed! Ever since the lake spirit started raging, the mountain trail floods and freezes by turns.",
+      "w": 2,
+      "to": "frostpeak",
+      "ty": 62
+    },
+    {
+      "type": "building",
+      "x": 3.0,
+      "y": 8.0,
+      "ty": 7,
+      "to": "brine_shop",
+      "h": 3,
+      "door": 1,
+      "roof": "blue",
+      "tx": 5,
+      "facing": "up",
+      "w": 4
+    },
+    {
+      "type": "building",
+      "x": 15.0,
+      "y": 6.0,
+      "ty": 8,
+      "to": "brine_inn",
+      "h": 4,
+      "door": 2,
+      "roof": "red",
+      "tx": 6,
+      "facing": "up",
+      "w": 5
+    },
+    {
+      "type": "building",
+      "x": 4.0,
+      "y": 23.0,
+      "ty": 8,
+      "to": "brine_mayor",
+      "h": 4,
+      "door": 2,
+      "roof": "slate",
+      "tx": 6,
+      "facing": "up",
+      "w": 5
+    },
+    {
+      "type": "building",
+      "x": 14.0,
+      "y": 24.0,
+      "door": 2,
+      "roof": "green",
+      "h": 3,
+      "w": 4,
+      "restore": "rift:brine_fisher"
+    },
+    {
+      "type": "sign",
+      "x": 13.0,
+      "y": 27.0,
+      "text": "Old Tam's net shed. (It shimmers, half there.)",
+      "unless": "rift:brine_fisher"
+    },
+    {
+      "type": "npc",
+      "x": 13.0,
+      "y": 27.0,
+      "sprite": "oldman2",
+      "name": "Old Tam",
+      "dialogue": "tam",
+      "if": "rift:brine_fisher",
+      "facing": "right"
+    },
+    {
+      "type": "building",
+      "x": 24.0,
+      "y": 2.0,
+      "door": 1,
+      "roof": "lighthouse",
+      "h": 3,
+      "w": 3,
+      "restore": "rift:brine_lighthouse"
+    },
+    {
+      "type": "npc",
+      "x": 27.0,
+      "y": 5.0,
+      "sprite": "adventurer_f3",
+      "name": "Keeper Maren",
+      "dialogue": "maren",
+      "if": "rift:brine_lighthouse",
+      "facing": "down"
+    },
+    {
+      "type": "sign",
+      "x": 22.0,
+      "y": 5.0,
+      "text": "The old lighthouse. Its lamp lit the temple's sunken halls through the water. Dark since the rifts.",
+      "unless": "rift:brine_lighthouse"
+    },
+    {
+      "type": "building",
+      "x": 19.0,
+      "y": 23.0,
+      "door": 1,
+      "roof": "blue",
+      "h": 3,
+      "w": 4,
+      "restore": "rift:brine_shipwright"
+    },
+    {
+      "type": "npc",
+      "x": 21.0,
+      "y": 26.0,
+      "sprite": "fighter3",
+      "name": "Bosun Kett",
+      "dialogue": "kett",
+      "if": "rift:brine_shipwright",
+      "facing": "down"
+    },
+    {
+      "type": "npc",
+      "x": 26.0,
+      "y": 20.0,
+      "sprite": "rogue2",
+      "name": "Ferryman Loy",
+      "dialogue": "ferryman",
+      "if": "rift:brine_ferry",
+      "facing": "right"
+    },
+    {
+      "type": "sign",
+      "x": 8.0,
+      "y": 10.0,
+      "text": "Coral Goods. Armor, shields and charms."
+    },
+    {
+      "type": "sign",
+      "x": 24.0,
+      "y": 16.0,
+      "text": "Pier closed: planks washed out. (Signed, the Mayor)"
+    },
+    {
+      "type": "sign",
+      "x": 21.0,
+      "y": 6.0,
+      "text": "The Gull's Rest Inn."
+    },
+    {
+      "type": "warp",
+      "x": 42.0,
+      "y": 16.0,
+      "facing": "up",
+      "tx": 19,
+      "sound": "door",
+      "art": "stairs_down",
+      "to": "temple_1",
+      "ty": 28
+    },
+    {
+      "type": "decor",
+      "x": 40.0,
+      "y": 16.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 44.0,
+      "y": 16.0,
+      "kind": "torch"
+    },
+    {
+      "type": "sign",
+      "x": 41.0,
+      "y": 18.0,
+      "text": "The Sunken Temple. Built by the Concord to hold the Tide Crystal."
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 14.0,
+      "kind": "well"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 15.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 23.0,
+      "y": 12.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 9.0,
+      "y": 29.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 25.0,
+      "y": 25.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 21.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 21.0,
+      "y": 21.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 4.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 10.0,
+      "y": 6.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 24.0,
+      "y": 20.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 11.0,
+      "y": 23.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 26.0,
+      "y": 19.0,
+      "kind": "pot"
+    },
+    {
+      "type": "npc",
+      "x": 14.0,
+      "y": 3.0,
+      "sprite": "guard2",
+      "name": "Guard Ostra",
+      "dialogue": "brine_guard",
+      "facing": "down"
+    },
+    {
+      "type": "npc",
+      "x": 25.0,
+      "y": 18.0,
+      "sprite": "hunter2",
+      "name": "Fisher Lin",
+      "dialogue": "fisher",
+      "facing": "right"
+    },
+    {
+      "type": "npc",
+      "x": 11.0,
+      "y": 17.0,
+      "sprite": "warrior2",
+      "name": "Old Sailor",
+      "dialogue": "sailor",
+      "wander": 2
+    },
+    {
+      "type": "npc",
+      "x": 19.0,
+      "y": 15.0,
+      "sprite": "thief3",
+      "name": "Nim",
+      "dialogue": "nim",
+      "wander": 3
+    },
+    {
+      "type": "npc",
+      "x": 8.0,
+      "y": 21.0,
+      "sprite": "cleric2",
+      "name": "Sister Ama",
+      "dialogue": "ama"
+    },
+    {
+      "type": "warp",
+      "x": 6.0,
+      "y": 33.0,
+      "if": "quest:old_salt",
+      "ty": 30,
+      "to": "saltmine_1",
+      "sound": "door",
+      "blocked": "A boarded-up mine shaft. Someone has nailed a sign across it: CLOSED. FLOODED. GO AWAY.",
+      "tx": 21,
+      "facing": "up",
+      "w": 2
+    },
+    {
+      "type": "sign",
+      "x": 8.0,
+      "y": 30.0,
+      "text": "The old Brinewatch saltmine. Closed since the flood."
+    }
+  ]
+}

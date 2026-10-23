@@ -1,0 +1,122 @@
+{
+  "name": "Highcrag Arena",
+  "theme": "tower",
+  "music": "Retro-Battleground",
+  "level": 28,
+  "rows": [
+    "##########################",
+    "##########################",
+    "##______________________##",
+    "##______________________##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##__++++++++++++++++++__##",
+    "##______________________##",
+    "##______________________##",
+    "###########____###########",
+    "###########____###########",
+    "###########____###########",
+    "###########____###########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 12.0,
+      "y": 19.0,
+      "w": 2,
+      "facing": "down",
+      "sound": "door",
+      "ty": 23,
+      "tx": 26,
+      "to": "highcrag"
+    },
+    {
+      "type": "npc",
+      "x": 6.0,
+      "y": 15.0,
+      "sprite": "guard3",
+      "name": "Arena Master Dace",
+      "facing": "right",
+      "dialogue": "dace"
+    },
+    {
+      "type": "decor",
+      "x": 19.0,
+      "y": 15.0,
+      "dialogue": "pact_shrine",
+      "name": "Pact Shrine",
+      "kind": "altar"
+    },
+    {
+      "type": "save",
+      "x": 21.0,
+      "y": 14.0
+    },
+    {
+      "type": "rift",
+      "x": 13.0,
+      "y": 8.0,
+      "count": 12,
+      "id": "arena_bronze",
+      "restores": "a bronze medal",
+      "unless": "rift:arena_bronze",
+      "kinds": "crag,brute,glacimp,boneknight",
+      "alive": 4,
+      "if": "arena_open"
+    },
+    {
+      "type": "rift",
+      "x": 13.0,
+      "y": 8.0,
+      "count": 15,
+      "id": "arena_silver",
+      "restores": "a silver medal",
+      "unless": "rift:arena_silver",
+      "kinds": "boneknight,sentinel,acolyte,stormeye",
+      "alive": 4,
+      "if": "rift:arena_bronze,arena_open"
+    },
+    {
+      "type": "rift",
+      "x": 13.0,
+      "y": 8.0,
+      "count": 18,
+      "id": "arena_gold",
+      "restores": "a gold medal",
+      "kinds": "slagbrute,cinderdevil,warder,voidmote,darkknight",
+      "alive": 5,
+      "if": "rift:arena_silver,arena_open"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 22.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 13.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 22.0,
+      "y": 13.0,
+      "kind": "torch"
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+  "name": "Leafhollow",
+  "theme": "field",
+  "music": "Menu-NobleKingdom",
+  "level": 1,
+  "rows": [
+    "TTT##################################TTT",
+    "TTT##################################TTT",
+    "TT#################:#################TTT",
+    "TT########.........::.......####TTTTTTTT",
+    "TTT........\"\"\"\"....::...........T...TTTT",
+    "TTT........\"\"\"\"\"...::...........T...TTTT",
+    "TTT................::...........T...TTTT",
+    "TTT................::...........T...TTTT",
+    "TTT................::...........TT.TTTTT",
+    "TTT................::.:.....:.....:..TTT",
+    "TTT....:...........::.:.....:.....:..TTT",
+    "TTTT...:...........::.:.....:::::::..TTT",
+    "TTTT...:......++++++++:+++..:\"\"\".....TTT",
+    "TTTTT..:......+++++++++++::::\"\"\".....TTT",
+    "TTTTT..::::::::+++++++++++...........TTT",
+    "TTTTT.........+++++++++++:::::::.w..TTTT",
+    "TTTTT.........++++++++++++.....wwwwTTTTT",
+    "TTTTT,........++++++++++++.....wwwwTTTTT",
+    "TTTT~~,............::.............TTTTTT",
+    "TTTT~~,............::.............TTTTTT",
+    "TTT,~~,.:..........::.............TTTTTT",
+    "TTT,~~,.:..........::.............TTTTTT",
+    "::::~~:::::::::....:::::::::::....TTTTTT",
+    ":::,~~,...,~~~,,...::.............TTTTTT",
+    "TTT,~~,..,~~~~~~,..::...\".........TTTTTT",
+    "TTT,~~,..,~~~~~,...::\"\"\"\"\"\".........TTTT",
+    "TTT,~~,...,~~~,....::\"\"\"\"\"...........TTT",
+    "TTT,~~,....,,,.....::................TTT",
+    "TTT,~~,............::................TTT",
+    "TTTTTTTTTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 19.0,
+      "y": 2.0,
+      "kind": "cave"
+    },
+    {
+      "type": "warp",
+      "x": 19.0,
+      "y": 2.0,
+      "to": "vault",
+      "facing": "down",
+      "tx": 7,
+      "sound": "door",
+      "ty": 4
+    },
+    {
+      "type": "spawn",
+      "x": 19.0,
+      "y": 4.0
+    },
+    {
+      "type": "building",
+      "x": 5.0,
+      "y": 6.0,
+      "h": 4,
+      "ty": 8,
+      "roof": "blue",
+      "facing": "up",
+      "tx": 6,
+      "w": 5,
+      "door": 2,
+      "to": "elder_house"
+    },
+    {
+      "type": "building",
+      "x": 27.0,
+      "y": 6.0,
+      "h": 3,
+      "ty": 7,
+      "roof": "green",
+      "facing": "up",
+      "tx": 5,
+      "w": 4,
+      "door": 1,
+      "to": "shop"
+    },
+    {
+      "type": "building",
+      "x": 27.0,
+      "y": 18.0,
+      "h": 4,
+      "ty": 8,
+      "roof": "red",
+      "facing": "up",
+      "tx": 6,
+      "w": 5,
+      "door": 2,
+      "to": "inn"
+    },
+    {
+      "type": "building",
+      "x": 6.0,
+      "y": 17.0,
+      "roof": "slate",
+      "door": 2,
+      "tx": 5,
+      "restore": "rift:leaf_smith",
+      "h": 3,
+      "w": 4,
+      "facing": "up",
+      "ty": 7,
+      "to": "smithy"
+    },
+    {
+      "type": "building",
+      "x": 21.0,
+      "y": 6.0,
+      "roof": "red",
+      "door": 1,
+      "tx": 5,
+      "restore": "rift:leaf_herbalist",
+      "h": 3,
+      "w": 4,
+      "facing": "up",
+      "ty": 7,
+      "to": "apothecary"
+    },
+    {
+      "type": "sign",
+      "x": 21.0,
+      "y": 18.0,
+      "text": "Leafhollow. North: the Sleeper's Vault. South: Windward Fields. West: the old bridge (washed out)."
+    },
+    {
+      "type": "sign",
+      "x": 30.0,
+      "y": 9.0,
+      "text": "Brindle's Goods: herbs, armor and shields."
+    },
+    {
+      "type": "sign",
+      "x": 26.0,
+      "y": 22.0,
+      "text": "The Sleepy Stag Inn."
+    },
+    {
+      "type": "sign",
+      "x": 10.0,
+      "y": 20.0,
+      "text": "Torva's Smithy. (The building flickers like a memory.)",
+      "unless": "rift:leaf_smith"
+    },
+    {
+      "type": "sign",
+      "x": 10.0,
+      "y": 20.0,
+      "text": "Torva's Smithy: blades tempered with gold and monster parts.",
+      "if": "rift:leaf_smith"
+    },
+    {
+      "type": "decor",
+      "x": 33.0,
+      "y": 14.0,
+      "restore": "rift:leaf_shrine",
+      "kind": "altar"
+    },
+    {
+      "type": "npc",
+      "x": 33.0,
+      "y": 16.0,
+      "if": "rift:leaf_shrine",
+      "facing": "down",
+      "sprite": "cleric2",
+      "name": "Sage Elm",
+      "dialogue": "sage_elm"
+    },
+    {
+      "type": "sign",
+      "x": 31.0,
+      "y": 16.0,
+      "text": "A shrine to the Concord's Circuit. Its light went out when the rifts opened.",
+      "unless": "rift:leaf_shrine"
+    },
+    {
+      "type": "decor",
+      "x": 19.0,
+      "y": 15.0,
+      "kind": "well"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 4.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 11.0,
+      "y": 4.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 26.0,
+      "y": 4.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 29.0,
+      "y": 12.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 20.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 23.0,
+      "y": 25.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 33.0,
+      "y": 24.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 9.0,
+      "y": 27.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 16.0,
+      "y": 27.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 35.0,
+      "y": 15.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 12.0,
+      "y": 9.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 25.0,
+      "y": 9.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 9.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 10.0,
+      "y": 12.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 26.0,
+      "y": 16.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 31.0,
+      "y": 26.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 17.0,
+      "y": 23.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 35.0,
+      "y": 12.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 12.0,
+      "y": 16.0,
+      "kind": "pot"
+    },
+    {
+      "type": "decor",
+      "x": 13.0,
+      "y": 16.0,
+      "kind": "pot"
+    },
+    {
+      "type": "barrier",
+      "x": 34.0,
+      "y": 8.0,
+      "flag": "thorns_village",
+      "element": "fire"
+    },
+    {
+      "type": "chest",
+      "x": 34.0,
+      "y": 5.0,
+      "item": "iron_shield"
+    },
+    {
+      "type": "dig",
+      "x": 35.0,
+      "y": 26.0,
+      "item": "life_shard"
+    },
+    {
+      "type": "npc",
+      "x": 21.0,
+      "y": 27.0,
+      "facing": "up",
+      "sprite": "guard1",
+      "name": "Guard Hal",
+      "dialogue": "guard"
+    },
+    {
+      "type": "npc",
+      "x": 16.0,
+      "y": 15.0,
+      "wander": 3,
+      "sprite": "adventurer_f2",
+      "name": "Mira",
+      "dialogue": "mira"
+    },
+    {
+      "type": "npc",
+      "x": 31.0,
+      "y": 11.0,
+      "wander": 2,
+      "sprite": "thief2",
+      "name": "Pip",
+      "dialogue": "pip"
+    },
+    {
+      "type": "npc",
+      "x": 15.0,
+      "y": 22.0,
+      "facing": "left",
+      "sprite": "hunter1",
+      "name": "Wren",
+      "dialogue": "hunter"
+    },
+    {
+      "type": "npc",
+      "x": 7.0,
+      "y": 23.0,
+      "facing": "left",
+      "sprite": "guard2",
+      "name": "Bridgewarden Oda",
+      "dialogue": "bridgewarden"
+    },
+    {
+      "type": "span",
+      "x": 4.0,
+      "y": 22.0,
+      "h": 1,
+      "if": "rift:leaf_bridge",
+      "w": 2
+    },
+    {
+      "type": "warp",
+      "x": 0.0,
+      "y": 22.0,
+      "to": "whisperwood",
+      "tx": 38,
+      "if": "rift:leaf_bridge",
+      "facing": "left",
+      "ty": 20,
+      "h": 2
+    },
+    {
+      "type": "warp",
+      "x": 19.0,
+      "y": 29.0,
+      "to": "fields",
+      "w": 2,
+      "tx": 27,
+      "facing": "down",
+      "blocked": "Guard Hal: Halt! It's too dangerous out there without a proper blade. Go see the Elder.",
+      "ty": 1,
+      "if": "has:wind"
+    }
+  ]
+}

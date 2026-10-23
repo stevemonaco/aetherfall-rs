@@ -1,0 +1,442 @@
+{
+  "name": "Windward Fields",
+  "theme": "field",
+  "music": "Action-SurgeForward",
+  "level": 3,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTT::TTTTT######################",
+    "TTTTTTTT....TTTTTTTTTTTTT..::.....######################",
+    "TTTTTTTTT.......TTTTTT.....::.....######################",
+    "TTTTTTTTTT.................::.....######################",
+    "TTTTTTTTT.wwwwww...........::.....######################",
+    "TTTTTT...Twwwwwww...\".\"\"...::.......####################",
+    "TT....TTTTwwwwwwww.\"\"\"\"\"...::.........########:#########",
+    "TT.TTTTTTTwwwwww...\"\"\"\"\"\"..::.................:..#####TT",
+    "TT.TTTTTTTTTTTw............::.................:..######T",
+    "TT.TTTTTTTTTTTT............::.................:..######T",
+    "TT.TTTTTTTTTTTT............:::::::::::::::::::::.#####TT",
+    "TT.TTTTTTTTTTT.............:::::::::::::::::::::....#.TT",
+    "TT.TTTTTTTTT...............::.........................TT",
+    "TT......TTT................::.........wwww............TT",
+    "TT.........................::........wwwwww...........TT",
+    "TT....................,,,,,::,,,,,,,.wwwwww...........TT",
+    "TT,..............,,,,,~~~~~==~~~~~~~,,,www............TT",
+    "TT~,,,,,,,,,,,,,,~~~~~~~~~~==~~~~~~~~~~~~,,,,,,,,,,,,,TT",
+    "TT~~~~~~~~~~~~~~~~~~~~~~~~~==~~~~~~~~~~~~~~~~~~~~~~~~~TT",
+    "TT~~~~~~~~~~~~~~~~~~~~,,,,,::,,,,,,,~~~~~~~~~~~~~~~~~~TT",
+    "TT,~~~~~~~~~~~~~~,,,,,.....::.......,,,,,~~~~~~~~~~~~~TT",
+    "TT.,,,,,,,\"\"\",,,,..........::............,~~~~,,,,,,,,TT",
+    "TT.................#.......::...........,~~~~~~,......TT",
+    "TT.............########....::...........,~~~~~~,......TT",
+    "TT........w....#######.....::............,~~~TTTTTTTTTTT",
+    "TT......wwwww...#####......::.............,,,TTTTTTTTTTT",
+    "TT......wwww...............:::::::::::::::::::::::::::::",
+    "TT........ww...............::....\"\"\"\"\"\"......TTTTTTTTTTT",
+    "TT.............TTT.........::......\"\"\".......TTTTTTTTTTT",
+    "TT...........TTTTTTT.......::...............TTTTTTTTTTTT",
+    "TT........:::::::::::::::::::..............TTTTTTT....TT",
+    "TT........:::::::::::::::::::............TTTTTTTTTT...TT",
+    "TT.TTTTTTT:TTTTT.....wwwww..\"\"\"\".......TTTTTTTTTTTTTT.TT",
+    "TT.TTTTTTT:TTTTT....wwwwwww.\"\"\"\"\"......TTTTTTTTTTTTTTTTT",
+    "TT.TTTTTTT:TTTTT.....wwwwww............TTTTTTTTTTTTTTTTT",
+    "TT.TTTTwww:wTTTT........ww..............TTTTTTTTTTTTT.TT",
+    "TT.TTTwwwwwwTTTT.........................TTTTTTTTTTT..TT",
+    "TT.TTTwwwwwwwTTT............TTTTTTTTT....TTTTTTTTTT...TT",
+    "TT.TTTwwwwwwwTTT............TTTTTTTTT....TTTTTTTTTT...TT",
+    "TT.TTTTwwwwTTTTT............TTTTTTTTTT..........TT....TT",
+    "TT.TTTTTTTTTTTTT................TTT...................TT",
+    "TT.TTTTTTTTTTTTT......................................TT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 27.0,
+      "y": 0.0,
+      "ty": 27,
+      "facing": "up",
+      "w": 2,
+      "tx": 19,
+      "to": "leafhollow"
+    },
+    {
+      "type": "spawn",
+      "x": 27.0,
+      "y": 2.0
+    },
+    {
+      "type": "sign",
+      "x": 30.0,
+      "y": 3.0,
+      "text": "Windward Fields. North: Leafhollow. North-east: the Mossy Grotto."
+    },
+    {
+      "type": "sign",
+      "x": 44.0,
+      "y": 12.0,
+      "text": "Mossy Grotto ahead. The cave was sealed with a rockfall after the fires began."
+    },
+    {
+      "type": "npc",
+      "x": 25.0,
+      "y": 14.0,
+      "name": "Traveler",
+      "sprite": "rogue1",
+      "facing": "right",
+      "dialogue": "traveler"
+    },
+    {
+      "type": "decor",
+      "x": 46.0,
+      "y": 6.0,
+      "kind": "cave"
+    },
+    {
+      "type": "warp",
+      "x": 46.0,
+      "y": 6.0,
+      "sound": "door",
+      "facing": "up",
+      "ty": 33,
+      "tx": 24,
+      "to": "grotto"
+    },
+    {
+      "type": "rock",
+      "x": 46.0,
+      "y": 7.0,
+      "flag": "grotto_rock"
+    },
+    {
+      "type": "thicket",
+      "x": 10.0,
+      "y": 33.0,
+      "flag": "thorns_fields"
+    },
+    {
+      "type": "thicket",
+      "x": 50.0,
+      "y": 26.0,
+      "flag": "thorns_east_road"
+    },
+    {
+      "type": "sign",
+      "x": 44.0,
+      "y": 25.0,
+      "text": "East: Mistmoor Marsh and the lake town of Brinewatch. (Thorns have choked the road for years.)"
+    },
+    {
+      "type": "warp",
+      "x": 55.0,
+      "y": 26.0,
+      "facing": "right",
+      "ty": 20,
+      "tx": 1,
+      "to": "marsh"
+    },
+    {
+      "type": "chest",
+      "x": 10.0,
+      "y": 38.0,
+      "item": "chain_mail"
+    },
+    {
+      "type": "chest",
+      "x": 41.0,
+      "y": 30.0,
+      "count": 3,
+      "item": "herb"
+    },
+    {
+      "type": "chest",
+      "x": 5.0,
+      "y": 13.0,
+      "gold": 60
+    },
+    {
+      "type": "dig",
+      "x": 48.0,
+      "y": 14.0,
+      "gold": 120
+    },
+    {
+      "type": "dig",
+      "x": 29.0,
+      "y": 36.0,
+      "item": "power_charm"
+    },
+    {
+      "type": "rift",
+      "x": 15.0,
+      "y": 6.0,
+      "id": "leaf_herbalist",
+      "kinds": "slime,bee",
+      "alive": 3,
+      "count": 6,
+      "restores": "Hazel's Apothecary in Leafhollow"
+    },
+    {
+      "type": "rift",
+      "x": 41.0,
+      "y": 16.0,
+      "count": 8,
+      "restores": "the Circuit shrine in Leafhollow",
+      "alive": 3,
+      "id": "leaf_shrine",
+      "level": 4,
+      "kinds": "mushroom,bee,slime"
+    },
+    {
+      "type": "rift",
+      "x": 8.0,
+      "y": 37.0,
+      "count": 5,
+      "restores": "a hunter's hound",
+      "soul": "hound",
+      "alive": 3,
+      "id": "leaf_hound",
+      "kinds": "snail,slime"
+    },
+    {
+      "type": "decor",
+      "x": 33.0,
+      "y": 5.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 24.0,
+      "y": 11.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 35.0,
+      "y": 14.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 25.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 23.0,
+      "y": 37.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 40.0,
+      "y": 21.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 13.0,
+      "y": 15.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 50.0,
+      "y": 15.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 31.0,
+      "y": 22.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 20.0,
+      "y": 38.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 39.0,
+      "y": 32.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 13.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 32.0,
+      "y": 7.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 40.0,
+      "y": 12.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 9.0,
+      "y": 22.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 36.0,
+      "y": 30.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 25.0,
+      "y": 40.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 50.0,
+      "y": 21.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 21.0,
+      "y": 4.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 34.0,
+      "y": 12.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 34.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 42.0,
+      "y": 29.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 30.0,
+      "y": 36.0,
+      "kind": "bush"
+    },
+    {
+      "type": "enemy",
+      "x": 20.0,
+      "y": 7.0,
+      "kind": "slime"
+    },
+    {
+      "type": "enemy",
+      "x": 33.0,
+      "y": 8.0,
+      "kind": "slime"
+    },
+    {
+      "type": "enemy",
+      "x": 22.0,
+      "y": 12.0,
+      "kind": "slime"
+    },
+    {
+      "type": "enemy",
+      "x": 31.0,
+      "y": 4.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 31.0,
+      "y": 13.0,
+      "kind": "snail"
+    },
+    {
+      "type": "enemy",
+      "x": 40.0,
+      "y": 8.0,
+      "kind": "mushroom"
+    },
+    {
+      "type": "enemy",
+      "x": 43.0,
+      "y": 12.0,
+      "kind": "mushroom"
+    },
+    {
+      "type": "enemy",
+      "x": 50.0,
+      "y": 12.0,
+      "kind": "plant"
+    },
+    {
+      "type": "enemy",
+      "x": 20.0,
+      "y": 28.0,
+      "kind": "slime"
+    },
+    {
+      "type": "enemy",
+      "x": 34.0,
+      "y": 24.0,
+      "kind": "slime"
+    },
+    {
+      "type": "enemy",
+      "x": 13.0,
+      "y": 27.0,
+      "kind": "slime"
+    },
+    {
+      "type": "enemy",
+      "x": 38.0,
+      "y": 30.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 24.0,
+      "y": 35.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 32.0,
+      "y": 34.0,
+      "kind": "snail"
+    },
+    {
+      "type": "enemy",
+      "x": 8.0,
+      "y": 22.0,
+      "kind": "snail"
+    },
+    {
+      "type": "enemy",
+      "x": 42.0,
+      "y": 28.0,
+      "kind": "mushroom"
+    },
+    {
+      "type": "enemy",
+      "x": 37.0,
+      "y": 37.0,
+      "kind": "plant"
+    }
+  ]
+}

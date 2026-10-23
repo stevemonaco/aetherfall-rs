@@ -1,0 +1,124 @@
+{
+  "name": "Torva's Smithy",
+  "theme": "interior",
+  "music": "Menu-NobleKingdom",
+  "rows": [
+    "HHHHHHHHHH",
+    "HHHHHHHHHH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HHHHHoHHHH"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 5.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 4.0,
+      "dialogue": "torva",
+      "kind": "counter",
+      "name": "Torva"
+    },
+    {
+      "type": "npc",
+      "x": 4.0,
+      "y": 3.0,
+      "name": "Torva",
+      "dialogue": "torva",
+      "sprite": "warrior2"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "brazier",
+      "x": 7.0,
+      "y": 2.0,
+      "lit": true
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 6.0,
+      "kind": "pot"
+    },
+    {
+      "type": "warp",
+      "x": 5.0,
+      "y": 8.0,
+      "tx": 8,
+      "sound": "door",
+      "ty": 20,
+      "facing": "down",
+      "to": "leafhollow"
+    }
+  ]
+}

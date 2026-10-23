@@ -1,0 +1,63 @@
+{
+  "name": "The Concord Forge",
+  "theme": "interior",
+  "music": "Retro-EternalFountain",
+  "rows": [
+    "HHHHHHHHHHHHHH",
+    "HHHHHHHHHHHHHH",
+    "H++++++++++++H",
+    "H++++++++++++H",
+    "HooooooooooooH",
+    "HooooooooooooH",
+    "HooooooooooooH",
+    "HooooooooooooH",
+    "HooooooooooooH",
+    "HHHHHHHoHHHHHH"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 3.0,
+      "name": "Forgemaster Corvin",
+      "dialogue": "corvin",
+      "kind": "altar"
+    },
+    {
+      "type": "npc",
+      "x": 7.0,
+      "y": 5.0,
+      "sprite": "knight3",
+      "facing": "down",
+      "name": "Forgemaster Corvin",
+      "dialogue": "corvin"
+    },
+    {
+      "type": "brazier",
+      "x": 3.0,
+      "y": 3.0,
+      "lit": true
+    },
+    {
+      "type": "brazier",
+      "x": 11.0,
+      "y": 3.0,
+      "lit": true
+    },
+    {
+      "type": "save",
+      "x": 2.0,
+      "y": 7.0
+    },
+    {
+      "type": "warp",
+      "x": 7.0,
+      "y": 9.0,
+      "sound": "door",
+      "ty": 10,
+      "facing": "down",
+      "tx": 19,
+      "to": "ashford"
+    }
+  ]
+}

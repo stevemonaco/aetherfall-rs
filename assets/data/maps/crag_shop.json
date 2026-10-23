@@ -1,0 +1,118 @@
+{
+  "name": "Torvald's Forge",
+  "theme": "interior",
+  "music": "Menu-CastleMaster",
+  "rows": [
+    "HHHHHHHHHH",
+    "HHHHHHHHHH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HooooooooH",
+    "HHHHHoHHHH"
+  ],
+  "entities": [
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 2.0,
+      "kind": "shelf"
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 5.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 4.0,
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper",
+      "kind": "counter"
+    },
+    {
+      "type": "npc",
+      "x": 4.0,
+      "y": 3.0,
+      "sprite": "knight3",
+      "name": "Torvald",
+      "dialogue": "crag_shopkeeper"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 6.0,
+      "kind": "pot"
+    },
+    {
+      "type": "warp",
+      "x": 5.0,
+      "y": 8.0,
+      "sound": "door",
+      "ty": 10,
+      "facing": "down",
+      "tx": 5,
+      "to": "highcrag"
+    }
+  ]
+}

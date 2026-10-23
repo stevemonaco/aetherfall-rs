@@ -1,0 +1,101 @@
+{
+  "name": "Ember Shrine",
+  "theme": "cave",
+  "music": "Action-TragicDuel",
+  "level": 8,
+  "rows": [
+    "####################",
+    "####################",
+    "## ##__________## ##",
+    "##  ____________  ##",
+    "##________________##",
+    "#_________________##",
+    "#__________________#",
+    "#_________________##",
+    "##_______________###",
+    "#####__________#####",
+    "#########__#########",
+    "#########__#########",
+    "#########__#########",
+    "#########__#########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 9.0,
+      "y": 13.0,
+      "to": "grotto",
+      "art": "stairs_up",
+      "sound": "door",
+      "w": 2,
+      "tx": 24,
+      "ty": 5,
+      "facing": "down"
+    },
+    {
+      "type": "gate",
+      "x": 9.0,
+      "y": 11.0,
+      "open": "!boss_arena"
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 11.0,
+      "open": "!boss_arena"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 8.0,
+      "if": "!boss_warlock",
+      "w": 8,
+      "dialogue": "warlock_intro",
+      "flag": "warlock_met"
+    },
+    {
+      "type": "boss",
+      "x": 10.0,
+      "y": 4.0,
+      "defeat": [
+        "unflag:boss_arena",
+        "give:ember_crystal"
+      ],
+      "unless": "boss_warlock",
+      "flag": "boss_warlock",
+      "if": "boss_arena",
+      "kind": "warlock"
+    },
+    {
+      "type": "chest",
+      "x": 10.0,
+      "y": 4.0,
+      "item": "fire",
+      "if": "boss_warlock"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 8.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 17.0,
+      "y": 8.0,
+      "kind": "torch"
+    }
+  ]
+}

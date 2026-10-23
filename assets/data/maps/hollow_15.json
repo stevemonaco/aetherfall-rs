@@ -1,0 +1,106 @@
+{
+  "name": "The Hollow Below, floor 15",
+  "theme": "ash",
+  "music": "Boss-DangerousDuke",
+  "blightArea": "hollow",
+  "level": 90,
+  "blighted": true,
+  "rows": [
+    "##############################",
+    "##############################",
+    "#######______________________#",
+    "#######______________________#",
+    "#######__xx__________________#",
+    "#######__xxx_________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "##____#______________________#",
+    "##____#______________________#",
+    "##___________________________#",
+    "##___________________________#",
+    "#######______________________#",
+    "#######_________________xxx__#",
+    "#######_________________xxx__#",
+    "#######______________________#",
+    "#######______________________#",
+    "##############################",
+    "##############################"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 4.0,
+      "y": 13.0
+    },
+    {
+      "type": "warp",
+      "x": 2.0,
+      "y": 12.0,
+      "to": "hollow_14",
+      "facing": "left",
+      "sound": "door",
+      "tx": 41,
+      "h": 2,
+      "ty": 13,
+      "art": "stairs_up"
+    },
+    {
+      "type": "save",
+      "x": 3.0,
+      "y": 11.0
+    },
+    {
+      "type": "gate",
+      "x": 6.0,
+      "y": 13.0,
+      "open": "!run:arena:echo_sovereign"
+    },
+    {
+      "type": "gate",
+      "x": 6.0,
+      "y": 14.0,
+      "open": "!run:arena:echo_sovereign"
+    },
+    {
+      "type": "trigger",
+      "x": 7.0,
+      "y": 2.0,
+      "flag": "run:met:echo_sovereign",
+      "w": 2,
+      "dialogue": "echo_sovereign",
+      "h": 18,
+      "if": "!run:echo_sovereign"
+    },
+    {
+      "type": "boss",
+      "x": 18.0,
+      "y": 6.0,
+      "echo": true,
+      "kind": "sovereign",
+      "defeat": [
+        "unflag:run:arena:echo_sovereign",
+        "grade:hollow",
+        "flag:hollow_cp:16"
+      ],
+      "unless": "run:echo_sovereign",
+      "if": "run:arena:echo_sovereign",
+      "flag": "run:echo_sovereign"
+    },
+    {
+      "type": "warp",
+      "x": 28.0,
+      "y": 10.0,
+      "to": "hollow_16",
+      "sound": "door",
+      "h": 2,
+      "ty": 13,
+      "tx": 4,
+      "if": "run:echo_sovereign",
+      "facing": "right",
+      "art": "stairs_down"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "name": "Throne of the Sky",
+  "theme": "citadel",
+  "music": "Boss-PerilousPrince",
+  "level": 46,
+  "rows": [
+    "                      ",
+    "                      ",
+    "  __________________  ",
+    "  __++__________++__  ",
+    "  __++__________++__  ",
+    "  __________________  ",
+    "  __________________  ",
+    "  __________________  ",
+    "  __________________  ",
+    "  __________________  ",
+    "  __________________  ",
+    "  __________________  ",
+    "          __          ",
+    "          __          ",
+    "          __          ",
+    "          __          "
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 15.0,
+      "facing": "down",
+      "w": 2,
+      "ty": 3,
+      "to": "citadel_2",
+      "tx": 25,
+      "art": "stairs_down",
+      "sound": "door"
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 12.0,
+      "open": "!throne_arena"
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 12.0,
+      "open": "!throne_arena"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 10.0,
+      "flag": "sovereign_met",
+      "if": "!boss_sovereign",
+      "dialogue": "sovereign_intro",
+      "w": 10
+    },
+    {
+      "type": "boss",
+      "x": 11.0,
+      "y": 5.0,
+      "flag": "boss_sovereign",
+      "kind": "sovereign",
+      "if": "throne_arena",
+      "defeat": [
+        "unflag:throne_arena",
+        "flag:game_clear",
+        "save",
+        "ending"
+      ],
+      "unless": "boss_sovereign"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 10.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 10.0,
+      "kind": "torch"
+    }
+  ]
+}

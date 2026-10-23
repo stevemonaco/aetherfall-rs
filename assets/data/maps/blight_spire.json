@@ -1,0 +1,140 @@
+{
+  "name": "Inverted Spire",
+  "theme": "tower",
+  "music": "Retro-Dimensions",
+  "blightArea": "inverted_spire",
+  "level": 58,
+  "blighted": true,
+  "rows": [
+    "                                        ",
+    "                ________                ",
+    "                ________                ",
+    "                ________                ",
+    "                ________                ",
+    "      ____________________________      ",
+    "      ____________________________      ",
+    "      ________________________xx__      ",
+    "      ____________________________      ",
+    "      _____  _____________________      ",
+    "      _____  _____________________      ",
+    "      ____________________________      ",
+    "      ____________________________      ",
+    "      ____________________________      ",
+    "      ____________________  ______      ",
+    "      ____________________  ______      ",
+    "      ____________________________      ",
+    "      ____________________________      ",
+    "      ___xx_______________________      ",
+    "      ____________________________      ",
+    "      ____________________________      ",
+    "                ________                ",
+    "                ________                ",
+    "                ________                ",
+    "                ________                ",
+    "                                        "
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 19.0,
+      "y": 2.0
+    },
+    {
+      "type": "warp",
+      "x": 22.0,
+      "y": 2.0,
+      "to": "ashford",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "sign",
+      "x": 17.0,
+      "y": 3.0,
+      "text": "The spire hangs upside down from a black sky. The rods below strike on a beat."
+    },
+    {
+      "type": "storm",
+      "x": 8.0,
+      "y": 7.0,
+      "period": 2.2,
+      "w": 24,
+      "h": 12
+    },
+    {
+      "type": "rift",
+      "x": 8.0,
+      "y": 16.0,
+      "count": 8,
+      "id": "run_is_a",
+      "alive": 3,
+      "kinds": "stormeye,sentinel,acolyte"
+    },
+    {
+      "type": "rift",
+      "x": 31.0,
+      "y": 9.0,
+      "count": 8,
+      "id": "run_is_b",
+      "alive": 3,
+      "kinds": "crag,drone,glasswhirl"
+    },
+    {
+      "type": "gate",
+      "x": 19.0,
+      "y": 21.0,
+      "open": "rift:run_is_a,rift:run_is_b"
+    },
+    {
+      "type": "gate",
+      "x": 20.0,
+      "y": 21.0,
+      "open": "rift:run_is_a,rift:run_is_b"
+    },
+    {
+      "type": "warp",
+      "x": 19.0,
+      "y": 24.0,
+      "to": "blight_spire_2",
+      "facing": "down",
+      "sound": "door",
+      "tx": 19,
+      "art": "stairs_down",
+      "ty": 2,
+      "w": 2
+    },
+    {
+      "type": "enemy",
+      "x": 14.0,
+      "y": 8.0,
+      "kind": "stormeye"
+    },
+    {
+      "type": "enemy",
+      "x": 24.0,
+      "y": 12.0,
+      "kind": "sentinel"
+    },
+    {
+      "type": "enemy",
+      "x": 10.0,
+      "y": 14.0,
+      "kind": "acolyte"
+    },
+    {
+      "type": "enemy",
+      "x": 29.0,
+      "y": 17.0,
+      "kind": "stormeye"
+    },
+    {
+      "type": "enemy",
+      "x": 19.0,
+      "y": 15.0,
+      "kind": "crag"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "name": "Ember Shrine (blighted)",
+  "theme": "cave",
+  "music": "Action-TragicDuel",
+  "blightArea": "cinder_vault",
+  "level": 48,
+  "blighted": true,
+  "rows": [
+    "####################",
+    "####################",
+    "## ##__________## ##",
+    "##  ____________  ##",
+    "##________________##",
+    "#_________________##",
+    "#__________________#",
+    "#___xx________xx__##",
+    "##__xx________xx_###",
+    "#####__________#####",
+    "#########__#########",
+    "#########__#########",
+    "#########__#########",
+    "#########__#########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 9.0,
+      "y": 13.0,
+      "to": "blight_vault",
+      "facing": "down",
+      "sound": "door",
+      "tx": 19,
+      "art": "stairs_up",
+      "ty": 3,
+      "w": 2
+    },
+    {
+      "type": "gate",
+      "x": 9.0,
+      "y": 11.0,
+      "open": "!run:arena:echo_warlock"
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 11.0,
+      "open": "!run:arena:echo_warlock"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 8.0,
+      "flag": "run:met:echo_warlock",
+      "w": 8,
+      "dialogue": "echo_warlock",
+      "h": 1,
+      "if": "!run:echo_warlock"
+    },
+    {
+      "type": "boss",
+      "x": 10.0,
+      "y": 4.0,
+      "echo": true,
+      "kind": "warlock",
+      "defeat": [
+        "unflag:run:arena:echo_warlock",
+        "grade:cinder_vault"
+      ],
+      "unless": "run:echo_warlock",
+      "if": "run:arena:echo_warlock",
+      "flag": "run:echo_warlock"
+    },
+    {
+      "type": "chest",
+      "x": 7.0,
+      "y": 4.0,
+      "item": "ember_crown",
+      "style": 3,
+      "if": "run:echo_warlock"
+    },
+    {
+      "type": "warp",
+      "x": 13.0,
+      "y": 4.0,
+      "to": "ashford",
+      "if": "run:echo_warlock",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "decor",
+      "x": 4.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 15.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 2.0,
+      "y": 8.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 17.0,
+      "y": 8.0,
+      "kind": "torch"
+    }
+  ]
+}

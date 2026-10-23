@@ -1,0 +1,106 @@
+{
+  "name": "Spire Root",
+  "theme": "tower",
+  "music": "Action-TragicDuel",
+  "blightArea": "inverted_spire",
+  "level": 62,
+  "blighted": true,
+  "rows": [
+    "                      ",
+    " #                  # ",
+    " #__________________# ",
+    " #______________xx__# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__________________# ",
+    " #__xx______________# ",
+    " #__________________# ",
+    " #        __        # ",
+    "          __          ",
+    "          __          "
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 13.0,
+      "to": "blight_spire_2",
+      "facing": "up",
+      "sound": "door",
+      "tx": 19,
+      "art": "stairs_up",
+      "ty": 23,
+      "w": 2
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 11.0,
+      "open": "!run:arena:echo_golem"
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 11.0,
+      "open": "!run:arena:echo_golem"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 9.0,
+      "flag": "run:met:echo_golem",
+      "w": 10,
+      "dialogue": "echo_golem",
+      "h": 1,
+      "if": "!run:echo_golem"
+    },
+    {
+      "type": "boss",
+      "x": 11.0,
+      "y": 5.0,
+      "echo": true,
+      "kind": "golem",
+      "defeat": [
+        "unflag:run:arena:echo_golem",
+        "grade:inverted_spire"
+      ],
+      "unless": "run:echo_golem",
+      "if": "run:arena:echo_golem",
+      "flag": "run:echo_golem"
+    },
+    {
+      "type": "chest",
+      "x": 3.0,
+      "y": 3.0,
+      "item": "storm_greaves",
+      "style": 3,
+      "if": "run:echo_golem"
+    },
+    {
+      "type": "warp",
+      "x": 18.0,
+      "y": 9.0,
+      "to": "ashford",
+      "if": "run:echo_golem",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 2.0,
+      "kind": "torch"
+    }
+  ]
+}

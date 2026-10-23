@@ -1,0 +1,106 @@
+{
+  "name": "Serpent's Pool (blighted)",
+  "theme": "temple",
+  "music": "Action-TragicDuel",
+  "blightArea": "drowned_temple",
+  "level": 52,
+  "blighted": true,
+  "rows": [
+    "######################",
+    "######################",
+    "##__________________##",
+    "##________~~~_______##",
+    "##________~~~_______##",
+    "##___~~~sssssss~~~__##",
+    "##___~~~___s___~~~__##",
+    "##____ss~~~__~~~ss__##",
+    "##______~~~__~~~____##",
+    "##_xx____________xx_##",
+    "##__________________##",
+    "##########__##########",
+    "##########__##########",
+    "##########__##########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 13.0,
+      "to": "blight_temple",
+      "facing": "left",
+      "sound": "door",
+      "tx": 43,
+      "art": "stairs_up",
+      "ty": 15,
+      "w": 2
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 11.0,
+      "open": "!run:arena:echo_serpent"
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 11.0,
+      "open": "!run:arena:echo_serpent"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 9.0,
+      "flag": "run:met:echo_serpent",
+      "w": 10,
+      "dialogue": "echo_serpent",
+      "h": 1,
+      "if": "!run:echo_serpent"
+    },
+    {
+      "type": "boss",
+      "x": 11.0,
+      "y": 4.0,
+      "echo": true,
+      "kind": "serpent",
+      "defeat": [
+        "unflag:run:arena:echo_serpent",
+        "grade:drowned_temple"
+      ],
+      "unless": "run:echo_serpent",
+      "if": "run:arena:echo_serpent",
+      "flag": "run:echo_serpent"
+    },
+    {
+      "type": "chest",
+      "x": 3.0,
+      "y": 3.0,
+      "item": "tide_locket",
+      "style": 3,
+      "if": "run:echo_serpent"
+    },
+    {
+      "type": "warp",
+      "x": 18.0,
+      "y": 3.0,
+      "to": "ashford",
+      "if": "run:echo_serpent",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 2.0,
+      "kind": "torch"
+    }
+  ]
+}

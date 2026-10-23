@@ -1,0 +1,89 @@
+{
+  "name": "Serpent's Pool",
+  "theme": "temple",
+  "music": "Action-TragicDuel",
+  "level": 18,
+  "rows": [
+    "######################",
+    "######################",
+    "##__________________##",
+    "##________~~~_______##",
+    "##________~~~_______##",
+    "##___~~~sssssss~~~__##",
+    "##___~~~___s___~~~__##",
+    "##____ss~~~__~~~ss__##",
+    "##______~~~__~~~____##",
+    "##__________________##",
+    "##__________________##",
+    "##########__##########",
+    "##########__##########",
+    "##########__##########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 13.0,
+      "facing": "down",
+      "sound": "door",
+      "to": "temple_2",
+      "ty": 3,
+      "w": 2,
+      "art": "stairs_up",
+      "tx": 22
+    },
+    {
+      "type": "gate",
+      "x": 10.0,
+      "y": 11.0,
+      "open": "!serpent_arena"
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 11.0,
+      "open": "!serpent_arena"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 9.0,
+      "if": "!boss_serpent",
+      "flag": "serpent_met",
+      "dialogue": "serpent_intro",
+      "w": 10
+    },
+    {
+      "type": "boss",
+      "x": 11.0,
+      "y": 4.0,
+      "unless": "boss_serpent",
+      "if": "serpent_arena",
+      "defeat": [
+        "unflag:serpent_arena",
+        "give:tide_crystal"
+      ],
+      "flag": "boss_serpent",
+      "kind": "serpent"
+    },
+    {
+      "type": "chest",
+      "x": 3.0,
+      "y": 9.0,
+      "if": "boss_serpent",
+      "item": "vampire_fang"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 3.0,
+      "kind": "torch"
+    }
+  ]
+}

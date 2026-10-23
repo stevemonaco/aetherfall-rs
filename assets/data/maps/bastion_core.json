@@ -1,0 +1,107 @@
+{
+  "name": "The Warden's Hall",
+  "theme": "ruin",
+  "music": "Retro-RedChaos",
+  "level": 38,
+  "rows": [
+    "########################",
+    "########################",
+    "##____________________##",
+    "##____________________##",
+    "##__#_____________#___##",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##____________________##",
+    "##__#_____________#___##",
+    "##____________________##",
+    "##____________________##",
+    "###########__###########",
+    "###########__###########",
+    "###########__###########",
+    "###########__###########"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 11.0,
+      "y": 17.0,
+      "art": "stairs_down",
+      "sound": "door",
+      "facing": "down",
+      "tx": 19,
+      "to": "bastion_2",
+      "ty": 2,
+      "w": 2
+    },
+    {
+      "type": "gate",
+      "x": 11.0,
+      "y": 14.0,
+      "open": "!warden_arena"
+    },
+    {
+      "type": "gate",
+      "x": 12.0,
+      "y": 14.0,
+      "open": "!warden_arena"
+    },
+    {
+      "type": "trigger",
+      "x": 6.0,
+      "y": 11.0,
+      "if": "!boss_warden",
+      "w": 12,
+      "dialogue": "warden_intro",
+      "flag": "warden_met"
+    },
+    {
+      "type": "boss",
+      "x": 12.0,
+      "y": 6.0,
+      "if": "warden_arena",
+      "kind": "warden",
+      "unless": "boss_warden",
+      "defeat": [
+        "unflag:warden_arena",
+        "flag:rift:ash_forge_heart",
+        "say:The Warden's core falls silent... and with it, a great heart of fire flickers to life somewhere far below. The Concord Forge's heart is free."
+      ],
+      "flag": "boss_warden"
+    },
+    {
+      "type": "chest",
+      "x": 12.0,
+      "y": 4.0,
+      "if": "boss_warden",
+      "item": "circuit_shard",
+      "style": 3
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 20.0,
+      "y": 3.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 12.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 20.0,
+      "y": 12.0,
+      "kind": "torch"
+    }
+  ]
+}

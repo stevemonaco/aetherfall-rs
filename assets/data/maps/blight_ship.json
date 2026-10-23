@@ -1,0 +1,103 @@
+{
+  "name": "The Black Tide's Hold",
+  "theme": "interior",
+  "music": "Retro-RedChaos",
+  "blightArea": "black_tide",
+  "level": 66,
+  "blighted": true,
+  "dark": true,
+  "rows": [
+    "HHHHHHHHHHHHHHHHHHHHHH",
+    "HooooooooooooooooooooH",
+    "HooooooooooooooooooooH",
+    "HooooooooooooooooooooH",
+    "HoooHHHooooooooHHHoooH",
+    "HooooooooooooooooooooH",
+    "HooooooooooooooooooooH",
+    "HooooooooooooooooooooH",
+    "HooooooooxxxxooooooooH",
+    "HooooooooxxxxooooooooH",
+    "HooooooooooxoooooooooH",
+    "HoooHHHooooooooHHHoooH",
+    "HooooooooooooooooooooH",
+    "HooooooooooooooooooooH",
+    "HooooooooooooooooooooH",
+    "HHHHHHHHHHHHHHHHHHHHHH"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 10.0,
+      "y": 1.0,
+      "to": "blight_cove",
+      "facing": "up",
+      "sound": "door",
+      "tx": 38,
+      "art": "stairs_up",
+      "ty": 17,
+      "w": 2
+    },
+    {
+      "type": "rift",
+      "x": 11.0,
+      "y": 8.0,
+      "id": "run_bt_hold",
+      "restores": "a captain's rest",
+      "do": [
+        "grade:black_tide"
+      ],
+      "elite": "boneknight"
+    },
+    {
+      "type": "cannon",
+      "x": 2.0,
+      "y": 7.0,
+      "interval": 2.6
+    },
+    {
+      "type": "cannon",
+      "x": 19.0,
+      "y": 7.0,
+      "offset": 1.3,
+      "interval": 2.6
+    },
+    {
+      "type": "chest",
+      "x": 11.0,
+      "y": 13.0,
+      "item": "corsair_coin",
+      "style": 3,
+      "if": "rift:run_bt_hold"
+    },
+    {
+      "type": "warp",
+      "x": 3.0,
+      "y": 13.0,
+      "to": "ashford",
+      "if": "rift:run_bt_hold",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    },
+    {
+      "type": "enemy",
+      "x": 6.0,
+      "y": 9.0,
+      "kind": "skeleton"
+    },
+    {
+      "type": "enemy",
+      "x": 16.0,
+      "y": 9.0,
+      "kind": "ghost"
+    },
+    {
+      "type": "enemy",
+      "x": 11.0,
+      "y": 4.0,
+      "kind": "seashade"
+    }
+  ]
+}

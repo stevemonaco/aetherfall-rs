@@ -1,0 +1,113 @@
+{
+  "name": "The Hollow Below, floor 20",
+  "theme": "citadel",
+  "music": "Boss-DangerousDuke",
+  "blightArea": "hollow",
+  "level": 99,
+  "blighted": true,
+  "rows": [
+    "##############################",
+    "##############################",
+    "#######______________________#",
+    "#######______________________#",
+    "#######__xx__________________#",
+    "#######__xxx_________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "#######______________________#",
+    "##____#______________________#",
+    "##____#______________________#",
+    "##___________________________#",
+    "##___________________________#",
+    "#######______________________#",
+    "#######_________________xx___#",
+    "#######________________xxx___#",
+    "#######______________________#",
+    "#######______________________#",
+    "##############################",
+    "##############################"
+  ],
+  "entities": [
+    {
+      "type": "spawn",
+      "x": 4.0,
+      "y": 13.0
+    },
+    {
+      "type": "warp",
+      "x": 2.0,
+      "y": 12.0,
+      "to": "hollow_19",
+      "facing": "left",
+      "sound": "door",
+      "tx": 41,
+      "h": 2,
+      "ty": 13,
+      "art": "stairs_up"
+    },
+    {
+      "type": "save",
+      "x": 3.0,
+      "y": 11.0
+    },
+    {
+      "type": "gate",
+      "x": 6.0,
+      "y": 13.0,
+      "open": "!run:arena:concord"
+    },
+    {
+      "type": "gate",
+      "x": 6.0,
+      "y": 14.0,
+      "open": "!run:arena:concord"
+    },
+    {
+      "type": "trigger",
+      "x": 7.0,
+      "y": 2.0,
+      "flag": "run:met:concord",
+      "w": 2,
+      "dialogue": "concord_intro",
+      "h": 18,
+      "if": "!run:concord"
+    },
+    {
+      "type": "boss",
+      "x": 18.0,
+      "y": 8.0,
+      "kind": "concord",
+      "defeat": [
+        "unflag:run:arena:concord",
+        "flag:concord_slain",
+        "grade:hollow",
+        "say:The First Concord comes apart into four quiet lights, and the blight in the stone around you goes grey and still."
+      ],
+      "unless": "run:concord",
+      "flag": "run:concord",
+      "if": "run:arena:concord"
+    },
+    {
+      "type": "chest",
+      "x": 18.0,
+      "y": 6.0,
+      "item": "concord_core",
+      "style": 3,
+      "if": "run:concord"
+    },
+    {
+      "type": "warp",
+      "x": 18.0,
+      "y": 10.0,
+      "to": "ashford",
+      "if": "run:concord",
+      "facing": "down",
+      "sound": "door",
+      "tx": 12,
+      "ty": 9,
+      "art": "stairs_up"
+    }
+  ]
+}
