@@ -9,14 +9,15 @@ use serde::{Deserialize, Serialize};
 use super::arts::{self, ArtDef, ArtSlot};
 use super::circuit::{self, CircuitMods, CircuitNode};
 use super::combat::{self, CombatStats};
-use super::element::{Element, MODES};
+use super::element::{BASIC, Element, MODES};
 use super::game_data::data;
 use super::items::{self, AccessoryStats, ItemKind};
+use super::mastery;
 use super::souls;
 use crate::core::direction::Direction;
 use crate::core::storage;
 
-pub const SAVE_VERSION: i32 = 2;
+pub const SAVE_VERSION: i32 = 3;
 pub const SLOT_COUNT: i32 = 3;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -33,7 +34,10 @@ pub struct GameState {
     pub hp: i32,
     pub sp: f32,
     pub gold: i32,
-    pub swords: Vec<String>,
+    /// Element keys of the sigils set into the blade.
+    pub sigils: Vec<String>,
+    /// Mastery experience per mode key.
+    pub mastery: BTreeMap<String, i32>,
     pub mode: Element,
     pub smith_level: i32,
     pub inventory: BTreeMap<String, i32>,
@@ -55,6 +59,14 @@ pub struct GameState {
     /// Blight soaked up from blighted ground (0 to 50): a percentage taken off max life until cleansed.
     #[serde(skip)]
     pub corruption: f32,
+    /// The Aether Resonance gauge (0 to 100), filled by striking weaknesses.
+    #[serde(skip)]
+    pub resonance: f32,
+    /// Seconds left in an Aether burst, and the mode to return to when it ends.
+    #[serde(skip)]
+    pub burst_time: f32,
+    #[serde(skip)]
+    pub burst_return: Element,
     #[serde(skip)]
     mods: RefCell<Option<CircuitMods>>,
 }
@@ -73,7 +85,8 @@ impl Default for GameState {
             hp: 0,
             sp: 0.0,
             gold: 0,
-            swords: Vec::new(),
+            sigils: Vec::new(),
+            mastery: BTreeMap::new(),
             mode: Element::None,
             smith_level: 0,
             inventory: BTreeMap::new(),
@@ -93,6 +106,9 @@ impl Default for GameState {
             kills: BTreeMap::new(),
             play_time: 0.0,
             corruption: 0.0,
+            resonance: 0.0,
+            burst_time: 0.0,
+            burst_return: Element::None,
             mods: RefCell::new(None),
         }
     }
@@ -185,25 +201,66 @@ impl GameState {
         ["ember_crystal", "tide_crystal", "storm_crystal"].iter().filter(|c| self.has(c)).count() as i32
     }
 
-    /// The blade's power: the best sword owned, improved by the smith.
-    pub fn weapon_atk(&self) -> f32 {
-        let best = self.swords.iter().filter_map(|id| items::sword(id)).map(|s| s.atk).max().unwrap_or(3);
-        best as f32 * (1.0 + 0.08 * self.smith_level as f32)
+    /// The blade's power in a mode: grows with level and that mode's mastery, improved by the smith. Aether draws on
+    /// the most mastered element.
+    pub fn weapon_atk(&self, mode: Element) -> f32 {
+        let mastery = if mode == Element::Aether {
+            BASIC.iter().map(|&e| self.mastery_level(e)).max().unwrap_or(0) + 1
+        } else {
+            self.mastery_level(mode)
+        };
+        mastery::blade_power(self.level, mastery) * (1.0 + 0.08 * self.smith_level as f32)
     }
 
+    pub fn has_sigil(&self, element: Element) -> bool {
+        self.sigils.iter().any(|s| s == element.key())
+    }
+
+    pub fn aether_awakened(&self) -> bool {
+        self.flags.contains("aether_awakened")
+    }
+
+    pub fn resonance_full(&self) -> bool {
+        self.resonance >= 100.0
+    }
+
+    /// Modes the player can switch to now. Aether only appears while its burst is ready or running.
     pub fn available_modes(&self) -> Vec<Element> {
         MODES
             .iter()
             .copied()
-            .filter(|&m| {
-                m == Element::None || self.swords.iter().any(|s| items::sword(s).is_some_and(|d| d.element == m))
+            .filter(|&m| match m {
+                Element::None => true,
+                Element::Aether => {
+                    self.aether_awakened() && (self.resonance_full() || self.mode == Element::Aether)
+                }
+                e => self.has_sigil(e),
             })
             .collect()
     }
 
+    pub fn mastery_xp(&self, mode: Element) -> i32 {
+        self.mastery.get(mode.key()).copied().unwrap_or(0)
+    }
+
+    pub fn mastery_level(&self, mode: Element) -> i32 {
+        mastery::level(self.mastery_xp(mode))
+    }
+
+    /// Adds mastery experience to a mode and returns its new level if it went up.
+    pub fn add_mastery(&mut self, mode: Element, xp: i32) -> Option<i32> {
+        if !mastery::trains(mode) || xp <= 0 {
+            return None;
+        }
+        let before = self.mastery_level(mode);
+        *self.mastery.entry(mode.key().to_string()).or_default() += xp;
+        let after = self.mastery_level(mode);
+        (after > before).then_some(after)
+    }
+
     pub fn atk(&self, mode: Element) -> f32 {
         let mods = self.mods();
-        (combat::player_base_atk(self.level) + self.weapon_atk())
+        (combat::player_base_atk(self.level) + self.weapon_atk(mode))
             * self.acc().atk
             * combat::mode_mods(mode).atk
             * mods.atk
@@ -299,20 +356,16 @@ impl GameState {
 
     /// Adds an item and returns how many actually fit (consumables are capped).
     pub fn give(&mut self, id: &str, count: i32) -> i32 {
-        if let Some(sword) = items::sword(id) {
-            if !self.swords.iter().any(|s| s == id) {
-                self.swords.push(id.to_string());
+        if let Some(sigil) = items::sigil(id) {
+            if !self.has_sigil(sigil.element) {
+                self.sigils.push(sigil.element.key().to_string());
             }
             let melee: Vec<&str> =
-                arts::for_element(sword.element).filter(|a| a.slot == ArtSlot::Melee).map(|a| a.id).collect();
+                arts::for_element(sigil.element).filter(|a| a.slot == ArtSlot::Melee).map(|a| a.id).collect();
             for art in melee {
                 self.learn(art);
             }
-            let node = format!("{}_melee", sword.element.key());
-            if circuit::by_id(&node).is_some() {
-                self.unlock(&node);
-            }
-            self.mode = sword.element;
+            self.mode = sigil.element;
             return 1;
         }
         if let Some(soul) = id.strip_prefix("soul_").filter(|s| souls::get(s).is_some()) {
@@ -426,13 +479,13 @@ impl GameState {
 
     pub fn has(&self, id: &str) -> bool {
         self.count(id) > 0
-            || self.swords.iter().any(|s| s == id)
+            || items::sigil(id).is_some_and(|s| self.has_sigil(s.element))
             || self.equipment.iter().any(|e| e == id)
             || self.learned_arts.contains(id)
             || id.strip_prefix("soul_").is_some_and(|s| self.souls_owned.iter().any(|o| o == s))
     }
 
-    /// Evaluates a condition such as `"met_elder,!has:wind"`: comma-separated terms that must all hold. A bare word is a
+    /// Evaluates a condition such as `"met_elder,!has:wind_sigil"`: comma-separated terms that must all hold. A bare word is a
     /// story flag; `has:` checks the inventory, `level:` a minimum level, `gold:` a minimum purse and `crystals:` how
     /// many great crystals are held.
     pub fn check(&self, condition: Option<&str>) -> bool {

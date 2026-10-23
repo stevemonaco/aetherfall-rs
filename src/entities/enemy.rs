@@ -27,6 +27,7 @@ use crate::entity_base;
 use crate::gameplay::combat::{self, CombatStats, DamageResult, Faction, Hit, HitKind};
 use crate::gameplay::element::{BASIC, Element};
 use crate::gameplay::game_data::{AttackDef, EnemyDef, data};
+use crate::gameplay::mastery;
 use crate::gameplay::pacts;
 use crate::gameplay::status::{Ailment, StatusSet};
 use crate::scenes::world::{KillInfo, World};
@@ -86,6 +87,7 @@ pub struct Enemy {
     revived: bool,
     last_art: bool,
     last_element: Element,
+    last_weak: bool,
     blight_mark: Element,
     aura_element: Element,
     facing_right: bool,
@@ -140,6 +142,7 @@ impl Enemy {
             revived: false,
             last_art: false,
             last_element: Element::None,
+            last_weak: false,
             blight_mark: Element::None,
             aura_element: Element::parse(aura),
             facing_right: false,
@@ -779,7 +782,7 @@ impl Enemy {
 
         if self.aura
             && hit.kind != HitKind::Environment
-            && (element == self.aura_element.opposite() || element == Element::Aether)
+            && element == self.aura_element.opposite()
         {
             self.aura = false;
             audio::play(Sound::Break, 0.8, 0.3);
@@ -838,6 +841,7 @@ impl Enemy {
         }
 
         self.last_element = element;
+        self.last_weak = hit.is_player() && element_mod > 1.0;
         self.last_art = hit.kind == HitKind::Art;
         self.damage(world, resolved.amount, element, resolved.crit, if element_mod > 1.0 { "!" } else { "" });
         self.flash = 0.12;
@@ -1021,10 +1025,11 @@ impl Enemy {
         safe_normalize(from - self.base.pos).dot(facing) > 0.3
     }
 
+    /// The element an Aether strike takes: this foe's weakest among the elements mastered well enough, else neutral.
     fn best_element_against(&self, world: &World) -> Element {
-        let mut best = Element::Wind;
+        let mut best = Element::None;
         let mut best_mod = -1.0;
-        for e in BASIC {
+        for e in BASIC.into_iter().filter(|&e| world.state.mastery_level(e) >= mastery::ADEPT) {
             let m = self.def.resist_to(e);
             if m > best_mod || (m == best_mod && world.rng.next_f32() < 0.5) {
                 best = e;
@@ -1135,6 +1140,8 @@ impl Enemy {
             pos: self.base.pos,
             boss: self.boss.is_some(),
             blighted: self.blighted,
+            element: self.last_element,
+            weakness: self.last_weak,
         }
     }
 

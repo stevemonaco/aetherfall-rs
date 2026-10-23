@@ -1,10 +1,9 @@
-//! Items, equipment and swords (ported from Items.cs).
+//! Items, equipment and sigils.
 
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use super::element::Element;
-use crate::core::color::Rgba;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ItemKind {
@@ -38,6 +37,7 @@ pub struct AccessoryStats {
     pub perfect_window: f32,
     pub auto_revive: bool,
     pub blight_taken: f32,
+    pub mastery: f32,
 }
 
 impl AccessoryStats {
@@ -59,6 +59,7 @@ impl AccessoryStats {
         perfect_window: 0.0,
         auto_revive: false,
         blight_taken: 1.0,
+        mastery: 1.0,
     };
 
     pub fn combine(a: &AccessoryStats, b: &AccessoryStats) -> AccessoryStats {
@@ -80,6 +81,7 @@ impl AccessoryStats {
             perfect_window: a.perfect_window + b.perfect_window,
             auto_revive: a.auto_revive || b.auto_revive,
             blight_taken: a.blight_taken * b.blight_taken,
+            mastery: a.mastery * b.mastery,
         }
     }
 }
@@ -177,6 +179,8 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { gold: 1.6, ..N }),
         item("scholar_lens", "Scholar's Lens", Accessory, 0, 0, "Gain 30% more experience.")
             .with_acc(AccessoryStats { exp: 1.3, ..N }),
+        item("mentor_ribbon", "Mentor's Ribbon", Accessory, 450, 0, "Element mastery grows 50% faster.")
+            .with_acc(AccessoryStats { mastery: 1.5, ..N }),
         item("sage_pendant", "Sage Pendant", Accessory, 600, 0, "Gain SP 40% faster.")
             .with_acc(AccessoryStats { sp_gain: 1.4, ..N }),
         item("vampire_fang", "Vampire Fang", Accessory, 0, 0, "Recover 3% life per defeated foe.")
@@ -323,39 +327,30 @@ pub fn all() -> &'static [ItemDef] {
     &ITEM_LIST
 }
 
-/// A sword: unlocks an element mode and sets the blade's base power.
+/// A sigil set into the Aether Blade's hilt: unlocks an element mode.
 #[derive(Clone, Copy, Debug)]
-pub struct SwordDef {
+pub struct SigilDef {
     pub id: &'static str,
     pub name: &'static str,
     pub element: Element,
-    pub atk: i32,
-    pub blade: Rgba,
 }
 
-pub const SWORDS: [SwordDef; 5] = [
-    SwordDef { id: "wind", name: "Sword of Wind", element: Element::Wind, atk: 8, blade: Rgba::rgb(214, 246, 236) },
-    SwordDef { id: "fire", name: "Sword of Fire", element: Element::Fire, atk: 18, blade: Rgba::rgb(255, 214, 140) },
-    SwordDef { id: "water", name: "Sword of Water", element: Element::Water, atk: 32, blade: Rgba::rgb(200, 230, 255) },
-    SwordDef {
-        id: "thunder",
-        name: "Sword of Thunder",
-        element: Element::Thunder,
-        atk: 48,
-        blade: Rgba::rgb(255, 250, 190),
-    },
-    SwordDef { id: "aether", name: "Aether Blade", element: Element::Aether, atk: 70, blade: Rgba::rgb(255, 220, 255) },
+pub const SIGILS: [SigilDef; 4] = [
+    SigilDef { id: "wind_sigil", name: "Sigil of Wind", element: Element::Wind },
+    SigilDef { id: "fire_sigil", name: "Sigil of Fire", element: Element::Fire },
+    SigilDef { id: "water_sigil", name: "Sigil of Water", element: Element::Water },
+    SigilDef { id: "thunder_sigil", name: "Sigil of Thunder", element: Element::Thunder },
 ];
 
-pub fn sword(id: &str) -> Option<&'static SwordDef> {
-    SWORDS.iter().find(|s| s.id == id)
+pub fn sigil(id: &str) -> Option<&'static SigilDef> {
+    SIGILS.iter().find(|s| s.id == id)
 }
 
 pub fn name_of(id: &str) -> String {
     if let Some(i) = get(id) {
         return i.name.to_string();
     }
-    if let Some(s) = sword(id) {
+    if let Some(s) = sigil(id) {
         return s.name.to_string();
     }
     if let Some(a) = super::arts::get(id) {

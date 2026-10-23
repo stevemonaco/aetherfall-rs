@@ -960,11 +960,11 @@ pub fn icon(id: &str) -> TexId {
                 cv.set(5, 7, Rgba::WHITE);
             }
             _ => {
-                if let Some(sword) = items::sword(id) {
-                    cv.line(2, 9, 9, 2, sword.blade)
-                        .line(3, 9, 10, 2, sword.element.dark())
-                        .line(1, 7, 4, 10, c(0xE8C050))
-                        .line(1, 10, 2, 11, WOOD[2]);
+                if let Some(sigil) = items::sigil(id) {
+                    let (glow, dark) = (sigil.element.glow(), sigil.element.dark());
+                    cv.circle(6.0, 6.0, 5.0, dark).circle(6.0, 6.0, 3.5, glow);
+                    cv.line(6, 3, 6, 9, glow.lerp(Rgba::WHITE, 0.6)).line(3, 6, 9, 6, glow.lerp(Rgba::WHITE, 0.6));
+                    cv.set(6, 6, Rgba::WHITE);
                 } else {
                     cv.circle(6.0, 6.0, 4.0, if id == "blight_core" { c(0x8030A0) } else { Rgba::GRAY });
                 }

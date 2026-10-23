@@ -29,7 +29,9 @@ use crate::core::gfx::{self, Batch, TexId};
 use crate::core::input::{self, ACTION_COUNT, GameAction, RawInput};
 use crate::core::settings;
 use crate::entities::boss;
+use crate::gameplay::element::MODES;
 use crate::gameplay::game_data::{IMAGE_FILES, data};
+use crate::gameplay::mastery;
 use crate::gameplay::game_state::{self, GameState};
 use crate::scenes::scene::SceneManager;
 use crate::scenes::title::TitleScene;
@@ -50,6 +52,10 @@ pub struct LaunchOptions {
     pub at: Option<(i32, i32)>,
     pub give: Vec<String>,
     pub level: Option<i32>,
+    /// Sets every mode's mastery to this level.
+    pub mastery: Option<i32>,
+    /// Starts with a full Aether Resonance gauge.
+    pub resonance: bool,
     pub flags: Vec<String>,
     pub script: Option<String>,
     pub fuzz: Option<u64>,
@@ -78,6 +84,8 @@ impl LaunchOptions {
                 .and_then(|v| v.split_once(',').and_then(|(x, y)| Some((x.parse().ok()?, y.parse().ok()?))));
             options.give = list("--give");
             options.level = value("--level").and_then(|v| v.parse().ok());
+            options.mastery = value("--mastery").and_then(|v| v.parse().ok());
+            options.resonance = args.iter().any(|a| a == "--resonance");
             options.flags = list("--flags");
             options.script = value("--script");
             options.fuzz = value("--fuzz").and_then(|v| v.parse().ok());
@@ -350,6 +358,14 @@ fn finish_loading(world: &mut bevy::prelude::World) {
         }
         for item in &options.give {
             state.give(item, 1);
+        }
+        if let Some(level) = options.mastery {
+            for mode in MODES.into_iter().filter(|&m| mastery::trains(m)) {
+                state.mastery.insert(mode.key().to_string(), mastery::xp_for(level));
+            }
+        }
+        if options.resonance {
+            state.resonance = 100.0;
         }
         for flag in &options.flags {
             match flag.strip_prefix("pact:") {
@@ -731,7 +747,7 @@ fn take_shot(
                 s.mode
             );
             println!("DUMP flags={:?}", s.flags);
-            println!("DUMP inventory={:?} swords={:?} equipment={:?}", s.inventory, s.swords, s.equipment);
+            println!("DUMP inventory={:?} sigils={:?} mastery={:?} equipment={:?}", s.inventory, s.sigils, s.mastery, s.equipment);
         }
         commands.spawn(Screenshot::primary_window()).observe(save_to_disk(path));
     }

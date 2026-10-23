@@ -15,14 +15,14 @@
   ],
 
   "elder": [
-    { "if": "!has:wind", "speaker": "Elder Orin", "lines": [
+    { "if": "!has:wind_sigil", "speaker": "Elder Orin", "lines": [
         "Ah... so the vault has finally opened. Welcome back to the waking world, child.",
-        "You slept a hundred years beneath Leafhollow. Before the Aetherfall, the Concord sealed you there with a blade meant for one who would wake.",
-        "Take it: the Sword of Wind. Each sword the Concord forged holds an element. Hold one and you can fight in its mode.",
+        "You slept a hundred years beneath Leafhollow. Before the Aetherfall, the Concord sealed you there with that blade in your hands: the Aether Blade. It sleeps as deeply as you did.",
+        "Its hilt has four sockets, one for each of the Concord's sigils. Each sigil wakes an element in the blade. Take this one, kept here since the fall: the Sigil of Wind.",
         "Something else came down with the sky-cities. Rifts: tears in the world that pour out monsters. When they opened they swallowed half of Leafhollow. Our smith, our healer, even the shrine's light.",
         "Seal the rifts and what they took may come back. There is one in the north meadow of the fields, and another deep in the Mossy Grotto."
       ],
-      "do": [ "give:wind", "quest:silent_village", "flag:met_elder" ] },
+      "do": [ "give:wind_sigil", "quest:silent_village", "flag:met_elder" ] },
     { "if": "rift:leaf_herbalist,rift:leaf_smith,!silent_village_done", "speaker": "Elder Orin", "lines": [
         "Hazel's apothecary, standing again. Torva hammering at her anvil. I'd begun to forget the sound.",
         "It's as I hoped: what the rifts take, they can be made to give back. Take this. The Concord left it in the vault with you."
@@ -60,19 +60,19 @@
   ],
 
   "guard": [
-    { "if": "!has:wind", "speaker": "Guard Hal", "lines": [
-        "Halt! Monsters roam the fields beyond the gate. I can't let you pass without a proper blade.",
+    { "if": "!has:wind_sigil", "speaker": "Guard Hal", "lines": [
+        "Halt! Monsters roam the fields beyond the gate. Sleeping blade or not, I can't let you through on your own say-so.",
         "Speak with Elder Orin. His house is the one with the blue roof."
       ] },
     { "if": "!boss_warlock", "speaker": "Guard Hal", "lines": [
         "So the Elder armed you. A word from an old soldier: don't trade blows. Dodge through an attack just as it lands and you'll come out unharmed.",
         "And when something winds up a big swing, raise your guard right as it falls. Time it well and you'll knock it off its feet."
       ] },
-    { "speaker": "Guard Hal", "lines": [ "A Sword of Fire! Those vines in the village corner won't stand a chance. Mind the tall grass, though. It goes up fast." ] }
+    { "speaker": "Guard Hal", "lines": [ "Your blade burns now! Those vines in the village corner won't stand a chance. Mind the tall grass, though. It goes up fast." ] }
   ],
 
   "mira": [
-    { "if": "!has:wind", "speaker": "Mira", "lines": [ "You're the sleeper from the vault? Everyone in Leafhollow is talking about you! The Elder's been waiting." ] },
+    { "if": "!has:wind_sigil", "speaker": "Mira", "lines": [ "You're the sleeper from the vault? Everyone in Leafhollow is talking about you! The Elder's been waiting." ] },
     { "if": "!quest:shrine_light", "speaker": "Mira", "lines": [
         "See that old shrine by the eastern hedge? It used to glow at night. Sage Elm tended it, until a rift opened by the cliffs in the fields and took him.",
         "If you ever close that one... I'd love to see the shrine light up again."
@@ -90,7 +90,7 @@
   ],
 
   "hunter": [
-    { "if": "!has:wind", "speaker": "Wren", "lines": [ "Hm? Sorry. I'm waiting for someone." ] },
+    { "if": "!has:wind_sigil", "speaker": "Wren", "lines": [ "Hm? Sorry. I'm waiting for someone." ] },
     { "if": "!quest:wren_hound", "speaker": "Wren", "lines": [
         "My hound, Bramble, chased something into the south-west corner of the fields and never came back. That's thorn country now.",
         "Thorns don't care about blades. They'd need fire. If you ever find a way through, look for her?"
@@ -124,7 +124,7 @@
   ],
 
   "shopkeeper": [
-    { "if": "has:wind,!quest:brindle_gel", "speaker": "Brindle", "lines": [
+    { "if": "has:wind_sigil,!quest:brindle_gel", "speaker": "Brindle", "lines": [
         "Welcome to Brindle's Goods! Say, you look handy. The slimes out in the fields leave a gel behind when they burst.",
         "Bring me three and I'll make it worth your while. Torva swears by the stuff for tempering."
       ],
@@ -137,7 +137,7 @@
   "torva": [
     { "if": "!torva_met", "speaker": "Torva", "lines": [
         "Ha! Out of the dark and back at my own anvil. I owe you, sleeper.",
-        "That Concord blade of yours: every sword you carry shares one edge, and I can temper it.",
+        "That Concord blade of yours: whatever sigil it burns with, it's one edge, and I can temper it.",
         "Bring gold and what the beasts leave behind. Gel, fangs, shards. I'll do the rest."
       ],
       "do": [ "flag:torva_met", "smith:3" ] },
@@ -164,7 +164,7 @@
   ],
 
   "bridgewarden": [
-    { "if": "!has:wind", "speaker": "Bridgewarden Oda", "lines": [ "Nothing to see. Just a stream and an old bridge that isn't there." ] },
+    { "if": "!has:wind_sigil", "speaker": "Bridgewarden Oda", "lines": [ "Nothing to see. Just a stream and an old bridge that isn't there." ] },
     { "if": "!rift:leaf_bridge,!quest:old_bridge", "speaker": "Bridgewarden Oda", "lines": [
         "I keep the west bridge. Kept it, I should say. The night the rifts opened it just... wasn't there.",
         "Folk say something big lairs in a rift in the grotto's western chamber, behind the iron bars. If the bridge went anywhere, it went there."
@@ -358,17 +358,17 @@
         "This altar was the Concord's stair to their sky-city. Three sockets: fire, tide and storm.",
         "The fourth crystal, wind, never fell. It is still up there, with whoever rules the Citadel now."
       ] },
-    { "if": "crystals:3,!has:aether", "speaker": "Altar Keeper", "lines": [
+    { "if": "crystals:3,!aether_awakened", "speaker": "Altar Keeper", "lines": [
         "All three crystals, and still the stair stays shut. The Concord sealed it in Aether, the four elements woven as one.",
-        "They forged such blades in the crater east of here, where their first city fell. If any of their forge still stands, it's there."
+        "Your blade could carry it, if it ever woke fully. The Concord's forge lay in the crater east of here, where their first city fell. If any of it still stands, it's there."
       ] },
     { "speaker": "Altar Keeper", "lines": [ "The Aether Blade... Place the crystals in the altar, and the sky will open for you. Be ready: the Citadel will not welcome you." ] }
   ],
 
   "sky_altar": [
-    { "if": "crystals:3,!has:aether", "speaker": "", "lines": [
+    { "if": "crystals:3,!aether_awakened", "speaker": "", "lines": [
         "You set the three crystals into their sockets. They glow... and the light stalls, as if pressing against a lid.",
-        "Carved beneath the sockets: \"The stair is sealed in Aether. Bring the blade of the whole sky.\""
+        "Carved beneath the sockets: \"The stair is sealed in Aether. Bring the blade awake.\""
       ] },
     { "if": "crystals:3", "speaker": "", "lines": [
         "You set the three crystals into their sockets. Fire, tide and storm blaze to life...",
@@ -500,7 +500,7 @@
     { "speaker": "", "lines": [
         "At the bottom of the Hollow, a ring of white stone turns slowly in the dark. Four sockets. One heart, beating violet.",
         "THE FIRST CONCORD: WE BOUND THE ELEMENTS, SO THAT NO ONE WOULD EVER HAVE TO. THEN THE BINDING ROTTED, AND WE WITH IT.",
-        "THE LAST SLEEPER. CARRYING ALL FIVE BLADES. GOOD. YOU WILL MAKE A FINE SIXTH."
+        "THE LAST SLEEPER. CARRYING OUR BLADE, ALL FOUR SIGILS BURNING. GOOD. YOU WILL MAKE A FINE FIFTH."
       ], "do": [ "flag:run:arena:concord", "music:Boss-DangerousDuke" ] }
   ],
 
@@ -546,16 +546,16 @@
   ],
 
   "corvin": [
-    { "if": "!has:aether,!has:thunder", "speaker": "Forgemaster Corvin", "lines": [ "The forge burns, but I need all four of the Concord's blades to make what you need: wind, fire, water and thunder." ] },
-    { "if": "!has:aether", "speaker": "Forgemaster Corvin", "lines": [
+    { "if": "!aether_awakened,!has:thunder_sigil", "speaker": "Forgemaster Corvin", "lines": [ "The forge burns, but your blade is missing sigils. It needs all four set in its hilt before I can wake it: wind, fire, water and thunder." ] },
+    { "if": "!aether_awakened", "speaker": "Forgemaster Corvin", "lines": [
         "Bellows, anvil, heart. A hundred years cold, and she sings like she was lit yesterday.",
-        "Give me your four blades, sleeper. The Concord made them to be one. They only needed a forge that remembered how."
+        "Give me your blade, sleeper. Four sigils burning in one hilt. The Concord made it to wake here; it only needed a forge that remembered how."
       ],
-      "ask": "Let Corvin fuse the four swords into one?",
-      "yes": [ "give:aether", "flag:aether_forged", "music:Retro-EternalFountain" ],
+      "ask": "Let Corvin awaken the Aether Blade?",
+      "yes": [ "flag:aether_awakened", "music:Retro-EternalFountain" ],
       "yesLines": [
-        "Wind, fire, water and thunder fold into one another under the hammer. The steel comes out every color and no color at all.",
-        "\"There. The Aether Blade. Every element at once, and whichever your foe fears most finds it first. Its Arts are in the Circuit; it has no overload, but it drinks your spirit while you wield it.\""
+        "The four sigils flare under the hammer and run together along the edge. The steel comes out every color and no color at all.",
+        "\"There. Awake at last. Strike your foes where they're weak and the blade drinks it in. When it's full, call the Aether and every element you've truly mastered answers at once. It won't last; nothing that bright does.\""
       ],
       "noLines": [ "When you're ready." ] },
     { "speaker": "Forgemaster Corvin", "lines": [ "Bring me blight cores and I'll push that blade past anything the Concord dreamed of." ], "do": [ "smith:10" ] }

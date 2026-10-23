@@ -39,6 +39,7 @@ const FALL_DURATION: f32 = 0.7;
 const SWING_DELAY: f32 = 0.12;
 const FULL_CHARGE: f32 = 0.55;
 const SWING_LENGTH: [f32; 3] = [0.24, 0.24, 0.34];
+const AETHER_BURST: f32 = 8.0;
 
 pub struct Player {
     base: EntityBase,
@@ -671,10 +672,10 @@ impl Player {
             }
         }
         if Self::mode(world) == Element::Aether && !world.input_locked() {
-            world.state.sp = (world.state.sp - 3.0 * dt).max(0.0);
-            if world.state.sp <= 0.0 {
-                self.switch_mode(world, Element::None);
-                world.toast("Your spirit runs dry; the Aether Blade falls quiet.");
+            world.state.burst_time -= dt;
+            world.state.resonance = (100.0 * world.state.burst_time / AETHER_BURST).max(0.0);
+            if world.state.burst_time <= 0.0 {
+                self.end_burst(world);
             }
         }
         self.overload_idle += dt;
@@ -871,9 +872,9 @@ impl Player {
     }
 
     pub fn switch_mode(&mut self, world: &mut World, mode: Element) {
-        if mode == Element::Aether && world.state.sp < 50.0 {
+        if mode == Element::Aether && !world.state.resonance_full() {
             audio::sfx(Sound::MenuCancel);
-            world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Not enough spirit", palette::TEXT_DIM));
+            world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Resonance low", palette::TEXT_DIM));
             return;
         }
         if self.overheat > 0.0 && mode != Element::None {
@@ -881,11 +882,31 @@ impl Player {
             world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Overheated!", palette::TEXT_DIM));
             return;
         }
+        let from = world.state.mode;
+        if from == Element::Aether {
+            world.state.burst_time = 0.0;
+            world.state.resonance = 0.0;
+        } else if mode == Element::Aether {
+            world.state.burst_time = AETHER_BURST;
+            world.state.burst_return = from;
+            world.flash(Element::Aether.glow(), 0.25);
+        }
         world.state.mode = mode;
         self.mode_flash = 0.35;
         audio::play(Sound::ChargeLevel, 0.5, if mode == Element::None { -0.3 } else { 0.2 });
         Particle::burst(world, self.center(), mode.glow(), 14, 50.0, 0.4, true);
         world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), mode.label(), mode.glow()));
+    }
+
+    fn end_burst(&mut self, world: &mut World) {
+        let back = world.state.burst_return;
+        world.state.burst_time = 0.0;
+        world.state.resonance = 0.0;
+        world.state.mode = if self.overheat > 0.0 { Element::None } else { back };
+        self.mode_flash = 0.35;
+        audio::play(Sound::ChargeLevel, 0.5, -0.4);
+        Particle::burst(world, self.center(), Element::Aether.glow(), 14, 50.0, 0.4, true);
+        world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Aether fades", Element::Aether.glow()));
     }
 
     // ---- Melee --------------------------------------------------------------------------------------------------
@@ -1379,6 +1400,12 @@ impl Player {
             _ => 2.0,
         };
         world.add_sp(sp);
+        if hit.result.element_mod > 1.0 {
+            world.add_resonance(match hit.kind {
+                HitKind::Melee | HitKind::Bolt | HitKind::Art => 3.0,
+                _ => 5.0,
+            });
+        }
         if hit.element != Element::None {
             self.add_overload(world, hit.kind);
         }

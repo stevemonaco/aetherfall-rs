@@ -374,6 +374,9 @@ impl BossBrain for ConcordBrain {
             Phase::Unbound => hit.element != Element::Aether,
         };
         if sealed {
+            if self.phase == Phase::Unbound {
+                world.add_resonance(6.0);
+            }
             audio::play(Sound::Clink, 0.8, 0.4);
             Particle::burst(world, Self::core(enemy), attuned.glow(), 4, 40.0, 0.2, true);
             if hit.projectile {

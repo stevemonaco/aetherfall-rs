@@ -397,9 +397,9 @@
       "w": 2,
       "tx": 27,
       "facing": "down",
-      "blocked": "Guard Hal: Halt! It's too dangerous out there without a proper blade. Go see the Elder.",
+      "blocked": "Guard Hal: Halt! It's too dangerous out there. Go see the Elder first.",
       "ty": 1,
-      "if": "has:wind"
+      "if": "has:wind_sigil"
     }
   ]
 }

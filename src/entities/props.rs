@@ -140,7 +140,7 @@ impl Chest {
     pub fn new(data: &EntityData, map_id: &str) -> Chest {
         let pos = tile_center(data.x as i32, data.y as i32) + Vec2::new(0.0, 7.0);
         let item = data.str("item").map(str::to_string);
-        let sword = item.as_deref().is_some_and(|i| items::sword(i).is_some());
+        let sigil = item.as_deref().is_some_and(|i| items::sigil(i).is_some());
         Chest {
             base: EntityBase { pos, solid: true, width: 14.0, height: 8.0, ..EntityBase::default() },
             flag: data
@@ -150,7 +150,7 @@ impl Chest {
             item,
             count: data.int("count", 1),
             gold: data.int("gold", 0),
-            style: data.int("style", if sword { 3 } else { 0 }),
+            style: data.int("style", if sigil { 3 } else { 0 }),
             open_time: -1.0,
         }
     }

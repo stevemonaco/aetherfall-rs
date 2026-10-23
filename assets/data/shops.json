@@ -9,7 +9,7 @@
   },
   "brinewatch": {
     "greeting": "Fresh from the lake!",
-    "items": [ "herb", "potion", "spirit_tonic", "cooling_salve", "scale_armor", "coral_shield", "power_charm", "fortune_coin" ]
+    "items": [ "herb", "potion", "spirit_tonic", "cooling_salve", "scale_armor", "coral_shield", "power_charm", "fortune_coin", "mentor_ribbon" ]
   },
   "highcrag": {
     "greeting": "Fresh from the forge!",

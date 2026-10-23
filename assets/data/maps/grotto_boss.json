@@ -70,7 +70,7 @@
       "type": "chest",
       "x": 10.0,
       "y": 4.0,
-      "item": "fire",
+      "item": "fire_sigil",
       "if": "boss_warlock"
     },
     {

@@ -286,10 +286,11 @@ impl BossBrain for SovereignBrain {
             return None;
         }
         audio::play(Sound::Clink, 0.8, 0.5);
+        world.add_resonance(6.0);
         if !self.aether_warned {
             self.aether_warned = true;
             world.show_message(
-                "Sovereign Vael: The elements bow to me now. Only the whole Aether could reach me... and the Concord took that to its grave!",
+                "Sovereign Vael: The elements bow to me now. Only the whole Aether could reach me... and the Concord took that to its grave! (Your blade drinks in the light he sheds. Fill it and call the Aether.)",
             );
         }
         Some(true)

@@ -56,6 +56,14 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
     let emblem_tint =
         if player.overheated() && (player.overheat_time() * 6.0) as i32 % 2 == 0 { Rgba::GRAY } else { Rgba::WHITE };
     batch.draw(art::emblem(mode), Vec2::new(x as f32, y as f32), emblem_tint);
+    if state.aether_awakened() {
+        let full = state.resonance_full() && mode != Element::Aether;
+        let color = if full && blink(world, 0.2) { Rgba::WHITE } else { Element::Aether.glow() };
+        let height = (16.0 * state.resonance / 100.0).round() as i32;
+        batch.fill(IRect::new(x - 5, y, 4, 18), palette::OUTLINE);
+        batch.fill(IRect::new(x - 4, y + 1, 2, 16), Element::Aether.dark());
+        batch.fill(IRect::new(x - 4, y + 17 - height, 2, height), color);
+    }
 
     let bx = x + 22;
     bar(batch, bx, y + 2, 118, 6, state.hp as f32 / state.max_hp() as f32, palette::LIFE);

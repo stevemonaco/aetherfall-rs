@@ -67,12 +67,12 @@
     ]
   },
   "cold_forge": {
-    "title": "The Cold Forge", "giver": "Quartermaster Ines", "region": "The Ashen Reach", "side": false, "reward": "the Aether Blade",
+    "title": "The Cold Forge", "giver": "Quartermaster Ines", "region": "The Ashen Reach", "side": false, "reward": "an awakened blade",
     "stages": [
       { "text": "Seal the rift holding the forge's bellows, up on the Ashen Rim.", "done": "rift:ash_forge_bellows" },
       { "text": "Find the forge's anvil in the Fallen Bastion. (The city remembers what was done in its past.)", "done": "rift:ash_forge_anvil" },
       { "text": "Defeat the Concord Warden to free the forge's heart.", "done": "rift:ash_forge_heart" },
-      { "text": "Ask Forgemaster Corvin to fuse your four swords.", "done": "aether_forged" },
+      { "text": "Ask Forgemaster Corvin to awaken your blade.", "done": "aether_awakened" },
       { "text": "Return to the Sky Altar in Highcrag.", "done": "seen:citadel_1" }
     ]
   },

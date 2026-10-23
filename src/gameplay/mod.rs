@@ -7,6 +7,7 @@ pub mod game_data;
 pub mod game_state;
 pub mod items;
 pub mod pacts;
+pub mod mastery;
 pub mod rank;
 pub mod souls;
 pub mod status;

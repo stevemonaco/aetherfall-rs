@@ -77,6 +77,9 @@ pub struct KillInfo {
     pub pos: Vec2,
     pub boss: bool,
     pub blighted: bool,
+    /// The element and weakness of the killing blow, for mastery and Resonance.
+    pub element: Element,
+    pub weakness: bool,
 }
 
 pub struct World {
@@ -1094,10 +1097,11 @@ impl World {
             }
             text.push('\n');
             text.push_str(item.description);
-        } else if let Some(sword) = items::sword(id) {
+        } else if let Some(sigil) = items::sigil(id) {
+            text = format!("The {} settles into the Aether Blade's hilt.", sigil.name);
             text.push_str(&format!(
                 "\nYou can now fight in {} mode. Switch modes with {} / {}, the mouse wheel, or the number keys.",
-                sword.element.name(),
+                sigil.element.name(),
                 input::glyph(GameAction::PrevMode),
                 input::glyph(GameAction::NextMode)
             ));
@@ -1116,6 +1120,32 @@ impl World {
 
     pub fn heal_player(&mut self, amount: i32) {
         self.state.hp = (self.state.hp + amount).min(self.state.max_hp());
+    }
+
+    fn train_mastery(&mut self, kill: &KillInfo, exp: i32) {
+        let mode = self.state.mode;
+        let trained = if mode == Element::Aether { kill.element } else { mode };
+        let xp = exp as f32 * if kill.weakness { 1.5 } else { 1.0 } * self.state.acc().mastery;
+        if let Some(level) = self.state.add_mastery(trained, xp.round() as i32) {
+            audio::play(Sound::LevelUp, 0.7, 0.3);
+            self.toast(format!("{} mastery rose to {level}!", trained.label()));
+        }
+        if kill.weakness && mode != Element::Aether {
+            self.add_resonance(10.0);
+        }
+    }
+
+    /// Fills the Aether Resonance gauge once the blade has awakened.
+    pub fn add_resonance(&mut self, amount: f32) {
+        if !self.state.aether_awakened() || self.state.mode == Element::Aether {
+            return;
+        }
+        let was_full = self.state.resonance_full();
+        self.state.resonance = (self.state.resonance + amount).min(100.0);
+        if !was_full && self.state.resonance_full() {
+            audio::play(Sound::ChargeLevel, 0.9, 0.5);
+            self.toast("Resonance full: switch to Aether!".to_string());
+        }
     }
 
     /// Adds SP, scaled by accessories, the Circuit and Neutral mode.
@@ -1144,6 +1174,7 @@ impl World {
             * multiplier)
             .round() as i32;
         let levels = self.state.add_exp(exp);
+        self.train_mastery(&kill, exp);
         if exp > 0 {
             self.add(FloatingText::new(kill.pos - Vec2::new(0.0, 26.0), format!("{exp} EXP"), palette::EXPERIENCE));
         }

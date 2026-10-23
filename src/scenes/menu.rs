@@ -23,6 +23,7 @@ use crate::core::gfx::{Batch, TexId};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::gameplay::arts::{self, ArtSlot};
+use crate::gameplay::mastery;
 use crate::gameplay::combat;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{self, EnemyDef, QuestDef, data};
@@ -418,7 +419,15 @@ impl MenuScene {
             ),
             ("Life", format!("{} / {}", s.hp, s.max_hp()), palette::LIFE),
             ("SP", format!("{} / {}", s.sp as i32, s.max_sp() as i32), Rgba::rgb(120, 220, 255)),
-            ("Mode", mode.label().into(), mode.glow()),
+            (
+                "Mode",
+                if mastery::trains(mode) {
+                    format!("{}  (mastery {})", mode.label(), s.mastery_level(mode))
+                } else {
+                    mode.label().into()
+                },
+                mode.glow(),
+            ),
             ("Attack", format!("{}", s.atk(mode).round()), palette::TEXT),
             ("Defense", format!("{}", s.def(mode).round()), palette::TEXT),
             (
