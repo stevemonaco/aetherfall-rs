@@ -47,6 +47,16 @@
   ],
   "entities": [
     {
+      "type": "trial",
+      "x": 28.0,
+      "y": 19.0,
+      "name": "Trial of Mire",
+      "to": "trial_marsh",
+      "tx": 14,
+      "ty": 14,
+      "done": "rift:trial_marsh_a,rift:trial_marsh_b,rift:trial_marsh_c"
+    },
+    {
       "type": "vent",
       "x": 15.0,
       "y": 11.0,

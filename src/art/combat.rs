@@ -131,9 +131,18 @@ pub fn light_blob() -> TexId {
 
 /// A rift: a swirling violet tear with a black core, four frames of 32x40.
 pub fn rift_portal() -> TexId {
-    gfx::cached("rift", || {
+    portal("rift", [c(0x2A0A40), c(0x5A1E8A), c(0x9A4AE0), c(0xE0B0FF)], c(0x08020E))
+}
+
+/// The golden portal of a Trial Rift.
+pub fn trial_portal() -> TexId {
+    portal("trial_rift", [c(0x4A2A06), c(0x9A6A12), c(0xE8B440), c(0xFFF0B0)], c(0x120A02))
+}
+
+/// Four 32x40 frames of a swirling portal from a dark-to-light colour ramp around a dark core.
+fn portal(key: &str, ramp: [Rgba; 4], core: Rgba) -> TexId {
+    gfx::cached(key, || {
         let mut cv = Canvas::new(128, 40);
-        let ramp = [c(0x2A0A40), c(0x5A1E8A), c(0x9A4AE0), c(0xE0B0FF)];
         for f in 0..4 {
             for y in 0..40 {
                 for x in 0..32 {
@@ -145,7 +154,7 @@ pub fn rift_portal() -> TexId {
                     let a = dy.atan2(dx) + f as f32 * PI / 8.0 + d * 4.0;
                     let swirl = ((a * 3.0).sin() + 1.0) / 2.0;
                     let color = if d < 0.35 {
-                        c(0x08020E)
+                        core
                     } else if d < 0.5 {
                         ramp[0]
                     } else if swirl > 0.6 {

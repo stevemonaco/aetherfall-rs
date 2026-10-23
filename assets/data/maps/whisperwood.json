@@ -40,6 +40,16 @@
   ],
   "entities": [
     {
+      "type": "trial",
+      "x": 22.0,
+      "y": 10.0,
+      "name": "Trial of Thorns",
+      "to": "trial_wood",
+      "tx": 14,
+      "ty": 14,
+      "done": "rift:trial_wood_a,rift:trial_wood_b,rift:trial_wood_c"
+    },
+    {
       "type": "warp",
       "x": 43.0,
       "y": 20.0,

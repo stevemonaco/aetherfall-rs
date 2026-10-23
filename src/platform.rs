@@ -29,10 +29,10 @@ use crate::core::gfx::{self, Batch, TexId};
 use crate::core::input::{self, ACTION_COUNT, GameAction, RawInput};
 use crate::core::settings;
 use crate::entities::boss;
-use crate::gameplay::element::MODES;
+use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::game_data::{IMAGE_FILES, data};
 use crate::gameplay::game_state::{self, GameState};
-use crate::gameplay::{circuit, mastery, skills};
+use crate::gameplay::{circuit, mastery, skills, supports};
 use crate::scenes::scene::SceneManager;
 use crate::scenes::title::TitleScene;
 use crate::scenes::world::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -60,6 +60,8 @@ pub struct LaunchOptions {
     pub all_skills: bool,
     /// Unlocks every Circuit node whose arm is open.
     pub all_tree: bool,
+    /// Gives every support gem and fills each open socket with the first that fits.
+    pub all_supports: bool,
     pub flags: Vec<String>,
     pub script: Option<String>,
     pub fuzz: Option<u64>,
@@ -92,6 +94,7 @@ impl LaunchOptions {
             options.resonance = args.iter().any(|a| a == "--resonance");
             options.all_skills = value("--skills").as_deref() == Some("all");
             options.all_tree = value("--tree").as_deref() == Some("all");
+            options.all_supports = value("--supports").as_deref() == Some("all");
             options.flags = list("--flags");
             options.script = value("--script");
             options.fuzz = value("--fuzz").and_then(|v| v.parse().ok());
@@ -384,6 +387,25 @@ fn finish_loading(world: &mut bevy::prelude::World) {
                 state.learn(skill.id);
             }
             state.flags.insert("debug:skills".into());
+        }
+        if options.all_supports {
+            for gem in supports::ALL {
+                state.give(gem.id, 1);
+            }
+            for mode in state.owned_modes() {
+                for group in supports::Group::ALL {
+                    for index in 0..state.socket_count(mode) {
+                        let free = supports::ALL.iter().find(|g| {
+                            g.fits_group(group)
+                                && g.prism == (mode == Element::Aether)
+                                && !state.sockets.values().any(|s| s == g.id)
+                        });
+                        if let Some(gem) = free {
+                            state.set_socket(&GameState::socket_key(mode, group, index), Some(gem.id));
+                        }
+                    }
+                }
+            }
         }
         if options.all_tree {
             state.inventory.insert("circuit_point".into(), 200);

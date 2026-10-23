@@ -31,6 +31,7 @@ use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::pacts;
 use crate::gameplay::skills::{self, SkillDef};
 use crate::gameplay::status::{Ailment, StatusSet};
+use crate::gameplay::supports::{Group, SupportMods};
 use crate::scenes::world::{HeroInfo, World};
 use crate::world::map::{TILE, Terrain, tile_center};
 
@@ -116,6 +117,10 @@ pub struct Player {
     skill_level_reached: i32,
     last_skill: Option<(&'static SkillDef, i32)>,
     skill: Option<Box<SkillAction>>,
+    /// Power of the skill being performed: 1, or less for an Echo gem's repeat.
+    skill_scale: f32,
+    /// An Echo gem's pending repeat: the skill, its level and the seconds until it fires.
+    echo: Option<(&'static SkillDef, i32, f32)>,
     hook: Option<EntityId>,
     released_hook: Option<EntityId>,
     zipping: bool,
@@ -195,6 +200,8 @@ impl Player {
             skill_level_reached: 0,
             last_skill: None,
             skill: None,
+            skill_scale: 1.0,
+            echo: None,
             hook: None,
             released_hook: None,
             zipping: false,
@@ -302,6 +309,11 @@ impl Player {
 
     fn mode(world: &World) -> Element {
         world.state.mode
+    }
+
+    /// The support gems socketed for a group in the current mode.
+    fn supports(world: &World, group: Group) -> SupportMods {
+        world.state.support_mods(world.state.mode, group)
     }
 
     fn stats(world: &World) -> CombatStats {
@@ -689,6 +701,9 @@ impl Player {
         self.mirror_time = (self.mirror_time - dt).max(0.0);
         self.aegis_time = (self.aegis_time - dt).max(0.0);
         self.ward_time = (self.ward_time - dt).max(0.0);
+        if let Some(echo) = self.echo.as_mut() {
+            echo.2 -= dt;
+        }
 
         if self.combo_reset > 0.0 {
             self.combo_reset -= dt;
@@ -817,6 +832,15 @@ impl Player {
         if self.charging_skill() {
             self.update_skill_charge(world);
             return false;
+        }
+        if let Some((skill, level, delay)) = self.echo
+            && delay <= 0.0
+        {
+            self.echo = None;
+            self.skill_scale = 0.5;
+            self.skill = Some(Box::new(SkillAction::create(skill, level)));
+            world.add(SkillBanner::new(self.base.pos, skill, level));
+            return true;
         }
 
         self.update_mode_switch(world);
@@ -977,12 +1001,13 @@ impl Player {
         }
 
         let (active_start, active_end) = if finisher { (0.07, 0.2) } else { (0.04, 0.14) };
+        let reach = if Self::supports(world, Group::Attack).cleave { 1.3 } else { 1.0 };
         if self.attack_time >= active_start && self.attack_time <= active_end {
-            let radius = if finisher { 30.0 } else { 23.0 };
+            let radius = if finisher { 30.0 } else { 23.0 } * reach;
             for (id, faction, hurtbox) in world.damageables() {
                 if faction == Faction::Player
                     || self.swing_hit.contains(&id)
-                    || !self.in_arc(&hurtbox, radius, if finisher { 105.0 } else { 80.0 })
+                    || !self.in_arc(&hurtbox, radius, if finisher { 105.0 } else { 80.0 } * reach)
                 {
                     continue;
                 }
@@ -1073,6 +1098,12 @@ impl Player {
         self.facing = Direction::from_vec(self.aim, self.facing);
         let bolt = self.make_bolt(world, self.aim, charged, -1.0);
         world.add(bolt);
+        if Self::supports(world, Group::Ranged).multishot {
+            for angle in [-0.22, 0.22] {
+                let side = self.make_bolt(world, crate::core::geom::rotate(self.aim, angle), charged, -1.0);
+                world.add(side);
+            }
+        }
         if charged {
             audio::play(if Self::mode(world) == Element::Fire { Sound::ShootFire } else { Sound::ShootWind }, 0.9, 0.1);
         } else {
@@ -1110,7 +1141,23 @@ impl Player {
         bolt.rotate_to_velocity = true;
         bolt.trail_color = mode.glow();
         bolt.hook = ProjectileHook::PlayerShot;
+        if power < 0.0 {
+            let gems = Self::supports(world, Group::Ranged);
+            bolt.power *= gems.damage;
+            bolt.poise *= gems.poise;
+            bolt.status_power *= gems.status;
+            bolt.piercing |= gems.pierce;
+        }
         bolt
+    }
+
+    /// Applies the special group's gems and the Echo scale to a skill's own projectile.
+    pub fn scale_skill_shot(&self, world: &World, shot: &mut Projectile) {
+        let gems = Self::supports(world, Group::Special);
+        shot.power *= gems.damage * self.skill_scale;
+        shot.poise *= gems.poise;
+        shot.status_power *= gems.status;
+        shot.paints_path |= gems.linger;
     }
 
     // ---- Dodging ------------------------------------------------------------------------------------------------
@@ -1290,7 +1337,8 @@ impl Player {
             HitKind::Skill => 12.0,
             _ => 2.0,
         };
-        let resonance = if world.state.resonates(mode) { 0.75 } else { 1.0 };
+        let resonance = if world.state.resonates(mode) { 0.75 } else { 1.0 }
+            * Group::of(kind).map_or(1.0, |g| Self::supports(world, g).overload);
         let volatile = if pacts::active(&world.state, "volatility") { 2.0 } else { 1.0 };
         self.overload +=
             amount * world.state.acc().overload * world.state.mods().overload_for(mode) * resonance * volatile;
@@ -1318,12 +1366,14 @@ impl Player {
 
     /// The highest level the equipped skill can reach right now: limited by unlocked levels and SP.
     fn skill_cap(world: &World) -> i32 {
-        let affordable = if world.state.mods().has("blood_art") {
+        let gems = Self::supports(world, Group::Special);
+        let pips = if world.state.mods().has("blood_art") {
             ((world.state.hp - 1) as f32 / Self::blood_cost(world)).floor() as i32
         } else {
             (world.state.sp / 100.0).floor() as i32
         };
-        world.state.skill_level(Self::mode(world)).min(affordable).min(skills::MAX_LEVEL)
+        let affordable = (1..=skills::MAX_LEVEL).rev().find(|&l| gems.skill_cost(l) <= pips).unwrap_or(0);
+        world.state.skill_level(Self::mode(world)).min(affordable)
     }
 
     /// Starts charging the equipped skill; returns false if there is nothing to charge.
@@ -1345,7 +1395,8 @@ impl Player {
     fn update_skill_charge(&mut self, world: &mut World) {
         self.skill_held += world.frame_delta;
         let cap = Self::skill_cap(world).max(1);
-        let reached = skills::level_for_hold(self.skill_held).min(cap);
+        let speed = Self::supports(world, Group::Special).charge_speed;
+        let reached = skills::level_for_hold(self.skill_held * speed).min(cap);
         if reached > self.skill_level_reached {
             self.skill_level_reached = reached;
             audio::play(Sound::ChargeLevel, 0.8, 0.15 * reached as f32);
@@ -1354,7 +1405,7 @@ impl Player {
         if self.skill_held >= skills::TAP_WINDOW && cap > 1 {
             world.slow_motion(0.05, 0.3);
         }
-        if !input::held(GameAction::Skill) || self.skill_held >= skills::MAX_HOLD {
+        if !input::held(GameAction::Skill) || self.skill_held * speed >= skills::MAX_HOLD {
             let level = self.skill_level_reached;
             self.skill_held = -1.0;
             self.fire_skill(world, level);
@@ -1368,13 +1419,17 @@ impl Player {
             return;
         }
         self.cancel_actions();
+        let gems = Self::supports(world, Group::Special);
+        let pips = gems.skill_cost(level);
         if world.state.mods().has("blood_art") {
-            let cost = (Self::blood_cost(world) * level as f32).round() as i32;
+            let cost = (Self::blood_cost(world) * pips as f32).round() as i32;
             world.state.hp = (world.state.hp - cost).max(1);
             world.add(DamageNumber::hurt(self.center(), cost, Element::None, false));
         } else {
-            world.state.sp -= level as f32 * 100.0;
+            world.state.sp -= pips as f32 * 100.0;
         }
+        self.skill_scale = 1.0;
+        self.echo = gems.echo.then_some((skill, level, 0.45));
         self.skill = Some(Box::new(SkillAction::create(skill, level)));
         self.last_skill = Some((skill, level));
         world.add(SkillBanner::new(self.base.pos, skill, level));
@@ -1470,6 +1525,14 @@ impl Player {
         status: f32,
         knock: f32,
     ) -> Hit {
+        let (power, poise, status) = match Group::of(kind) {
+            Some(group) => {
+                let gems = Self::supports(world, group);
+                let scale = if kind == HitKind::Skill { self.skill_scale } else { 1.0 };
+                (power * gems.damage_for(kind) * scale, poise * gems.poise, status * gems.status)
+            }
+            None => (power, poise, status),
+        };
         Hit {
             power,
             element: element.unwrap_or(Self::mode(world)),
@@ -1485,8 +1548,17 @@ impl Player {
 
     pub fn strike_target(&mut self, world: &mut World, target: EntityId, mut hit: Hit) {
         let faction = world.get(target).and_then(|e| e.faction()).unwrap_or(Faction::Neutral);
+        let at = world.get(target).map(|e| e.base().pos);
         if world.hit(target, &mut hit) {
             self.on_hit_dealt(world, faction, &hit);
+            if let Some(at) = at
+                && hit.kind == HitKind::Skill
+                && hit.element != Element::None
+                && Self::supports(world, Group::Special).linger
+            {
+                let t = TILE as f32;
+                world.chem_apply((at.x / t).floor() as i32, ((at.y - 3.0) / t).floor() as i32, hit.element, true);
+            }
         }
     }
 
@@ -1532,7 +1604,14 @@ impl Player {
             HitKind::Skill => 3.0,
             _ => 2.0,
         };
-        world.add_sp(sp);
+        let gems = Group::of(hit.kind).map(|g| Self::supports(world, g)).unwrap_or_default();
+        world.add_sp(sp * gems.sp_gain);
+        if gems.leech > 0.0 {
+            let amount = (hit.result.amount as f32 * gems.leech).round() as i32;
+            if amount > 0 {
+                world.heal_player(amount);
+            }
+        }
         if hit.result.element_mod > 1.0 {
             world.add_resonance(match hit.kind {
                 HitKind::Melee | HitKind::Bolt | HitKind::Skill => 3.0,

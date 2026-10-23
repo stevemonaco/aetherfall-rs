@@ -56,6 +56,16 @@
   ],
   "entities": [
     {
+      "type": "trial",
+      "x": 31.0,
+      "y": 28.0,
+      "name": "Trial of Cinders",
+      "to": "trial_ash",
+      "tx": 14,
+      "ty": 14,
+      "done": "rift:trial_ash_a,rift:trial_ash_b,rift:trial_ash_c"
+    },
+    {
       "type": "spawn",
       "x": 3.0,
       "y": 20.0

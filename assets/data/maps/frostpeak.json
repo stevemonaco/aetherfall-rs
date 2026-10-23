@@ -71,6 +71,16 @@
   ],
   "entities": [
     {
+      "type": "trial",
+      "x": 20.0,
+      "y": 33.0,
+      "name": "Trial of Rime",
+      "to": "trial_frost",
+      "tx": 14,
+      "ty": 14,
+      "done": "rift:trial_frost_a,rift:trial_frost_b,rift:trial_frost_c"
+    },
+    {
       "type": "warp",
       "x": 19.0,
       "y": 63.0,

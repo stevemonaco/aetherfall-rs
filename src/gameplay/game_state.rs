@@ -14,6 +14,7 @@ use super::items::{self, AccessoryStats, ItemKind};
 use super::mastery;
 use super::skills::{self, SkillDef};
 use super::souls;
+use super::supports::{self, Group, SupportDef, SupportMods};
 use crate::core::direction::Direction;
 use crate::core::storage;
 
@@ -48,6 +49,8 @@ pub struct GameState {
     pub learned_skills: BTreeSet<String>,
     /// The skill equipped in each mode, by mode key.
     pub equipped_skills: BTreeMap<String, String>,
+    /// Support gems by socket key (`mode.group.index`).
+    pub sockets: BTreeMap<String, String>,
     pub flags: BTreeSet<String>,
     pub circuit_nodes: BTreeSet<String>,
     pub souls_owned: Vec<String>,
@@ -97,6 +100,7 @@ impl Default for GameState {
             accessories: [None, None],
             learned_skills: BTreeSet::new(),
             equipped_skills: BTreeMap::new(),
+            sockets: BTreeMap::new(),
             flags: BTreeSet::new(),
             circuit_nodes: BTreeSet::new(),
             souls_owned: Vec::new(),
@@ -281,6 +285,7 @@ impl GameState {
             * combat::mode_mods(mode).atk
             * mods.atk
             * mods.mode_atk_for(mode)
+            * if mode == Element::Aether && self.prism("everlight") { 0.8 } else { 1.0 }
     }
 
     pub fn def(&self, mode: Element) -> f32 {
@@ -512,7 +517,54 @@ impl GameState {
 
     /// How long an Aether burst lasts.
     pub fn burst_duration(&self) -> f32 {
-        8.0 + self.mods().burst_bonus
+        let mut seconds = 8.0 + self.mods().burst_bonus;
+        if self.prism("everlight") {
+            seconds += 4.0;
+        }
+        if self.prism("prism_lens") {
+            seconds -= 3.0;
+        }
+        seconds.max(3.0)
+    }
+
+    pub fn socket_key(mode: Element, group: Group, index: i32) -> String {
+        format!("{}.{}.{index}", mode.key(), group.key())
+    }
+
+    /// Sockets open in a mode's group: one, and a second once the mode reaches adept mastery.
+    pub fn socket_count(&self, mode: Element) -> i32 {
+        if mode == Element::Aether || self.mastery_level(mode) < mastery::ADEPT { 1 } else { 2 }
+    }
+
+    pub fn socketed(&self, mode: Element, group: Group) -> Vec<&'static SupportDef> {
+        (0..self.socket_count(mode))
+            .filter_map(|i| self.sockets.get(&GameState::socket_key(mode, group, i)))
+            .filter_map(|id| supports::get(id))
+            .collect()
+    }
+
+    pub fn support_mods(&self, mode: Element, group: Group) -> SupportMods {
+        SupportMods::from_gems(self.socketed(mode, group).into_iter())
+    }
+
+    /// Puts a gem in a socket (taking it out of any other first), or empties the socket.
+    pub fn set_socket(&mut self, key: &str, gem: Option<&str>) {
+        if let Some(gem) = gem {
+            self.sockets.retain(|_, g| g != gem);
+            self.sockets.insert(key.to_string(), gem.to_string());
+        } else {
+            self.sockets.remove(key);
+        }
+    }
+
+    /// Support gems the player owns, in definition order.
+    pub fn gems_owned(&self) -> Vec<&'static SupportDef> {
+        supports::ALL.iter().filter(|g| self.count(g.id) > 0).collect()
+    }
+
+    /// Whether a Prism gem is socketed in the Aether mode.
+    pub fn prism(&self, id: &str) -> bool {
+        Group::ALL.iter().any(|&g| self.socketed(Element::Aether, g).iter().any(|s| s.id == id))
     }
 
     pub fn soul_rank(&self, soul: &str) -> i32 {

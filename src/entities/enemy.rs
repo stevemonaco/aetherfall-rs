@@ -1026,7 +1026,8 @@ impl Enemy {
     fn best_element_against(&self, world: &World) -> Element {
         let mut best = Element::None;
         let mut best_mod = -1.0;
-        for e in BASIC.into_iter().filter(|&e| world.state.mastery_level(e) >= mastery::ADEPT) {
+        let lens = world.state.prism("prism_lens");
+        for e in BASIC.into_iter().filter(|&e| lens || world.state.mastery_level(e) >= mastery::ADEPT) {
             let m = self.def.resist_to(e);
             if m > best_mod || (m == best_mod && world.rng.next_f32() < 0.5) {
                 best = e;

@@ -11,6 +11,7 @@ use crate::core::gfx::{self, TexId};
 use crate::core::noise;
 use crate::core::palette;
 use crate::gameplay::items;
+use crate::gameplay::supports::{self, Group};
 
 pub(crate) const LEAF: [Rgba; 5] = [c(0x0F2A1E), c(0x1E5130), c(0x2F7A3C), c(0x57A84A), c(0x9AD66A)];
 pub(crate) const STONE: [Rgba; 4] = [c(0x2A2630), c(0x56505E), c(0x837C8A), c(0xB4AEB8)];
@@ -960,7 +961,21 @@ pub fn icon(id: &str) -> TexId {
                 cv.set(5, 7, Rgba::WHITE);
             }
             _ => {
-                if let Some(sigil) = items::sigil(id) {
+                if let Some(gem) = supports::get(id) {
+                    let face = match (gem.prism, gem.fits) {
+                        (true, _) => c(0xF496FF),
+                        (_, Some(Group::Attack)) => c(0xE85A46),
+                        (_, Some(Group::Ranged)) => c(0x6ED278),
+                        (_, Some(Group::Special)) => c(0x6E96FF),
+                        (_, None) => c(0xE6DCAA),
+                    };
+                    cv.pattern(
+                        2,
+                        1,
+                        "..####..|.#aaaa#.|#abbbba#|#aabbaa#|.#aaaa#.|..#aa#..|...##...",
+                        &[('#', face.lerp(palette::OUTLINE, 0.6)), ('a', face), ('b', face.lerp(Rgba::WHITE, 0.55))],
+                    );
+                } else if let Some(sigil) = items::sigil(id) {
                     let (glow, dark) = (sigil.element.glow(), sigil.element.dark());
                     cv.circle(6.0, 6.0, 5.0, dark).circle(6.0, 6.0, 3.5, glow);
                     cv.line(6, 3, 6, 9, glow.lerp(Rgba::WHITE, 0.6)).line(3, 6, 9, 6, glow.lerp(Rgba::WHITE, 0.6));

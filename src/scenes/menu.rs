@@ -28,6 +28,7 @@ use crate::gameplay::game_data::{self, EnemyDef, QuestDef, data};
 use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::mastery;
+use crate::gameplay::supports::Group;
 use crate::gameplay::{pacts, souls};
 use crate::scene_any;
 
@@ -35,8 +36,8 @@ const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Souls", "Circuit", "Quests"
 const TAB_BOX: IRect = IRect::new(12, 12, 92, 120);
 const CONTENT_BOX: IRect = IRect::new(110, 12, 358, 246);
 const VISIBLE_ROWS: usize = 14;
-/// Leaves room under the gear picker for a three-line description inside the content window.
-const VISIBLE_GEAR_ROWS: usize = 8;
+/// Leaves room under the picker for a three-line description inside the content window.
+const VISIBLE_CHOICES: usize = 8;
 
 /// Quests in the order the data file lists them.
 static QUESTS: LazyLock<Vec<&'static QuestDef>> = LazyLock::new(|| {
@@ -56,6 +57,9 @@ struct Row {
     header: bool,
     /// The mode whose skill this row picks.
     mode: Option<Element>,
+    /// The socket this row fills, and whether it is still locked.
+    socket: Option<(Element, Group, i32)>,
+    locked: bool,
 }
 
 impl Row {
@@ -103,10 +107,11 @@ pub struct MenuScene {
     row: usize,
     scroll: usize,
     in_list: bool,
-    gear_slot: Option<String>,
-    gear_choices: Vec<String>,
-    gear_row: usize,
-    gear_scroll: usize,
+    pick_slot: Option<String>,
+    /// The picker's options as (item id, label); the first is always the empty choice.
+    pick_choices: Vec<(String, String)>,
+    pick_row: usize,
+    pick_scroll: usize,
     time: f32,
     to_title: Rc<Cell<bool>>,
 }
@@ -118,10 +123,10 @@ impl MenuScene {
             row: 0,
             scroll: 0,
             in_list: false,
-            gear_slot: None,
-            gear_choices: Vec::new(),
-            gear_row: 0,
-            gear_scroll: 0,
+            pick_slot: None,
+            pick_choices: Vec::new(),
+            pick_row: 0,
+            pick_scroll: 0,
             time: 0.0,
             to_title: Rc::new(Cell::new(false)),
         }
@@ -175,15 +180,27 @@ impl MenuScene {
                     let power = |id: &str| items::get(id).map_or(0, |i| i.power);
                     power(a).cmp(&power(b)).then_with(|| items::name_of(a).cmp(&items::name_of(b)))
                 });
-                self.gear_choices = std::iter::once("(none)".to_string()).chain(choices.into_iter().cloned()).collect();
-                self.gear_slot = Some(row.id.clone());
-                self.gear_row = 0;
-                self.gear_scroll = 0;
+                self.pick_choices = std::iter::once(("".to_string(), "(none)".to_string()))
+                    .chain(choices.into_iter().map(|id| (id.clone(), items::name_of(id))))
+                    .collect();
+                self.pick_slot = Some(row.id.clone());
+                self.pick_row = 0;
+                self.pick_scroll = 0;
                 audio::sfx(Sound::MenuSelect);
             }
             "Skills" => {
                 if let Some(mode) = row.mode {
                     state.cycle_skill(mode);
+                    audio::sfx(Sound::MenuSelect);
+                } else if row.locked {
+                    audio::sfx(Sound::MenuCancel);
+                } else if let Some((mode, group, index)) = row.socket {
+                    self.pick_choices = std::iter::once(("".to_string(), "(empty)".to_string()))
+                        .chain(gem_choices(state, mode, group))
+                        .collect();
+                    self.pick_slot = Some(format!("socket:{}", GameState::socket_key(mode, group, index)));
+                    self.pick_row = 0;
+                    self.pick_scroll = 0;
                     audio::sfx(Sound::MenuSelect);
                 }
             }
@@ -221,19 +238,25 @@ impl MenuScene {
         None
     }
 
-    fn update_gear_choice(&mut self, state: &mut GameState) {
-        move_index(&mut self.gear_row, self.gear_choices.len());
-        self.gear_scroll = self.gear_scroll.clamp((self.gear_row + 1).saturating_sub(VISIBLE_GEAR_ROWS), self.gear_row);
+    fn update_choice(&mut self, state: &mut GameState) {
+        move_index(&mut self.pick_row, self.pick_choices.len());
+        self.pick_scroll = self.pick_scroll.clamp((self.pick_row + 1).saturating_sub(VISIBLE_CHOICES), self.pick_row);
         if input::pressed(GameAction::Cancel) {
-            self.gear_slot = None;
+            self.pick_slot = None;
             audio::sfx(Sound::MenuCancel);
             return;
         }
         if !input::pressed(GameAction::Confirm) {
             return;
         }
-        let id = if self.gear_row == 0 { None } else { Some(self.gear_choices[self.gear_row].clone()) };
-        match self.gear_slot.as_deref() {
+        let id = if self.pick_row == 0 { None } else { Some(self.pick_choices[self.pick_row].0.clone()) };
+        if let Some(key) = self.pick_slot.as_deref().and_then(|s| s.strip_prefix("socket:")) {
+            state.set_socket(key, id.as_deref());
+            audio::sfx(Sound::MenuSelect);
+            self.pick_slot = None;
+            return;
+        }
+        match self.pick_slot.as_deref() {
             Some("armor") => state.armor = id,
             Some("shield") => state.shield = id,
             other => {
@@ -246,7 +269,7 @@ impl MenuScene {
         }
         state.hp = state.hp.min(state.max_hp());
         audio::sfx(Sound::MenuSelect);
-        self.gear_slot = None;
+        self.pick_slot = None;
     }
 
     fn describe(&self, state: &GameState, row: &Row) -> String {
@@ -282,6 +305,15 @@ impl MenuScene {
             },
             "Foes" => data().enemies.get(&row.id).map(|foe| describe_foe(state, foe)).unwrap_or_default(),
             "Circuit" => "Spend Circuit Points on stats, skills and passives.".into(),
+            "Skills" if row.socket.is_some() => match state.sockets.get(row.id.trim_start_matches("socket|")) {
+                Some(id) if !row.locked => {
+                    items::get(id).map(|i| format!("{} Confirm to change.", i.description)).unwrap_or_default()
+                }
+                _ if row.locked => {
+                    format!("This socket opens at mastery {} in this mode.", mastery::ADEPT)
+                }
+                _ => "An empty socket. Support gems come from the golden Trial Rifts.".into(),
+            },
             "Skills" => match row.mode.and_then(|mode| state.equipped_skill(mode).map(|s| (mode, s))) {
                 Some((mode, skill)) => {
                     let unlocked = state.skill_level(mode);
@@ -357,32 +389,31 @@ impl MenuScene {
         }
     }
 
-    fn draw_gear_choices(&self, batch: &mut Batch) {
-        let shown = self.gear_choices.len().min(VISIBLE_GEAR_ROWS);
+    fn draw_choices(&self, batch: &mut Batch) {
+        let shown = self.pick_choices.len().min(VISIBLE_CHOICES);
         let rect = IRect::new(CONTENT_BOX.x + 40, CONTENT_BOX.y + 70, 280, 24 + shown as i32 * 13);
         batch.draw_window(rect);
         let x = rect.x as f32;
-        for (i, id) in self.gear_choices.iter().enumerate().skip(self.gear_scroll).take(shown) {
-            let y = (rect.y + 8 + (i - self.gear_scroll) as i32 * 13) as f32;
+        for (i, (id, label)) in self.pick_choices.iter().enumerate().skip(self.pick_scroll).take(shown) {
+            let y = (rect.y + 8 + (i - self.pick_scroll) as i32 * 13) as f32;
             if i > 0 {
                 batch.draw(props::icon(id), Vec2::new(x + 20.0, y - 2.0), Rgba::WHITE);
             }
-            let label = if i == 0 { id.clone() } else { items::name_of(id) };
-            let color = if i == self.gear_row { palette::HIGHLIGHT } else { palette::TEXT };
-            font::draw(batch, &label, Vec2::new(x + 36.0, y), color, Some(palette::TEXT_SHADOW));
-            if i == self.gear_row {
+            let color = if i == self.pick_row { palette::HIGHLIGHT } else { palette::TEXT };
+            font::draw(batch, label, Vec2::new(x + 36.0, y), color, Some(palette::TEXT_SHADOW));
+            if i == self.pick_row {
                 font::draw(batch, &CURSOR.to_string(), Vec2::new(x + 8.0, y), palette::HIGHLIGHT, None);
             }
         }
         let arrow_x = (rect.right() - 14) as f32;
-        if self.gear_scroll > 0 {
+        if self.pick_scroll > 0 {
             font::draw(batch, "^", Vec2::new(arrow_x, (rect.y + 4) as f32), palette::TEXT_DIM, None);
         }
-        if self.gear_scroll + shown < self.gear_choices.len() {
+        if self.pick_scroll + shown < self.pick_choices.len() {
             font::draw(batch, "v", Vec2::new(arrow_x, (rect.bottom() - 14) as f32), palette::TEXT_DIM, None);
         }
-        if self.gear_row > 0
-            && let Some(item) = items::get(&self.gear_choices[self.gear_row])
+        if self.pick_row > 0
+            && let Some(item) = items::get(&self.pick_choices[self.pick_row].0)
         {
             for (i, line) in font::wrap(item.description, rect.w - 16).iter().enumerate() {
                 let pos = Vec2::new(x + 8.0, (rect.bottom() + 4 + i as i32 * 11) as f32);
@@ -507,8 +538,53 @@ fn skill_rows(state: &GameState) -> Vec<Row> {
             None => "-".into(),
         };
         rows.push(Row { mode: Some(mode), ..Row::new(format!("skill|{}", mode.key()), "Skill", detail) });
+        let open = state.socket_count(mode);
+        let sockets = if mode == Element::Aether { 1 } else { 2 };
+        for group in Group::ALL {
+            for index in 0..sockets {
+                let key = GameState::socket_key(mode, group, index);
+                let locked = index >= open;
+                let gem = state.sockets.get(&key).filter(|_| !locked);
+                let detail = match gem {
+                    Some(id) => items::name_of(id),
+                    None if locked => format!("(mastery {})", mastery::ADEPT),
+                    None => "-".into(),
+                };
+                rows.push(Row {
+                    icon: gem.map(|id| props::icon(id)),
+                    socket: Some((mode, group, index)),
+                    locked,
+                    ..Row::new(format!("socket|{key}"), format!("{} gem", group.label()), detail)
+                });
+            }
+        }
     }
     rows
+}
+
+/// Owned gems that fit a socket, labelled with where they sit now if elsewhere.
+fn gem_choices(state: &GameState, mode: Element, group: Group) -> Vec<(String, String)> {
+    let aether = mode == Element::Aether;
+    state
+        .gems_owned()
+        .into_iter()
+        .filter(|g| g.fits_group(group) && g.prism == aether)
+        .map(|g| {
+            let place = state.sockets.iter().find(|(_, id)| *id == g.id).map(|(key, _)| socket_label(key));
+            let label = match place {
+                Some(place) => format!("{} ({place})", g.name),
+                None => g.name.to_string(),
+            };
+            (g.id.to_string(), label)
+        })
+        .collect()
+}
+
+/// "Fire attack" for a socket key such as `fire.attack.0`.
+fn socket_label(key: &str) -> String {
+    let mut parts = key.split('.');
+    let mode = Element::parse(parts.next());
+    format!("{} {}", mode.label(), parts.next().unwrap_or(""))
 }
 
 fn quest_rows(state: &GameState) -> Vec<Row> {
@@ -614,8 +690,8 @@ impl Scene for MenuScene {
             return;
         }
         let Some(world) = ctx.world() else { return };
-        if self.gear_slot.is_some() {
-            self.update_gear_choice(&mut world.state);
+        if self.pick_slot.is_some() {
+            self.update_choice(&mut world.state);
             return;
         }
         // Enter maps to both Menu and Confirm; inside the menu it should confirm.
@@ -698,8 +774,8 @@ impl Scene for MenuScene {
         } else {
             self.draw_list(batch, state);
         }
-        if self.gear_slot.is_some() {
-            self.draw_gear_choices(batch);
+        if self.pick_slot.is_some() {
+            self.draw_choices(batch);
         }
     }
 }

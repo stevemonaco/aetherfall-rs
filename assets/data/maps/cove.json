@@ -41,6 +41,16 @@
   ],
   "entities": [
     {
+      "type": "trial",
+      "x": 24.0,
+      "y": 16.0,
+      "name": "Trial of Tides",
+      "to": "trial_cove",
+      "tx": 14,
+      "ty": 14,
+      "done": "rift:trial_cove_a,rift:trial_cove_b,rift:trial_cove_c"
+    },
+    {
       "type": "tide",
       "x": 16.0,
       "y": 10.0,

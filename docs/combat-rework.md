@@ -62,7 +62,18 @@ Veil, Arc Step, Flicker).
 - Three socket groups per mode: attack (melee combo), ranged (bolts) and special (skill). One socket each, two at
   mastery 3. Each gem is a single item, so it can sit in only one socket.
 - Every support has a drawback. Prism supports fit only the Aether mode.
-- Supports come from Trial Rifts: gold rifts in the world that lead to a hard arena with several rifts to seal.
+- Supports come from Trial Rifts: gold rifts in the world that lead to a hard arena with three rifts to seal (one
+  holding an elite). Sealing all three reveals two gem chests.
+
+| Trial | Host | Gems |
+|---|---|---|
+| Trial of Thorns | Whisperwood | Cleave, Brutal |
+| Trial of Mire | Mistmoor Marsh | Multishot, Infusion |
+| Trial of Salt | Salt Mine | Piercing, Lingering |
+| Trial of Rime | Frostpeak | Momentum, Leech |
+| Trial of Tides | Cove | Efficiency, Haste |
+| Trial of Cinders | Ashen Reach | Echo, Overdrive |
+| Trial of the Prism (after the blade awakens) | Cinderfall | Prism Lens, Everlight |
 
 ## Combat rank
 

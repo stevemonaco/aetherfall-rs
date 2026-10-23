@@ -11,3 +11,4 @@ pub mod rank;
 pub mod skills;
 pub mod souls;
 pub mod status;
+pub mod supports;

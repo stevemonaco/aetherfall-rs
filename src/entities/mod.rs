@@ -21,6 +21,7 @@ pub mod skill_actions;
 pub mod sovereign;
 pub mod tether;
 pub mod tide;
+pub mod trial;
 pub mod warden;
 pub mod warlock;
 pub mod wyrm;

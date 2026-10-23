@@ -302,6 +302,8 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
             for i in 0..count {
                 let angle = (i as f32 - (count - 1) as f32 / 2.0) * spread;
                 let mut bolt = p.make_bolt(world, rotate(p.aim, angle), false, if level >= 3 { 0.85 } else { 0.9 });
+                bolt.kind = HitKind::Skill;
+                p.scale_skill_shot(world, &mut bolt);
                 bolt.piercing = level >= 2;
                 if level >= 3 {
                     bolt.bounces += 1;
@@ -338,6 +340,7 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
                 shot.rotate_to_velocity = true;
                 shot.trail_color = Element::Wind.glow();
                 shot.paints_path = true;
+                p.scale_skill_shot(world, &mut shot);
                 world.add(shot);
             }
             audio::play(Sound::ShootWind, 1.0, -0.1);
@@ -426,6 +429,7 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
                 shot.texture = props::ice_shard();
                 shot.rotate_to_velocity = true;
                 shot.trail_color = Element::Water.glow();
+                p.scale_skill_shot(world, &mut shot);
                 world.add(shot);
             }
             audio::play(Sound::ShootWind, 0.9, 0.5);

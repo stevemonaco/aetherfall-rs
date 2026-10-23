@@ -46,6 +46,17 @@
   ],
   "entities": [
     {
+      "type": "trial",
+      "x": 23.0,
+      "y": 17.0,
+      "name": "Trial of the Prism",
+      "to": "trial_prism",
+      "tx": 14,
+      "ty": 14,
+      "done": "rift:trial_prism_a,rift:trial_prism_b,rift:trial_prism_c",
+      "if": "aether_awakened"
+    },
+    {
       "type": "warp",
       "x": 47.0,
       "y": 13.0,

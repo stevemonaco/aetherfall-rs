@@ -1005,6 +1005,18 @@ impl World {
         }
     }
 
+    /// Asks a yes/no question and runs `yes` if the player agrees.
+    pub fn confirm(&mut self, question: String, yes: Vec<String>) {
+        self.queue(Box::new(move |_| {
+            let answer: Ask = Box::new(move |w, agreed| {
+                if agreed {
+                    w.run_actions(&yes);
+                }
+            });
+            Box::new(DialogueScene::ask(question, String::new(), answer))
+        }));
+    }
+
     /// Executes dialogue actions like `give:herb`, `flag:met_elder`, `gold:-10` or `shop:village`.
     pub fn run_actions(&mut self, actions: &[String]) {
         for action in actions {

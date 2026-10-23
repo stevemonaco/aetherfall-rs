@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use super::element::Element;
+use super::supports;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ItemKind {
@@ -15,6 +16,8 @@ pub enum ItemKind {
     Material,
     /// Permanent upgrades such as boots, rings and shards; owning one is enough (shards stack).
     Powerup,
+    /// A support gem, socketed from the Skills menu.
+    Support,
 }
 
 /// Bonuses granted by an equipped accessory or shield. Multipliers default to 1 (no change).
@@ -315,8 +318,14 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
     ]
 });
 
+static ALL_ITEMS: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
+    let mut list = ITEM_LIST.clone();
+    list.extend(supports::ALL.iter().map(|g| item(g.id, g.name, ItemKind::Support, 0, 0, g.description)));
+    list
+});
+
 static ITEMS: LazyLock<HashMap<&'static str, ItemDef>> =
-    LazyLock::new(|| ITEM_LIST.iter().map(|i| (i.id, i.clone())).collect());
+    LazyLock::new(|| ALL_ITEMS.iter().map(|i| (i.id, i.clone())).collect());
 
 pub fn get(id: &str) -> Option<&'static ItemDef> {
     ITEMS.get(id)
@@ -324,7 +333,7 @@ pub fn get(id: &str) -> Option<&'static ItemDef> {
 
 /// Every item, in definition order.
 pub fn all() -> &'static [ItemDef] {
-    &ITEM_LIST
+    &ALL_ITEMS
 }
 
 /// A sigil set into the Aether Blade's hilt: unlocks an element mode.
