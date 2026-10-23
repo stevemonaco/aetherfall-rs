@@ -9,10 +9,5 @@ pub const TEXT_DIM: Rgba = Rgba::rgb(150, 156, 184);
 pub const TEXT_SHADOW: Rgba = Rgba::rgb(12, 10, 24);
 pub const HIGHLIGHT: Rgba = Rgba::rgb(255, 214, 92);
 pub const LIFE: Rgba = Rgba::rgb(232, 64, 72);
-pub const MAGIC: Rgba = Rgba::rgb(72, 148, 255);
 pub const EXPERIENCE: Rgba = Rgba::rgb(120, 220, 96);
 pub const GOLD: Rgba = Rgba::rgb(255, 200, 64);
-
-pub fn shade(c: Rgba, amount: f32) -> Rgba {
-    if amount >= 0.0 { c.lerp(Rgba::WHITE, amount) } else { c.lerp(OUTLINE, -amount) }
-}

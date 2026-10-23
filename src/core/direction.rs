@@ -41,16 +41,6 @@ impl Direction {
         }
     }
 
-    pub fn rotation(self) -> f32 {
-        use std::f32::consts::{FRAC_PI_2, PI};
-        match self {
-            Direction::Up => -FRAC_PI_2,
-            Direction::Down => FRAC_PI_2,
-            Direction::Left => PI,
-            Direction::Right => 0.0,
-        }
-    }
-
     pub fn parse(s: Option<&str>) -> Direction {
         match s.map(|s| s.to_ascii_lowercase()).as_deref() {
             Some("up" | "north") => Direction::Up,

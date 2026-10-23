@@ -18,7 +18,6 @@ use super::projectile::Projectile;
 use crate::art::{combat as art, props};
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
-use crate::core::direction::Direction;
 use crate::core::font;
 use crate::core::geom::{Box2, rotate, safe_dir, safe_normalize, snap};
 use crate::core::gfx::{self, Batch, FrameStrip};
@@ -182,14 +181,6 @@ impl Enemy {
         self.status.frozen > 0.0
     }
 
-    pub fn has_aura(&self) -> bool {
-        self.aura
-    }
-
-    pub fn aura_element(&self) -> Element {
-        self.aura_element
-    }
-
     pub fn is_broken(&self) -> bool {
         self.phase == Phase::Broken
     }
@@ -209,10 +200,6 @@ impl Enemy {
 
     pub fn flashing(&self) -> bool {
         self.flash > 0.0
-    }
-
-    pub fn strip(&self) -> FrameStrip {
-        self.strip
     }
 
     fn deals_contact_damage(&self) -> bool {
@@ -1235,11 +1222,6 @@ impl Enemy {
     /// Life left as a fraction, ignoring any boss-specific measure.
     pub fn raw_health_fraction(&self) -> f32 {
         self.hp.max(0) as f32 / self.max_hp as f32
-    }
-
-    /// The facing a boss uses when it looks at the player.
-    pub fn facing_player(&self, world: &World) -> Direction {
-        Direction::from_vec(world.hero.pos - self.base.pos, Direction::Down)
     }
 
     // ---- Drawing ------------------------------------------------------------------------------------------------

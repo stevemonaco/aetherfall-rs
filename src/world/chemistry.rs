@@ -67,10 +67,6 @@ impl Chemistry {
         map.in_bounds(x, y) && self.fire[self.index(x, y)] > 0.0
     }
 
-    pub fn is_electrified(&self, map: &TileMap, x: i32, y: i32) -> bool {
-        map.in_bounds(x, y) && self.shock[self.index(x, y)] > 0.0
-    }
-
     pub fn is_frozen(&self, x: i32, y: i32) -> bool {
         self.frozen.contains_key(&(x, y))
     }

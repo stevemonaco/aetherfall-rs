@@ -95,10 +95,6 @@ impl SceneManager {
         world_below(&self.stack)
     }
 
-    pub fn top(&self) -> Option<&dyn Scene> {
-        self.stack.last().map(|s| s.as_ref())
-    }
-
     pub fn update(&mut self, dt: f32) {
         self.apply_pending();
         if let Some((top, below)) = self.stack.split_last_mut() {

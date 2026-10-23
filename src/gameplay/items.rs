@@ -351,10 +351,6 @@ pub fn sword(id: &str) -> Option<&'static SwordDef> {
     SWORDS.iter().find(|s| s.id == id)
 }
 
-pub fn sword_for(element: Element) -> Option<&'static SwordDef> {
-    SWORDS.iter().find(|s| s.element == element)
-}
-
 pub fn name_of(id: &str) -> String {
     if let Some(i) = get(id) {
         return i.name.to_string();

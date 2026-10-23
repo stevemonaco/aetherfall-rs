@@ -104,7 +104,3 @@ pub fn rotate(v: Vec2, angle: f32) -> Vec2 {
     let (s, c) = angle.sin_cos();
     Vec2::new(v.x * c - v.y * s, v.x * s + v.y * c)
 }
-
-pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    a + (b - a) * t
-}

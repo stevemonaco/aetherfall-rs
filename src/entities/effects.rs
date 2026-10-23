@@ -44,13 +44,6 @@ impl Particle {
         self
     }
 
-    pub fn arc(mut self, z: f32, vz: f32, gravity: f32) -> Particle {
-        self.z = z;
-        self.vz = vz;
-        self.gravity = gravity;
-        self
-    }
-
     pub fn burst(world: &mut World, at: Vec2, color: Rgba, count: i32, speed: f32, life: f32, sparks: bool) {
         for i in 0..count {
             let angle = world.rng.next_f32() * std::f32::consts::TAU;

@@ -432,10 +432,6 @@ impl GameState {
             || id.strip_prefix("soul_").is_some_and(|s| self.souls_owned.iter().any(|o| o == s))
     }
 
-    pub fn flag(&self, flag: &str) -> bool {
-        self.flags.contains(flag)
-    }
-
     /// Evaluates a condition such as `"met_elder,!has:wind"`: comma-separated terms that must all hold. A bare word is a
     /// story flag; `has:` checks the inventory, `level:` a minimum level, `gold:` a minimum purse and `crystals:` how
     /// many great crystals are held.

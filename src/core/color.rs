@@ -14,7 +14,6 @@ impl Rgba {
     pub const GRAY: Rgba = Rgba::rgb(128, 128, 128);
     pub const RED: Rgba = Rgba::rgb(255, 0, 0);
     pub const YELLOW: Rgba = Rgba::rgb(255, 255, 0);
-    pub const ORANGE: Rgba = Rgba::rgb(255, 165, 0);
 
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }

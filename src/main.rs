@@ -1,5 +1,4 @@
 //! Aetherfall: a 2D action RPG ported from C# / MonoGame to Rust on Bevy.
-#![allow(dead_code)]
 
 mod art;
 mod core;

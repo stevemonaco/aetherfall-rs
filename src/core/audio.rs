@@ -287,11 +287,6 @@ pub fn set_volumes(sfx: f32, music: f32) {
     a.music_volume = music;
 }
 
-pub fn volumes() -> (f32, f32) {
-    let a = audio();
-    (a.sfx_volume, a.music_volume)
-}
-
 /// Switches music (fading out the old track); `None` stops it.
 pub fn play_music(track: Option<&str>) {
     let mut a = audio();

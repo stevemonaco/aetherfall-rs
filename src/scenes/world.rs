@@ -56,7 +56,6 @@ pub struct HeroInfo {
     pub airborne: bool,
     pub dead: bool,
     pub hidden: bool,
-    pub z: f32,
     pub aim: Vec2,
 }
 
@@ -209,10 +208,6 @@ impl World {
 
     pub fn map_blighted(&self) -> bool {
         self.data.blighted
-    }
-
-    pub fn dark(&self) -> bool {
-        self.data.dark
     }
 
     pub fn input_locked(&self) -> bool {

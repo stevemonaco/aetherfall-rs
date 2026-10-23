@@ -216,20 +216,12 @@ impl Player {
         self.guard_time >= 0.0 || self.counter_time > 0.0
     }
 
-    pub fn dodge_charges(&self) -> f32 {
-        self.dodge_charges
-    }
-
     pub fn overheated(&self) -> bool {
         self.overheat > 0.0
     }
 
     pub fn overheat_time(&self) -> f32 {
         self.overheat
-    }
-
-    pub fn in_art(&self) -> bool {
-        self.art.is_some()
     }
 
     pub fn mode_flash(&self) -> f32 {
@@ -246,7 +238,6 @@ impl Player {
             airborne: self.airborne(),
             dead: self.is_dead(),
             hidden: self.hidden(),
-            z: self.z,
             aim: self.aim,
         }
     }

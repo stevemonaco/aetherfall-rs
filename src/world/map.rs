@@ -279,10 +279,6 @@ impl TileMap {
         !self.in_bounds(x, y) || self.at(x, y).blocks_walking() || self.is_blocked(x, y)
     }
 
-    pub fn blocks_projectiles(&self, x: i32, y: i32) -> bool {
-        self.in_bounds(x, y) && self.at(x, y).blocks_projectiles()
-    }
-
     /// Flyers cross water and pits but not walls, trees, or buildings.
     pub fn blocks_flying(&self, x: i32, y: i32) -> bool {
         !self.in_bounds(x, y) || self.at(x, y).blocks_projectiles() || self.is_blocked(x, y)

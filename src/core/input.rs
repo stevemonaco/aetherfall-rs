@@ -162,10 +162,6 @@ pub fn scripted() -> bool {
     state().script.is_some()
 }
 
-pub fn script_finished() -> bool {
-    state().script.as_ref().is_some_and(|s| s.index >= s.steps.len())
-}
-
 /// Advances one frame with the latest raw device state.
 pub fn update(raw: RawInput) {
     let mut s = state();
@@ -226,11 +222,6 @@ pub fn held(action: GameAction) -> bool {
 pub fn pressed(action: GameAction) -> bool {
     let s = state();
     s.current[action as usize] && !s.previous[action as usize]
-}
-
-pub fn released(action: GameAction) -> bool {
-    let s = state();
-    !s.current[action as usize] && s.previous[action as usize]
 }
 
 /// Whether a raw key (by its Bevy KeyCode debug name, e.g. "F1") went down this frame.

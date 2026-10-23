@@ -83,10 +83,6 @@ pub fn external(path: &str) -> TexId {
     })
 }
 
-pub fn exists(path: &str) -> bool {
-    store().by_key.contains_key(&path.to_lowercase())
-}
-
 pub fn size(id: TexId) -> (i32, i32) {
     let s = store();
     s.textures.get(id.0 as usize).map(|t| (t.width, t.height)).unwrap_or((1, 1))
@@ -126,10 +122,6 @@ pub fn pixel() -> TexId {
 /// Textures created since the last call, for the platform layer to upload.
 pub fn take_uploads() -> Vec<(TexId, Canvas)> {
     std::mem::take(&mut store().uploads)
-}
-
-pub fn texture_count() -> usize {
-    store().textures.len()
 }
 
 #[derive(Clone, Copy, Debug)]
