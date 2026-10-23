@@ -7,14 +7,9 @@ submodule (licensed sprites and music; keep this repository private).
 
 ## Status
 
-Act 1 is playable from the title screen through the Ember Warlock: the Sleeper's Vault, Leafhollow and its interiors,
-Windward Fields, the Mossy Grotto and the boss arena, plus the optional Whisperwood. Everything those areas use is
-ported: the terrain baker, chemistry (burning grass, ice, electricity), lighting, weather, the full player combat kit
-(combos, bolts, dodges, guards, element modes, overload, Combat Arts), data-driven enemies, rifts, souls, puzzles,
-dialogue, shops and menus.
-
-Not yet ported (needed from Act 2 on): the Aether Tether, ice blocks and pressure plates, memory shards, the other
-bosses, and the Blighted expeditions.
+The whole game is ported: all acts and side zones, all seven bosses (including the Echo remixes), the Memory Lens
+eras, the Aether Tether puzzles, the Blighted expeditions with their grades, and the Hollow Below. Gameplay data in
+`assets/data` is identical to the C# game's.
 
 ## Running
 
