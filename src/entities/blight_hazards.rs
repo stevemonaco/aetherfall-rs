@@ -1,12 +1,10 @@
 //! Hazards of the Blighted expeditions (the Inverted Spire's lightning grid, ghost-ship cannons) and the Blight Gate.
 
-use std::f32::consts::TAU;
-
 use bevy::math::Vec2;
 
-use super::combat_effects::LightningStrike;
 use super::effects::Particle;
 use super::entity::{Entity, EntityBase};
+use super::golem::StrikeMarker;
 use super::projectile::Projectile;
 use crate::art::{bosses, combat as art_combat};
 use crate::core::audio::{self, Sound};
@@ -17,7 +15,6 @@ use crate::entity_base;
 use crate::gameplay::combat::{self, Faction, Hit, HitKind};
 use crate::gameplay::element::Element;
 use crate::scenes::world::World;
-use crate::world::chemistry::conductive;
 use crate::world::map::{EntityData, TILE, tile_feet};
 
 /// The Inverted Spire's lightning rods: on a fixed beat, lightning falls on alternating 2x2 blocks of an area, so the
@@ -75,68 +72,6 @@ impl Entity for StormGrid {
     }
 
     fn draw(&self, _world: &World, _batch: &mut Batch) {}
-}
-
-/// A ring that tightens on a spot, then calls down lightning there.
-pub struct StrikeMarker {
-    base: EntityBase,
-    delay: f32,
-    hit: Hit,
-    age: f32,
-}
-
-impl StrikeMarker {
-    const RADIUS: f32 = 14.0;
-
-    pub fn new(at: Vec2, delay: f32, hit: Hit) -> StrikeMarker {
-        StrikeMarker { base: EntityBase::at(at), delay, hit, age: 0.0 }
-    }
-}
-
-impl Entity for StrikeMarker {
-    entity_base!();
-
-    fn layer(&self) -> i32 {
-        0
-    }
-
-    fn update(&mut self, world: &mut World, dt: f32) {
-        self.age += dt;
-        if self.age < self.delay {
-            return;
-        }
-        self.base.removed = true;
-        let pos = self.base.pos;
-        world.add(LightningStrike::new(pos));
-        audio::play(Sound::Clink, 1.0, -0.7);
-        world.camera.shake(0.12, 1.0);
-        if world.hero.pos.distance(pos) < Self::RADIUS + 4.0 {
-            let mut hit = self.hit.clone();
-            world.hit_player(&mut hit);
-        }
-        let (tx, ty) = self.base.tile_pos();
-        if conductive(world.map.at(tx, ty)) {
-            world.chem_electrify(tx, ty, None);
-        }
-    }
-
-    fn draw(&self, _world: &World, batch: &mut Batch) {
-        let t = self.age / self.delay;
-        let blink = ((self.age * (6.0 + t * 14.0)) as i32 % 2) as f32;
-        let color = Rgba::rgb(255, 240, 120).lerp(Rgba::WHITE, t).mul(0.4 + 0.6 * blink);
-        let pos = self.base.pos;
-        let mut a = 0.0f32;
-        while a < TAU {
-            batch.fill_rect(pos.x + a.cos() * Self::RADIUS, pos.y + a.sin() * Self::RADIUS * 0.5, 1.0, 1.0, color);
-            a += 0.2;
-        }
-        let inner = Self::RADIUS * t;
-        let mut a = 0.0f32;
-        while a < TAU {
-            batch.fill_rect(pos.x + a.cos() * inner, pos.y + a.sin() * inner * 0.5, 1.0, 1.0, color.mul(0.7));
-            a += 0.35;
-        }
-    }
 }
 
 /// A ghost ship's cannon. It lobs blight shot at the player; Wind or a guard can send it back.
