@@ -190,7 +190,7 @@
       "type": "sign",
       "x": 31.0,
       "y": 16.0,
-      "text": "A shrine to the Concord's Circuit. Its light went out when the rifts opened.",
+      "text": "A shrine to the Concord's Weave. Its light went out when the rifts opened.",
       "unless": "rift:leaf_shrine"
     },
     {

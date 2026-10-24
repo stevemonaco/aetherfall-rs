@@ -16,8 +16,7 @@ use crate::core::gfx::Batch;
 use crate::core::palette;
 use crate::entity_base;
 use crate::gameplay::combat::{self, CombatStats, Faction, Hit};
-use crate::gameplay::element::{BASIC, Element};
-use crate::gameplay::mastery;
+use crate::gameplay::element::Element;
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, tile_feet};
 
@@ -63,17 +62,17 @@ impl TrainingDummy {
         self.hits.iter().map(|h| h.1).sum::<i32>() as f32 / span
     }
 
-    /// An Aether strike takes the dummy's weakness when that element is mastered well enough, like a real foe.
-    fn resolve_element(&self, world: &World, element: Element) -> Element {
-        if element != Element::Aether {
-            return element;
+    /// An Aether hit may pierce to the dummy's weakness, like a real foe.
+    fn resolve_element(&self, world: &World, hit: &Hit) -> Element {
+        let element = hit.element;
+        let aether = hit.aether || element == Element::Aether;
+        if aether
+            && self.weak != Element::None
+            && (element == Element::Aether || world.rng.next_f32() < world.state.pierce_chance(self.weak))
+        {
+            return self.weak;
         }
-        let lens = world.state.prism("prism_lens");
-        BASIC
-            .into_iter()
-            .filter(|&e| lens || world.state.mastery_level(e) >= mastery::ADEPT)
-            .max_by(|a, b| self.element_mod(*a).total_cmp(&self.element_mod(*b)))
-            .unwrap_or(Element::None)
+        if element == Element::Aether { Element::None } else { element }
     }
 }
 
@@ -105,7 +104,7 @@ impl Entity for TrainingDummy {
         if !hit.is_player() {
             return false;
         }
-        let element = self.resolve_element(world, hit.element);
+        let element = self.resolve_element(world, hit);
         let level = world.state.level;
         let stats =
             CombatStats::new(level, combat::enemy_atk(level), combat::enemy_def(level), combat::enemy_foc(level));

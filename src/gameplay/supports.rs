@@ -1,5 +1,5 @@
 //! Support gems: socketed into a mode's attack, ranged or special group, each reshapes those hits and carries a
-//! cost. A gem is a single item, so it can sit in only one socket. Prism gems fit only the Aether mode.
+//! cost. A gem is a single item, so it can sit in only one socket. Prism gems fit only the Aether page's socket.
 
 use super::combat::HitKind;
 
@@ -82,7 +82,12 @@ pub const ALL: [SupportDef; 14] = [
         Some(Special),
         "Skill hits leave their element on the ground, but skills charge 20% slower.",
     ),
-    gem("echo_gem", "Echo Gem", Some(Special), "Skills repeat once at half power, but build twice the overload."),
+    gem(
+        "echo_gem",
+        "Echo Gem",
+        Some(Special),
+        "Skills repeat once at half power, but the Aether meter fills 30% slower.",
+    ),
     gem(
         "efficiency_gem",
         "Efficiency Gem",
@@ -93,13 +98,9 @@ pub const ALL: [SupportDef; 14] = [
     gem("brutal_gem", "Brutal Gem", None, "Hits break guards 50% faster, but build ailments 30% slower."),
     gem("infusion_gem", "Infusion Gem", None, "Hits build ailments 40% faster, but deal 15% less damage."),
     gem("leech_gem", "Leech Gem", None, "Hits return 2% of their damage as life, but build 25% less SP."),
-    gem("overdrive_gem", "Overdrive Gem", None, "Hits deal 25% more damage, but build overload 60% faster."),
-    prism(
-        "prism_lens",
-        "Prism Lens",
-        "Aether strikes find every weakness regardless of mastery, but bursts end 3 seconds sooner.",
-    ),
-    prism("everlight", "Everlight", "Aether bursts last 4 seconds longer, but Aether ATK -20%."),
+    gem("overdrive_gem", "Overdrive Gem", None, "Hits deal 25% more damage, but the Aether meter fills 40% slower."),
+    prism("prism_lens", "Prism Lens", "Aether pierces weaknesses 20% more often, but lasts 1.5 seconds less."),
+    prism("everlight", "Everlight", "Aether lasts 3 seconds longer, but its meter fills 20% slower."),
 ];
 
 pub fn get(id: &str) -> Option<&'static SupportDef> {
@@ -112,7 +113,8 @@ pub struct SupportMods {
     pub damage: f32,
     pub poise: f32,
     pub status: f32,
-    pub overload: f32,
+    /// Multiplier on how fast these hits fill the Aether meter.
+    pub aether: f32,
     pub sp_gain: f32,
     pub leech: f32,
     pub charge_speed: f32,
@@ -131,7 +133,7 @@ impl Default for SupportMods {
             damage: 1.0,
             poise: 1.0,
             status: 1.0,
-            overload: 1.0,
+            aether: 1.0,
             sp_gain: 1.0,
             leech: 0.0,
             charge_speed: 1.0,
@@ -170,7 +172,7 @@ impl SupportMods {
                 }
                 "echo_gem" => {
                     m.echo = true;
-                    m.overload *= 2.0;
+                    m.aether *= 0.7;
                 }
                 "efficiency_gem" => {
                     m.efficiency = true;
@@ -194,7 +196,7 @@ impl SupportMods {
                 }
                 "overdrive_gem" => {
                     m.damage *= 1.25;
-                    m.overload *= 1.6;
+                    m.aether *= 0.6;
                 }
                 _ => {}
             }

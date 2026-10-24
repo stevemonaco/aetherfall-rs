@@ -266,7 +266,7 @@ impl BossBrain for WyrmBrain {
         if !hit.is_player() {
             return None;
         }
-        if self.step == Step::Surfaced && matches!(hit.element, Element::Water | Element::Aether) {
+        if self.step == Step::Surfaced && (matches!(hit.element, Element::Water | Element::Aether) || hit.aether) {
             self.chill += hit.power;
             Particle::burst(world, self.hurtbox(enemy).center(), Rgba::rgb(230, 230, 240), 6, 40.0, 0.4, false);
             if self.chill >= 2.2 {

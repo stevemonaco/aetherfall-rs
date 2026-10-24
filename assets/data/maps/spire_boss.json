@@ -70,7 +70,7 @@
       "type": "chest",
       "x": 3.0,
       "y": 9.0,
-      "item": "storm_ring",
+      "item": "gale_bracer",
       "if": "boss_golem"
     },
     {

@@ -371,11 +371,11 @@ impl BossBrain for ConcordBrain {
         let sealed = match self.phase {
             Phase::Attuned => false,
             Phase::Orbs => self.any_orb_left(world),
-            Phase::Unbound => hit.element != Element::Aether,
+            Phase::Unbound => !hit.aether,
         };
         if sealed {
             if self.phase == Phase::Unbound {
-                world.add_resonance(6.0);
+                world.feed_aether(6.0);
             }
             audio::play(Sound::Clink, 0.8, 0.4);
             Particle::burst(world, Self::core(enemy), attuned.glow(), 4, 40.0, 0.2, true);
@@ -386,7 +386,7 @@ impl BossBrain for ConcordBrain {
         }
         let scale = if self.phase != Phase::Attuned {
             1.0
-        } else if hit.element == attuned.opposite() || hit.element == Element::Aether {
+        } else if hit.element == attuned.opposite() || hit.aether {
             1.5
         } else if hit.element == attuned {
             0.1

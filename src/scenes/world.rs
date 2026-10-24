@@ -22,9 +22,7 @@ use crate::entities::pickup::Pickup;
 use crate::entities::player::Player;
 use crate::entities::puzzles::SpanBridge;
 use crate::gameplay::blight_areas::{self, BlightAreaDef};
-use crate::gameplay::circuit::Trigger;
 use crate::gameplay::combat::{self, Faction, Hit};
-use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{EnemyDef, data};
 use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
@@ -32,6 +30,7 @@ use crate::gameplay::pacts;
 use crate::gameplay::rank::CombatRank;
 use crate::gameplay::skills;
 use crate::gameplay::souls::{self, SoulDef};
+use crate::gameplay::weave::Trigger;
 use crate::world::ambience::Ambience;
 use crate::world::baker;
 use crate::world::camera::Camera;
@@ -78,8 +77,7 @@ pub struct KillInfo {
     pub pos: Vec2,
     pub boss: bool,
     pub blighted: bool,
-    /// The element and weakness of the killing blow, for mastery and Resonance.
-    pub element: Element,
+    /// Whether the killing blow struck a weakness, for mastery.
     pub weakness: bool,
 }
 
@@ -89,8 +87,10 @@ pub struct World {
     pub map: TileMap,
     pub chem: Chemistry,
     pub rank: CombatRank,
-    /// Combat events for the player's Circuit triggers, raised while the player itself is busy updating.
+    /// Combat events for the player's Weave triggers, raised while the player itself is busy updating.
     pub trigger_queue: Vec<Trigger>,
+    /// Aether meter to add on the player's next update, from Aether-sealed foes the player strikes.
+    pub aether_feed: f32,
     pub camera: Camera,
     pub rng: Rng,
     pub hero: HeroInfo,
@@ -143,6 +143,7 @@ impl World {
             chem: Chemistry::new(1, 1),
             rank: CombatRank::default(),
             trigger_queue: Vec::new(),
+            aether_feed: 0.0,
             camera: Camera::new(SCREEN_WIDTH, SCREEN_HEIGHT),
             rng: Rng::from_time(),
             hero: HeroInfo::default(),
@@ -526,9 +527,6 @@ impl World {
         self.handle_debug_keys();
 
         let dead = self.player.as_ref().is_some_and(|p| p.is_dead());
-        if !self.input_locked() && !dead && input::pressed(GameAction::Lens) {
-            self.swap_era(false);
-        }
         if !self.input_locked() && !dead && input::pressed(GameAction::Map) {
             self.requests.push(WorldRequest::Map);
             return;
@@ -590,15 +588,13 @@ impl World {
         self.ambience.update(dt, self.camera.position);
     }
 
-    /// The Memory Lens: step into this place's other era, if it has one and the spot there is open.
-    pub fn swap_era(&mut self, from_shard: bool) {
+    /// A memory crystal's touch: step into this place's other era, if it has one and the spot there is open.
+    pub fn swap_era(&mut self) {
         let Some(pair) = self.data.pair.clone() else {
-            if from_shard {
-                self.show_message("The shard is dim. This place has no other memory.");
-            }
+            self.show_message("The crystal is dim. This place has no other memory.");
             return;
         };
-        if (!from_shard && !self.state.has("memory_lens")) || self.boss.is_some() || self.input_locked() {
+        if self.boss.is_some() {
             return;
         }
         let Ok(other) = TileMap::new(&MapData::load(&pair)) else { return };
@@ -1045,6 +1041,7 @@ impl World {
                 }
                 "flag" => {
                     self.state.flags.insert(arg.to_string());
+                    self.learn_grown_skills();
                 }
                 "unflag" => {
                     self.state.flags.remove(arg);
@@ -1073,7 +1070,7 @@ impl World {
                     let max = arg.parse().unwrap_or(1);
                     self.queue(Box::new(move |_| Box::new(super::smith::SmithScene::new(max))));
                 }
-                "circuit" => self.queue(Box::new(|_| Box::new(super::circuit::CircuitScene::new()))),
+                "weave" => self.queue(Box::new(|_| Box::new(super::weave::WeaveScene::new()))),
                 "pacts" => self.queue(Box::new(|_| Box::new(super::pact::PactScene::new()))),
                 "quest" => {
                     if self.state.flags.insert(format!("quest:{arg}"))
@@ -1087,6 +1084,7 @@ impl World {
                     }
                 }
                 "say" => self.show_message(arg),
+                "era" => self.swap_era(),
                 "save" => self.save_game(),
                 "music" => {
                     let track = if arg.is_empty() { self.data.music.clone() } else { Some(arg.to_string()) };
@@ -1134,12 +1132,18 @@ impl World {
                 input::glyph(GameAction::PrevMode),
                 input::glyph(GameAction::NextMode)
             ));
+            if self.state.sigils.len() == 1 {
+                text.push_str(&format!(
+                    "\nThe blade wakes in your hand. Landing hits fills its Aether; when it brims, Aether wakes on its own. Hold {} to choose a mode.",
+                    input::glyph(GameAction::NextMode)
+                ));
+            }
         } else if let Some(skill) = skills::get(id) {
             text = format!(
                 "Learned the skill {}!\n{} (Equip it in {} mode from the Skills menu, then press {}.)",
                 skill.name,
                 skill.description,
-                skill.element.label(),
+                skill.element.mode_label(),
                 input::glyph(GameAction::Skill)
             );
         }
@@ -1152,36 +1156,30 @@ impl World {
 
     fn train_mastery(&mut self, kill: &KillInfo, exp: i32) {
         let mode = self.state.mode;
-        let trained = if mode == Element::Aether { kill.element } else { mode };
         let xp = exp as f32 * if kill.weakness { 1.5 } else { 1.0 } * self.state.acc().mastery;
-        if let Some(level) = self.state.add_mastery(trained, xp.round() as i32) {
+        if let Some(level) = self.state.add_mastery(mode, xp.round() as i32) {
             audio::play(Sound::LevelUp, 0.7, 0.3);
-            self.toast(format!("{} mastery rose to {level}!", trained.label()));
-        }
-        if kill.weakness && mode != Element::Aether {
-            self.add_resonance(10.0);
+            self.toast(format!("{} mastery rose to {level}!", mode.mode_label()));
+            self.learn_grown_skills();
         }
     }
 
-    /// Fills the Aether Resonance gauge once the blade has awakened.
-    pub fn add_resonance(&mut self, amount: f32) {
-        if !self.state.aether_awakened() || self.state.mode == Element::Aether {
-            return;
-        }
-        let was_full = self.state.resonance_full();
-        let gain = amount * self.state.mods().resonance_gain;
-        self.state.resonance = (self.state.resonance + gain).min(100.0);
-        if !was_full && self.state.resonance_full() {
-            audio::play(Sound::ChargeLevel, 0.9, 0.5);
-            self.toast("Resonance full: switch to Aether!".to_string());
+    /// Learns the skills the blade has grown into (from mastery or the awakening) and announces them.
+    pub fn learn_grown_skills(&mut self) {
+        for skill in self.state.sync_skills() {
+            self.toast(format!("New {} skill: {}", skill.element.name(), skill.name));
         }
     }
 
-    /// Adds SP, scaled by accessories, the Circuit and Neutral mode.
+    /// Fills the player's Aether meter (applied on the player's next update).
+    pub fn feed_aether(&mut self, amount: f32) {
+        self.aether_feed += amount;
+    }
+
+    /// Adds SP, scaled by accessories and the Weave.
     pub fn add_sp(&mut self, amount: f32) {
         let mods = self.state.mods().sp_gain;
-        let neutral = if self.state.mode == Element::None { 1.2 } else { 1.0 };
-        self.state.sp = (self.state.sp + amount * self.state.acc().sp_gain * mods * neutral).min(self.state.max_sp());
+        self.state.sp = (self.state.sp + amount * self.state.acc().sp_gain * mods).min(self.state.max_sp());
     }
 
     pub fn reward_kill(&mut self, kill: KillInfo) {

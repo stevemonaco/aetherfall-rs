@@ -1,7 +1,7 @@
 {
   // Each id lists entries; the first whose "if" condition holds is used.
   // Conditions: flag, !flag, has:item, count:item:n, level:n, gold:n, crystals:n, restored:town:percent (comma = AND).
-  // Actions: give:item[*n], take:item[*n], flag:, unflag:, gold:+n/-n, heal, skill:, quest:, shop:, smith:max, circuit,
+  // Actions: give:item[*n], take:item[*n], flag:, unflag:, gold:+n/-n, heal, skill:, quest:, shop:, smith:max, weave,
   //          save, say:, music:, warp:map,x,y[,facing], ending
 
   // ---- Act 1: Leafhollow -----------------------------------------------------------------------------------------
@@ -17,7 +17,7 @@
   "elder": [
     { "if": "!has:wind_sigil", "speaker": "Elder Orin", "lines": [
         "Ah... so the vault has finally opened. Welcome back to the waking world, child.",
-        "You slept a hundred years beneath Leafhollow. Before the Aetherfall, the Concord sealed you there with that blade in your hands: the Aether Blade. It sleeps as deeply as you did.",
+        "You slept a hundred years beneath Leafhollow. Before the Aetherfall, the Concord sealed you there with that blade in your hands: the Aether Blade. It sleeps as deeply as you did; you couldn't swing it now if you tried.",
         "Its hilt has four sockets, one for each of the Concord's sigils. Each sigil wakes an element in the blade. Take this one, kept here since the fall: the Sigil of Wind.",
         "Something else came down with the sky-cities. Rifts: tears in the world that pour out monsters. When they opened they swallowed half of Leafhollow. Our smith, our healer, even the shrine's light.",
         "Seal the rifts and what they took may come back. There is one in the north meadow of the fields, and another deep in the Mossy Grotto."
@@ -27,7 +27,7 @@
         "Hazel's apothecary, standing again. Torva hammering at her anvil. I'd begun to forget the sound.",
         "It's as I hoped: what the rifts take, they can be made to give back. Take this. The Concord left it in the vault with you."
       ],
-      "do": [ "flag:silent_village_done", "give:circuit_shard" ] },
+      "do": [ "flag:silent_village_done", "give:weave_knot" ] },
     { "if": "restored:leafhollow:40,!leaf_reward_40", "speaker": "Elder Orin", "lines": [ "The village grows louder by the day. Here: we found this in the rubble of the old well. It's yours by right." ],
       "do": [ "flag:leaf_reward_40", "give:life_shard" ] },
     { "if": "restored:leafhollow:80,!leaf_reward_80", "speaker": "Elder Orin", "lines": [ "Nearly whole again. My grandmother's charm, light as a breath. It will keep you quick on your feet." ],
@@ -78,7 +78,7 @@
         "If you ever close that one... I'd love to see the shrine light up again."
       ],
       "do": [ "quest:shrine_light" ] },
-    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, skills, souls, the Circuit and your quests are all in there. M shows the world map." ] }
+    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, skills, souls, the Weave and your quests are all in there. M shows the world map." ] }
   ],
 
   "pip": [
@@ -156,11 +156,11 @@
   "sage_elm": [
     { "if": "!shrine_done", "speaker": "Sage Elm", "lines": [
         "The light returns... and so do I. You have my thanks.",
-        "This shrine channels the Circuit, the Concord's discipline of strength. As you grow, points of power gather in you. Spend them on the Circuit to learn new skills, deepen them, and sharpen body and blade.",
-        "The greatest paths, the keystones, need a Circuit Shard as well. Take this one. You'll find the Circuit in your menu, or at any save crystal, where you may also begin it anew."
+        "This shrine channels the Weave, the Concord's discipline of strength. As you grow, threads of power gather in you. Weave them into the lattice to sharpen body and blade, each thread beside one you've already woven.",
+        "The keystones at its edges must be tied off with a Weave Knot as well. Take this one. You'll find the Weave in your menu, or at any save crystal, where you may also unpick it and begin anew."
       ],
-      "do": [ "flag:shrine_done", "give:circuit_shard", "circuit" ] },
-    { "speaker": "Sage Elm", "lines": [ "Shall we look at your Circuit?" ], "do": [ "circuit" ] }
+      "do": [ "flag:shrine_done", "give:weave_knot", "weave" ] },
+    { "speaker": "Sage Elm", "lines": [ "Shall we look at your Weave?" ], "do": [ "weave" ] }
   ],
 
   "bridgewarden": [
@@ -310,7 +310,7 @@
         "My yard! My hulls! Ha! I owe you a boat, sleeper. Or at least a keel.",
         "Here: a Concord tome I fished out of a wreck. Can't read a word of it. Maybe you can."
       ],
-      "do": [ "flag:kett_done", "give:circuit_point" ] },
+      "do": [ "flag:kett_done", "give:insight_tome" ] },
     { "speaker": "Bosun Kett", "lines": [ "Ferry's Loy's business, not mine. He's been gone since the rifts, too. Last seen heading into the old saltmine." ] }
   ],
 
@@ -393,10 +393,10 @@
   "rook": [
     { "if": "!rook_done", "speaker": "Rook", "lines": [
         "I was copying the Sage's star charts when the floor turned purple. That was... how long ago?",
-        "Here. I'd been transcribing the Concord's Circuit tomes. Two are finished. They'll do you more good than me."
+        "Here. I'd been transcribing the Concord's Weave tomes. Two are finished. They'll do you more good than me."
       ],
-      "do": [ "flag:rook_done", "give:circuit_point*2" ] },
-    { "speaker": "Rook", "lines": [ "The Sage says every element's path in the Circuit ends in a keystone, sealed behind a shard. Worth hunting for." ] }
+      "do": [ "flag:rook_done", "give:insight_tome*2" ] },
+    { "speaker": "Rook", "lines": [ "The Sage says every thread of the Weave runs out to a keystone, and each one needs a knot. Worth hunting for." ] }
   ],
 
   "haldis": [
@@ -424,10 +424,10 @@
   "sage": [
     { "if": "!sage_gift", "speaker": "Sage Ilda", "lines": [
         "A sleeper, here? The stars said you would come, though they were vague about the date.",
-        "Your Circuit is young. This will open one of its sealed paths. Spend it where your heart leans."
+        "Your Weave is young. This knot will tie off one of its keystones. Spend it where your heart leans."
       ],
-      "do": [ "flag:sage_gift", "give:circuit_shard" ] },
-    { "if": "!has:prism_band", "speaker": "Sage Ilda", "lines": [ "Every elemental ring you find makes one element resonate: its ailments bite deeper and its overload comes slower. In the Citadel, there is said to be a band that does it for them all." ] },
+      "do": [ "flag:sage_gift", "give:weave_knot" ] },
+    { "if": "!has:prism_band", "speaker": "Sage Ilda", "lines": [ "The Concord kept an orb and a bracer for every element. The orb lets that element's arts run deeper, and the bracer deeper still. They scattered them far from the shrines, so no one could take them all at once. In the Citadel, there is said to be a band that sharpens the Aether itself." ] },
     { "speaker": "Sage Ilda", "lines": [ "The Prism Band! Every element sings with it. Use it well." ] }
   ],
 
@@ -519,7 +519,7 @@
       ],
       "do": [ "quest:cold_forge", "quest:ashford_rebuilt" ] },
     { "if": "restored:ashford:40,!ash_reward_40", "speaker": "Quartermaster Ines", "lines": [ "Tents up, bellies full. Here; Pell found this in the ash and won't stop asking what it is." ], "do": [ "flag:ash_reward_40", "give:life_shard" ] },
-    { "if": "restored:ashford:70,!ash_reward_70", "speaker": "Quartermaster Ines", "lines": [ "The forge breathes again. Corvin says this is yours; it was cooling on the anvil when the rifts opened." ], "do": [ "flag:ash_reward_70", "give:circuit_shard" ] },
+    { "if": "restored:ashford:70,!ash_reward_70", "speaker": "Quartermaster Ines", "lines": [ "The forge breathes again. Corvin says this is yours; it was cooling on the anvil when the rifts opened." ], "do": [ "flag:ash_reward_70", "give:weave_knot" ] },
     { "if": "restored:ashford:100,!ash_reward_100", "speaker": "Quartermaster Ines", "lines": [ "Every last one of us, home. The camp wants you to have this." ], "do": [ "flag:ash_reward_100", "give:spirit_pip" ] },
     { "if": "rift:ash_camp", "speaker": "Quartermaster Ines", "lines": [ "Supplies are thin, but you've earned first pick." ], "do": [ "shop:ashford" ] },
     { "speaker": "Quartermaster Ines", "lines": [ "Out there, south-west of the pools, there's a rift that took our tents and half the camp with them. Close it and I can open the stores." ] }
@@ -536,7 +536,7 @@
         "Things that die in there get back up unless you finish them right: look for the mark over their heads. And walk light on that purple ground."
       ], "do": [ "flag:pell_gate" ] },
     { "speaker": "Scout Pell", "lines": [
-        "I've walked the Bastion's halls. Sometimes I'd see it as it was: whole, flying, full of machines. Memory shards do that.",
+        "I've walked the Bastion's halls. Sometimes I'd see it as it was: whole, flying, full of machines. Memory crystals do that.",
         "Whatever you move back then, stays moved. The city remembers."
       ] }
   ],
@@ -557,10 +557,10 @@
         "Give me your blade, sleeper. Four sigils burning in one hilt. The Concord made it to wake here; it only needed a forge that remembered how."
       ],
       "ask": "Let Corvin awaken the Aether Blade?",
-      "yes": [ "flag:aether_awakened", "give:prism_edge", "music:Retro-EternalFountain" ],
+      "yes": [ "flag:aether_awakened", "music:Retro-EternalFountain" ],
       "yesLines": [
         "The four sigils flare under the hammer and run together along the edge. The steel comes out every color and no color at all.",
-        "\"There. Awake at last. Strike your foes where they're weak and the blade drinks it in. When it's full, call the Aether and every element you've truly mastered answers at once. It won't last; nothing that bright does.\""
+        "\"There. Awake at last. You've felt the Aether rise when the blade fills, haven't you? It was only ever half of itself. Now it'll burn longer, find a foe's weakness far more often, and open the Concord's seals.\""
       ],
       "noLines": [ "When you're ready." ] },
     { "speaker": "Forgemaster Corvin", "lines": [ "Bring me blight cores and I'll push that blade past anything the Concord dreamed of." ], "do": [ "smith:10" ] }

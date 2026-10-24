@@ -74,7 +74,7 @@
       "type": "chest",
       "x": 3.0,
       "y": 3.0,
-      "item": "storm_greaves",
+      "item": "storm_bracer",
       "style": 3,
       "if": "run:echo_golem"
     },

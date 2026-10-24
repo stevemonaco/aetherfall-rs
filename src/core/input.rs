@@ -25,17 +25,14 @@ pub enum GameAction {
     Mode2,
     Mode3,
     Mode4,
-    Mode5,
-    Mode6,
     Confirm,
     Cancel,
     Menu,
     Map,
     Soul,
-    Lens,
 }
 
-pub const ACTION_COUNT: usize = 25;
+pub const ACTION_COUNT: usize = 22;
 
 impl GameAction {
     pub const ALL: [GameAction; ACTION_COUNT] = [
@@ -56,14 +53,11 @@ impl GameAction {
         GameAction::Mode2,
         GameAction::Mode3,
         GameAction::Mode4,
-        GameAction::Mode5,
-        GameAction::Mode6,
         GameAction::Confirm,
         GameAction::Cancel,
         GameAction::Menu,
         GameAction::Map,
         GameAction::Soul,
-        GameAction::Lens,
     ];
 
     pub fn parse(s: &str) -> Option<GameAction> {
@@ -294,7 +288,6 @@ pub fn glyph(action: GameAction) -> String {
             Menu => "Start",
             Map => "Back",
             Soul => "R3",
-            Lens => "L3",
             _ => return format!("{action:?}"),
         }
     } else {
@@ -313,7 +306,6 @@ pub fn glyph(action: GameAction) -> String {
             Menu => "Esc",
             Map => "M",
             Soul => "V",
-            Lens => "T",
             _ => return format!("{action:?}"),
         }
     };

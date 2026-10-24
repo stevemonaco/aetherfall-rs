@@ -6,15 +6,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use bevy::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-use super::circuit::{self, CircuitMods, CircuitNode};
 use super::combat::{self, CombatStats};
-use super::element::{BASIC, Element, MODES};
+use super::element::{Element, MODES};
 use super::game_data::data;
 use super::items::{self, AccessoryStats, ItemKind};
 use super::mastery;
 use super::skills::{self, SkillDef};
 use super::souls;
 use super::supports::{self, Group, SupportDef, SupportMods};
+use super::weave::{self, WeaveMods, WeaveNode};
 use crate::core::direction::Direction;
 use crate::core::storage;
 
@@ -52,7 +52,8 @@ pub struct GameState {
     /// Support gems by socket key (`mode.group.index`).
     pub sockets: BTreeMap<String, String>,
     pub flags: BTreeSet<String>,
-    pub circuit_nodes: BTreeSet<String>,
+    #[serde(alias = "CircuitNodes")]
+    pub weave_nodes: BTreeSet<String>,
     pub souls_owned: Vec<String>,
     pub soul: Option<String>,
     pub soul_xp: BTreeMap<String, i32>,
@@ -63,16 +64,8 @@ pub struct GameState {
     /// Blight soaked up from blighted ground (0 to 50): a percentage taken off max life until cleansed.
     #[serde(skip)]
     pub corruption: f32,
-    /// The Aether Resonance gauge (0 to 100), filled by striking weaknesses.
     #[serde(skip)]
-    pub resonance: f32,
-    /// Seconds left in an Aether burst, and the mode to return to when it ends.
-    #[serde(skip)]
-    pub burst_time: f32,
-    #[serde(skip)]
-    pub burst_return: Element,
-    #[serde(skip)]
-    mods: RefCell<Option<CircuitMods>>,
+    mods: RefCell<Option<WeaveMods>>,
 }
 
 impl Default for GameState {
@@ -102,7 +95,7 @@ impl Default for GameState {
             equipped_skills: BTreeMap::new(),
             sockets: BTreeMap::new(),
             flags: BTreeSet::new(),
-            circuit_nodes: BTreeSet::new(),
+            weave_nodes: BTreeSet::new(),
             souls_owned: Vec::new(),
             soul: None,
             soul_xp: BTreeMap::new(),
@@ -111,9 +104,6 @@ impl Default for GameState {
             kills: BTreeMap::new(),
             play_time: 0.0,
             corruption: 0.0,
-            resonance: 0.0,
-            burst_time: 0.0,
-            burst_return: Element::None,
             mods: RefCell::new(None),
         }
     }
@@ -149,22 +139,21 @@ impl GameState {
         stats
     }
 
-    pub fn mods(&self) -> std::cell::Ref<'_, CircuitMods> {
+    pub fn mods(&self) -> std::cell::Ref<'_, WeaveMods> {
         if self.mods.borrow().is_none() {
-            *self.mods.borrow_mut() = Some(circuit::compute(self.circuit_nodes.iter()));
+            *self.mods.borrow_mut() = Some(weave::compute(self.weave_nodes.iter()));
         }
         std::cell::Ref::map(self.mods.borrow(), |m| m.as_ref().unwrap())
     }
 
-    pub fn circuit_points(&self) -> i32 {
-        let spent = self.circuit_nodes.iter().filter(|id| circuit::by_id(id).is_some()).count() as i32;
-        self.level - 1 + self.count("circuit_point") - spent
+    pub fn weave_points(&self) -> i32 {
+        let spent = self.weave_nodes.iter().filter(|id| weave::by_id(id).is_some()).count() as i32;
+        self.level - 1 + self.count("insight_tome") - spent
     }
 
-    pub fn shards_free(&self) -> i32 {
-        let used =
-            self.circuit_nodes.iter().filter(|id| circuit::by_id(id).is_some_and(|n| n.needs_shard())).count() as i32;
-        self.count("circuit_shard") - used
+    pub fn knots_free(&self) -> i32 {
+        let used = self.weave_nodes.iter().filter(|id| weave::by_id(id).is_some_and(|n| n.needs_knot())).count() as i32;
+        self.count("weave_knot") - used
     }
 
     pub fn exp_to_next(&self) -> i32 {
@@ -210,15 +199,9 @@ impl GameState {
         ["ember_crystal", "tide_crystal", "storm_crystal"].iter().filter(|c| self.has(c)).count() as i32
     }
 
-    /// The blade's power in a mode: grows with level and that mode's mastery, improved by the smith. Aether draws on
-    /// the most mastered element.
+    /// The blade's power in a mode: grows with level and that mode's mastery, improved by the smith.
     pub fn weapon_atk(&self, mode: Element) -> f32 {
-        let mastery = if mode == Element::Aether {
-            BASIC.iter().map(|&e| self.mastery_level(e)).max().unwrap_or(0) + 1
-        } else {
-            self.mastery_level(mode)
-        };
-        mastery::blade_power(self.level, mastery) * (1.0 + 0.08 * self.smith_level as f32)
+        mastery::blade_power(self.level, self.mastery_level(mode)) * (1.0 + 0.08 * self.smith_level as f32)
     }
 
     pub fn has_sigil(&self, element: Element) -> bool {
@@ -229,34 +212,65 @@ impl GameState {
         self.flags.contains("aether_awakened")
     }
 
-    pub fn resonance_full(&self) -> bool {
-        self.resonance >= 100.0
+    /// Before the first sigil the blade cannot be wielded at all.
+    pub fn dormant(&self) -> bool {
+        self.sigils.is_empty()
     }
 
-    /// Every mode the blade can take, whether or not it can be entered right now.
+    /// The opening Aether form's strength: level 1 with one or two sigils, 2 with three or four, 3 once awakened.
+    pub fn aether_level(&self) -> i32 {
+        if self.flags.contains("debug:skills") || self.aether_awakened() {
+            3
+        } else if self.sigils.len() >= 3 {
+            2
+        } else if !self.dormant() {
+            1
+        } else {
+            0
+        }
+    }
+
+    /// Seconds an Aether state lasts.
+    pub fn aether_duration(&self) -> f32 {
+        let mut seconds = if self.aether_awakened() { 8.0 } else { 6.0 } + self.mods().aether_time;
+        if self.prism("everlight") {
+            seconds += 3.0;
+        }
+        if self.prism("prism_lens") {
+            seconds -= 1.5;
+        }
+        if self.mods().has("aether_bond") {
+            seconds *= 0.5;
+        }
+        seconds.max(2.0)
+    }
+
+    /// The chance an Aether hit pierces to a foe's weakness of `element` instead of landing in the current mode's.
+    pub fn pierce_chance(&self, element: Element) -> f32 {
+        if self.mods().has("aether_bond") {
+            return 1.0;
+        }
+        let chance = 0.25
+            + 0.15 * self.mastery_level(element) as f32
+            + if self.aether_awakened() { 0.25 } else { 0.0 }
+            + if self.has("prism_band") { 0.15 } else { 0.0 }
+            + if self.prism("prism_lens") { 0.2 } else { 0.0 }
+            + self.mods().pierce;
+        chance.min(1.0)
+    }
+
+    /// Modes the player can fight in: one per sigil.
     pub fn owned_modes(&self) -> Vec<Element> {
-        MODES
-            .iter()
-            .copied()
-            .filter(|&m| match m {
-                Element::None => true,
-                Element::Aether => self.aether_awakened(),
-                e => self.has_sigil(e),
-            })
-            .collect()
+        MODES.iter().copied().filter(|&m| self.has_sigil(m)).collect()
     }
 
-    /// Modes the player can switch to now. Aether only appears while its burst is ready or running.
-    pub fn available_modes(&self) -> Vec<Element> {
-        MODES
-            .iter()
-            .copied()
-            .filter(|&m| match m {
-                Element::None => true,
-                Element::Aether => self.aether_awakened() && (self.resonance_full() || self.mode == Element::Aether),
-                e => self.has_sigil(e),
-            })
-            .collect()
+    /// The owned modes plus the Aether page (its opening form and Prism socket), as the Skills menu shows them.
+    pub fn blade_pages(&self) -> Vec<Element> {
+        let mut pages = self.owned_modes();
+        if !self.dormant() {
+            pages.push(Element::Aether);
+        }
+        pages
     }
 
     pub fn mastery_xp(&self, mode: Element) -> i32 {
@@ -284,8 +298,6 @@ impl GameState {
             * self.acc().atk
             * combat::mode_mods(mode).atk
             * mods.atk
-            * mods.mode_atk_for(mode)
-            * if mode == Element::Aether && self.prism("everlight") { 0.8 } else { 1.0 }
     }
 
     pub fn def(&self, mode: Element) -> f32 {
@@ -305,12 +317,6 @@ impl GameState {
         CombatStats::new(self.level, self.atk(mode), self.def(mode), self.foc(mode))
     }
 
-    /// Resonance rings speed up an element's ailments and slow its overload.
-    pub fn resonates(&self, element: Element) -> bool {
-        self.has("prism_band")
-            || (element != Element::None && items::all().iter().any(|i| i.ring == element && self.has(i.id)))
-    }
-
     pub fn slot_exists(slot: i32) -> bool {
         storage::exists(&slot_key(slot))
     }
@@ -321,9 +327,7 @@ impl GameState {
 
     pub fn new_game(slot: i32) -> GameState {
         let mut state = GameState { slot, ..GameState::default() };
-        if let Some(whirl) = skills::starter(Element::None) {
-            state.learn(whirl.id);
-        }
+        state.give("dormant_blade", 1);
         state.hp = state.max_hp();
         state
     }
@@ -335,8 +339,39 @@ impl GameState {
             return None;
         }
         state.slot = slot;
+        state.migrate();
         state.hp = state.hp.clamp(1, state.max_hp().max(1));
         Some(state)
+    }
+
+    /// Brings a save from before the Weave and the Aether rework up to date: renamed items, rings turned into orbs,
+    /// the neutral mode and its skills gone, and skills matched to mastery.
+    fn migrate(&mut self) {
+        for (old, new) in [
+            ("circuit_shard", "weave_knot"),
+            ("circuit_point", "insight_tome"),
+            ("wind_orb", "gale_orb"),
+            ("flame_ring", "flame_orb"),
+            ("tide_ring", "tide_orb"),
+            ("storm_ring", "storm_orb"),
+        ] {
+            if let Some(n) = self.inventory.remove(old) {
+                *self.inventory.entry(new.to_string()).or_default() += n;
+            }
+        }
+        self.mastery.remove(Element::None.key());
+        self.learned_skills.retain(|id| skills::get(id).is_some());
+        self.equipped_skills.retain(|_, id| skills::get(id).is_some());
+        self.sockets.retain(|key, _| !key.starts_with("none."));
+        if self.dormant() {
+            self.mode = Element::None;
+            if !self.has("dormant_blade") {
+                self.give("dormant_blade", 1);
+            }
+        } else if !self.has_sigil(self.mode) {
+            self.mode = self.owned_modes()[0];
+        }
+        self.sync_skills();
     }
 
     pub fn save(&self) {
@@ -384,10 +419,9 @@ impl GameState {
             if !self.has_sigil(sigil.element) {
                 self.sigils.push(sigil.element.key().to_string());
             }
-            if let Some(starter) = skills::starter(sigil.element) {
-                self.learn(starter.id);
-            }
+            self.take("dormant_blade", 1);
             self.mode = sigil.element;
+            self.sync_skills();
             return 1;
         }
         if let Some(soul) = id.strip_prefix("soul_").filter(|s| souls::get(s).is_some()) {
@@ -450,12 +484,34 @@ impl GameState {
         self.equipped_skills.get(mode.key()).and_then(|id| skills::get(id))
     }
 
-    /// The highest level the given mode's skills can be charged to.
+    /// The highest level the given mode's skills can be charged to: one, plus that element's orb and bracer. For the
+    /// Aether page, the level its opening form strikes at.
     pub fn skill_level(&self, mode: Element) -> i32 {
+        if mode == Element::Aether {
+            return self.aether_level();
+        }
         if self.flags.contains("debug:skills") {
             return skills::MAX_LEVEL;
         }
-        self.mods().skill_level(mode)
+        let Some((orb, bracer)) = items::relics(mode) else { return 1 };
+        1 + self.has(orb) as i32 + self.has(bracer) as i32
+    }
+
+    /// Learns every skill the blade has grown into and returns the newly learned ones: an element's skills come at
+    /// mastery 0, 1 and 3, and the Aether forms with the first sigil, the third sigil and the awakening.
+    pub fn sync_skills(&mut self) -> Vec<&'static SkillDef> {
+        let mut learned = Vec::new();
+        for page in self.blade_pages() {
+            let grown = if page == Element::Aether { self.aether_level() } else { self.mastery_level(page) };
+            for (i, skill) in skills::for_element(page).enumerate() {
+                let needed = if page == Element::Aether { i as i32 + 1 } else { skills::MASTERY_FOR[i] };
+                if grown >= needed && !self.learned_skills.contains(skill.id) {
+                    self.learn(skill.id);
+                    learned.push(skill);
+                }
+            }
+        }
+        learned
     }
 
     /// Equips the next learned skill of a mode, wrapping around.
@@ -470,65 +526,37 @@ impl GameState {
         self.equipped_skills.insert(mode.key().to_string(), learned[next].to_string());
     }
 
-    /// Unlocks a Circuit node and applies its effect (learning skills immediately).
-    pub fn unlock(&mut self, node_id: &str) {
-        let Some(node) = circuit::by_id(node_id) else { return };
-        if !self.circuit_nodes.insert(node_id.to_string()) {
-            return;
+    /// Weaves a node into the lattice.
+    pub fn take_node(&mut self, node_id: &str) {
+        if weave::by_id(node_id).is_some() && self.weave_nodes.insert(node_id.to_string()) {
+            *self.mods.borrow_mut() = None;
         }
+    }
+
+    pub fn weave_has(&self, id: &str) -> bool {
+        id == weave::HUB || self.weave_nodes.contains(id)
+    }
+
+    pub fn can_take(&self, node: &WeaveNode) -> bool {
+        !self.weave_has(&node.id)
+            && self.weave_points() >= 1
+            && (!node.needs_knot() || self.knots_free() > 0)
+            && weave::neighbours(node).any(|n| self.weave_has(&n.id))
+    }
+
+    /// Unpicks the whole Weave, refunding every point.
+    pub fn reset_weave(&mut self) {
+        self.weave_nodes.clear();
         *self.mods.borrow_mut() = None;
-        for effect in node.effect.split(',') {
-            if let Some(skill) = effect.strip_prefix("skill:") {
-                self.learn(skill);
-            }
-        }
-    }
-
-    pub fn circuit_has(&self, id: &str) -> bool {
-        id == circuit::HUB || self.circuit_nodes.contains(id)
-    }
-
-    /// Whether a node's arm is open: element arms need that element's sigil, the Aether arm an awakened blade.
-    pub fn circuit_region_open(&self, region: Element) -> bool {
-        self.owned_modes().contains(&region)
-    }
-
-    pub fn can_unlock(&self, node: &CircuitNode) -> bool {
-        !self.circuit_has(&node.id)
-            && self.circuit_points() >= 1
-            && (!node.needs_shard() || self.shards_free() > 0)
-            && node.links.iter().any(|l| self.circuit_has(l))
-            && self.circuit_region_open(node.region)
-    }
-
-    /// Refunds every Circuit node and forgets the skills they taught, keeping each mode's starter skill.
-    pub fn reset_circuit(&mut self) {
-        self.circuit_nodes.clear();
-        *self.mods.borrow_mut() = None;
-        let starters: Vec<&str> = self.owned_modes().into_iter().filter_map(skills::starter).map(|s| s.id).collect();
-        self.learned_skills.retain(|s| starters.contains(&s.as_str()));
-        for mode in self.owned_modes() {
-            let kept = self.equipped_skills.get(mode.key()).is_some_and(|id| self.learned_skills.contains(id));
-            if !kept && let Some(starter) = skills::starter(mode) {
-                self.equipped_skills.insert(mode.key().to_string(), starter.id.to_string());
-            }
-        }
-    }
-
-    /// How long an Aether burst lasts.
-    pub fn burst_duration(&self) -> f32 {
-        let mut seconds = 8.0 + self.mods().burst_bonus;
-        if self.prism("everlight") {
-            seconds += 4.0;
-        }
-        if self.prism("prism_lens") {
-            seconds -= 3.0;
-        }
-        seconds.max(3.0)
     }
 
     pub fn socket_key(mode: Element, group: Group, index: i32) -> String {
         format!("{}.{}.{index}", mode.key(), group.key())
+    }
+
+    /// The socket groups a page has: a mode's attack, ranged and special groups, or the Aether page's Prism socket.
+    pub fn socket_groups(mode: Element) -> &'static [Group] {
+        if mode == Element::Aether { &[Group::Special] } else { &Group::ALL }
     }
 
     /// Sockets open in a mode's group: one, and a second once the mode reaches adept mastery.
@@ -562,9 +590,9 @@ impl GameState {
         supports::ALL.iter().filter(|g| self.count(g.id) > 0).collect()
     }
 
-    /// Whether a Prism gem is socketed in the Aether mode.
+    /// Whether a Prism gem is socketed on the Aether page.
     pub fn prism(&self, id: &str) -> bool {
-        Group::ALL.iter().any(|&g| self.socketed(Element::Aether, g).iter().any(|s| s.id == id))
+        self.socketed(Element::Aether, Group::Special).iter().any(|s| s.id == id)
     }
 
     pub fn soul_rank(&self, soul: &str) -> i32 {
@@ -652,19 +680,47 @@ mod tests {
     use super::*;
 
     #[test]
-    fn web_unlocks_along_links() {
+    fn weave_grows_along_threads() {
         let mut state = GameState::new_game(1);
         state.level = 10;
-        for id in ["n_vitality1", "n_strength1", "n_technique"] {
-            let node = circuit::by_id(id).unwrap();
-            assert!(state.can_unlock(node), "{id} should be unlockable");
-            state.unlock(id);
+        for id in ["w0_-1", "w0_-2", "w0_-3", "executioner"] {
+            let node = weave::by_id(id).unwrap();
+            assert!(state.can_take(node), "{id} should be reachable");
+            state.take_node(id);
         }
-        assert_eq!(state.skill_level(Element::None), 2);
-        assert!(!state.can_unlock(circuit::by_id("fire_edge1").unwrap()), "fire arm needs the sigil");
+        assert!(!state.can_take(weave::by_id("overcharge").unwrap()), "keystones need a knot");
+        state.reset_weave();
+        assert_eq!(state.weave_points(), 9);
+    }
+
+    #[test]
+    fn old_saves_migrate() {
+        let mut state = GameState { sigils: vec!["wind".into(), "fire".into()], ..GameState::default() };
+        state.inventory.insert("wind_orb".into(), 1);
+        state.inventory.insert("circuit_shard".into(), 2);
+        state.learned_skills.insert("whirl".into());
+        state.equipped_skills.insert("none".into(), "whirl".into());
+        state.mastery.insert("none".into(), 5000);
+        state.migrate();
+        assert_eq!(state.mode, Element::Wind);
+        assert_eq!(state.skill_level(Element::Wind), 2);
+        assert_eq!(state.knots_free(), 2);
+        assert!(!state.learned_skills.contains("whirl") && !state.equipped_skills.contains_key("none"));
+        assert_eq!(state.equipped_skill(Element::Fire).map(|s| s.id), Some("cinder_rush"));
+    }
+
+    #[test]
+    fn the_blade_wakes_with_its_first_sigil() {
+        let mut state = GameState::new_game(1);
+        assert!(state.dormant() && state.has("dormant_blade"));
         state.give("fire_sigil", 1);
-        assert!(state.can_unlock(circuit::by_id("fire_edge1").unwrap()));
-        state.reset_circuit();
-        assert_eq!(state.circuit_points(), 9);
+        assert!(!state.has("dormant_blade"));
+        assert_eq!(state.mode, Element::Fire);
+        assert_eq!(state.equipped_skill(Element::Fire).map(|s| s.id), Some("cinder_rush"));
+        assert_eq!(state.skill_level(Element::Fire), 1);
+        state.give("flame_orb", 1);
+        assert_eq!(state.skill_level(Element::Fire), 2);
+        state.mastery.insert("fire".into(), mastery::xp_for(1));
+        assert_eq!(state.sync_skills().len(), 1);
     }
 }

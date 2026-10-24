@@ -42,6 +42,35 @@ pub fn draw(batch: &mut Batch, world: &World) {
     if input::mouse_aiming() && !input::scripted() {
         draw_cursor(batch, state.mode);
     }
+    if let Some(pick) = player.wheel() {
+        draw_wheel(batch, state, pick, player.center() - world.camera.position);
+    }
+}
+
+/// The quick-change wheel: one emblem per direction, the owned ones lit and the highlighted one ringed.
+fn draw_wheel(batch: &mut Batch, state: &GameState, pick: Option<Element>, center: Vec2) {
+    let disc = Vec2::splat(16.0);
+    batch.draw_ex(art::disc(), center, None, BACK.mul(0.6), 0.0, disc, Vec2::splat(2.6), false, false);
+    for (element, dir) in [
+        (Element::Wind, Vec2::new(0.0, -1.0)),
+        (Element::Fire, Vec2::new(1.0, 0.0)),
+        (Element::Water, Vec2::new(0.0, 1.0)),
+        (Element::Thunder, Vec2::new(-1.0, 0.0)),
+    ] {
+        let at = center + dir * 26.0;
+        let owned = state.has_sigil(element);
+        if pick == Some(element) {
+            batch.draw_ex(art::disc(), at, None, Rgba::WHITE, 0.0, disc, Vec2::splat(0.68), false, false);
+        }
+        let tint = if !owned {
+            Rgba::WHITE.mul(0.15)
+        } else if pick == Some(element) {
+            Rgba::WHITE
+        } else {
+            Rgba::WHITE.mul(0.6)
+        };
+        batch.draw(art::emblem(element), snap(at - Vec2::splat(9.0)), tint);
+    }
 }
 
 fn blink(world: &World, period: f64) -> bool {
@@ -52,13 +81,17 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
     let (x, y) = (8, 8);
     let mode = state.mode;
     batch.fill(IRect::new(x + 9, y + 1, 150, 30), BACK.mul(0.55));
-    let emblem_tint =
-        if player.overheated() && (player.overheat_time() * 6.0) as i32 % 2 == 0 { Rgba::GRAY } else { Rgba::WHITE };
+    let emblem_tint = if state.dormant() { Rgba::GRAY } else { Rgba::WHITE };
     batch.draw(art::emblem(mode), Vec2::new(x as f32, y as f32), emblem_tint);
-    if state.aether_awakened() {
-        let full = state.resonance_full() && mode != Element::Aether;
-        let color = if full && blink(world, 0.2) { Rgba::WHITE } else { Element::Aether.glow() };
-        let height = (16.0 * state.resonance / 100.0).round() as i32;
+    if !state.dormant() {
+        let color = if player.aether_active() {
+            if blink(world, 0.15) { Rgba::WHITE } else { Element::Aether.glow() }
+        } else if player.aether_resting() {
+            Element::Aether.dark().lerp(Rgba::WHITE, 0.2)
+        } else {
+            Element::Aether.glow()
+        };
+        let height = (16.0 * player.aether_meter()).round() as i32;
         batch.fill(IRect::new(x - 5, y, 4, 18), palette::OUTLINE);
         batch.fill(IRect::new(x - 4, y + 1, 2, 16), Element::Aether.dark());
         batch.fill(IRect::new(x - 4, y + 17 - height, 2, height), color);
@@ -88,15 +121,6 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
         }
     }
 
-    if !matches!(mode, Element::None | Element::Aether) || player.overload > 0.0 {
-        let overload = player.overload / 100.0;
-        let color = if overload > 0.75 && blink(world, 0.12) {
-            Rgba::WHITE
-        } else {
-            mode.glow().lerp(Rgba::rgb(255, 70, 40), overload)
-        };
-        bar(batch, bx, y + 19, 58, 2, overload, color);
-    }
     if state.corruption > 0.0 {
         let text = format!("BLIGHT -{}%", state.corruption as i32);
         font::draw(
@@ -115,14 +139,9 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
         font::draw(batch, "HEAT", Vec2::new((bx + 62) as f32, (y + 27) as f32), hot, Some(palette::TEXT_SHADOW));
         bar(batch, bx + 86, y + 30, 32, 2, player.heat / 100.0, hot);
     }
-    if player.overheated() {
-        font::draw(
-            batch,
-            "OVERHEAT",
-            Vec2::new((bx + 62) as f32, (y + 16) as f32),
-            Rgba::rgb(255, 120, 60),
-            Some(palette::TEXT_SHADOW),
-        );
+    if player.aether_active() {
+        let at = Vec2::new((bx + 62) as f32, (y + 17) as f32);
+        font::draw(batch, "AETHER", at, Element::Aether.light(), Some(palette::TEXT_SHADOW));
     }
 
     font::draw(
@@ -138,7 +157,7 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
 
     if player.mode_flash() > 0.0 {
         let mut mx = x;
-        for m in state.available_modes() {
+        for m in state.owned_modes() {
             let tint = if m == mode { Rgba::WHITE } else { Rgba::WHITE.mul(0.4) };
             batch.draw_ex(
                 art::emblem(m),

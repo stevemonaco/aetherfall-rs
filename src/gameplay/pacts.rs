@@ -21,7 +21,7 @@ pub const ALL: [PactDef; 8] = [
     PactDef {
         id: "volatility",
         name: "Volatility",
-        description: "Elemental overload builds twice as fast.",
+        description: "The Aether meter fills half as fast, and every hit you take drains twice as much.",
         heat: 1,
         unlock: "boss_warlock",
     },

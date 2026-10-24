@@ -25,16 +25,17 @@ use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::circuit::Trigger;
 use crate::gameplay::combat::{self, CombatStats, DamageResult, Faction, Hit, HitKind};
 use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::pacts;
 use crate::gameplay::skills::{self, SkillDef};
 use crate::gameplay::status::{Ailment, StatusSet};
 use crate::gameplay::supports::{Group, SupportMods};
+use crate::gameplay::weave::Trigger;
 use crate::scenes::world::{HeroInfo, World};
 use crate::world::map::{TILE, Terrain, tile_center};
 
+mod aether;
 mod triggers;
 
 const BASE_SPEED: f32 = 92.0;
@@ -45,6 +46,8 @@ const FALL_DURATION: f32 = 0.7;
 const SWING_DELAY: f32 = 0.12;
 const FULL_CHARGE: f32 = 0.55;
 const SWING_LENGTH: [f32; 3] = [0.24, 0.24, 0.34];
+/// Real seconds a mode key must be held before the quick-change wheel opens.
+const WHEEL_DELAY: f32 = 0.2;
 
 pub struct Player {
     base: EntityBase,
@@ -68,7 +71,8 @@ pub struct Player {
     pub heat: f32,
     pub z: f32,
     pub aim: Vec2,
-    pub overload: f32,
+    /// The Aether meter, 0 to 100: filling from hits, then draining while Aether is awake.
+    aether: f32,
 
     swing_hit: Vec<EntityId>,
     attack_time: f32,
@@ -78,6 +82,13 @@ pub struct Player {
     stun_time: f32,
     hidden_time: f32,
     mode_flash: f32,
+    /// Real seconds a mode key has been held, or negative when none is; holding opens the quick-change wheel.
+    wheel_hold: f32,
+    wheel_step: i32,
+    wheel_open: bool,
+    wheel_pick: Option<Element>,
+    /// Seconds before the dormant blade complains again.
+    dormant_note: f32,
     combo_step: usize,
     combo_buffered: bool,
     charged_sound_played: bool,
@@ -92,15 +103,15 @@ pub struct Player {
     dodge_speed: f32,
     dodge_charges: f32,
     dodge_dir: Vec2,
-    /// Set by Circuit triggers for the current dodge: leave fire behind, or shock what it passes.
+    /// Set by Weave triggers for the current dodge: leave fire behind, or shock what it passes.
     dodge_trail: bool,
     dodge_shock: bool,
     dodge_rammed: Vec<EntityId>,
     trigger_cooldowns: HashMap<String, f32>,
 
     guard_time: f32,
-    overload_idle: f32,
-    overheat: f32,
+    aether_time: f32,
+    aether_rest: f32,
     reflect_time: f32,
     mirror_time: f32,
     mirror_charges: i32,
@@ -155,7 +166,7 @@ impl Player {
             heat: 0.0,
             z: 0.0,
             aim: Vec2::Y,
-            overload: 0.0,
+            aether: 0.0,
             swing_hit: Vec::new(),
             attack_time: -1.0,
             combo_reset: 0.0,
@@ -164,6 +175,11 @@ impl Player {
             stun_time: 0.0,
             hidden_time: 0.0,
             mode_flash: 0.0,
+            wheel_hold: -1.0,
+            wheel_step: 0,
+            wheel_open: false,
+            wheel_pick: None,
+            dormant_note: 0.0,
             combo_step: 0,
             combo_buffered: false,
             charged_sound_played: false,
@@ -182,8 +198,8 @@ impl Player {
             dodge_rammed: Vec::new(),
             trigger_cooldowns: HashMap::new(),
             guard_time: -1.0,
-            overload_idle: 0.0,
-            overheat: 0.0,
+            aether_time: 0.0,
+            aether_rest: 0.0,
             reflect_time: 0.0,
             mirror_time: 0.0,
             mirror_charges: 0,
@@ -248,12 +264,9 @@ impl Player {
         self.guard_time >= 0.0
     }
 
-    pub fn overheated(&self) -> bool {
-        self.overheat > 0.0
-    }
-
-    pub fn overheat_time(&self) -> f32 {
-        self.overheat
+    /// The quick-change wheel's highlighted mode while it is open.
+    pub fn wheel(&self) -> Option<Option<Element>> {
+        self.wheel_open.then_some(self.wheel_pick)
     }
 
     pub fn mode_flash(&self) -> f32 {
@@ -512,8 +525,6 @@ impl Player {
                 world.state.hp = (world.state.hp - loss).max(1);
                 Particle::burst(world, self.center(), Rgba::rgb(170, 90, 220), 3, 30.0, 0.3, false);
             }
-        } else if Self::mode(world) == Element::Aether {
-            world.state.corruption = (world.state.corruption - 6.0 * dt).max(0.0);
         }
         world.state.hp = world.state.hp.min(world.state.max_hp());
     }
@@ -631,6 +642,7 @@ impl Player {
 
         self.invulnerable = HURT_INVULNERABLE;
         world.rank.player_hurt();
+        self.hurt_aether(world);
         if !self.is_dead() {
             self.trigger(world, Trigger::Hurt, Some(hit));
         }
@@ -717,24 +729,8 @@ impl Player {
             }
         }
 
-        if self.overheat > 0.0 {
-            self.overheat -= dt;
-            if self.overheat <= 0.0 {
-                audio::play(Sound::ChargeLevel, 0.5, -0.3);
-            }
-        }
-        if Self::mode(world) == Element::Aether && !world.input_locked() {
-            world.state.burst_time -= dt;
-            world.state.resonance = (100.0 * world.state.burst_time / world.state.burst_duration()).max(0.0);
-            if world.state.burst_time <= 0.0 {
-                self.end_burst(world);
-            }
-        }
-        self.overload_idle += dt;
-        if self.overload_idle > 1.2 && self.overload > 0.0 {
-            let rate = if Self::mode(world) == Element::None { 35.0 } else { 12.0 };
-            self.overload = (self.overload - rate * dt).max(0.0);
-        }
+        self.update_aether(world, dt);
+        self.dormant_note = (self.dormant_note - dt).max(0.0);
 
         if self.static_time > 0.0 {
             self.static_time -= dt;
@@ -837,6 +833,13 @@ impl Player {
         }
 
         self.update_mode_switch(world);
+        if self.wheel_open {
+            return true;
+        }
+
+        if world.state.dormant() {
+            return self.update_dormant(world);
+        }
 
         if input::pressed(GameAction::Skill) && !self.airborne() && self.begin_skill_charge(world) {
             return false;
@@ -888,30 +891,79 @@ impl Player {
         false
     }
 
+    /// Before the first sigil the hero can talk, open things and dodge, but the blade will not swing.
+    fn update_dormant(&mut self, world: &mut World) -> bool {
+        if input::pressed(GameAction::Attack) {
+            let target = if self.airborne() { None } else { world.find_interactable(&self.interact_probe()) };
+            if let Some(id) = target {
+                if let Some(pos) = world.get(id).map(|e| e.base().pos) {
+                    self.facing = self.facing_toward(pos);
+                }
+                self.interact = Some(id);
+                input::consume();
+                return true;
+            }
+            if self.dormant_note <= 0.0 {
+                self.dormant_note = 1.5;
+                audio::sfx(Sound::MenuCancel);
+                let at = self.center() - Vec2::new(0.0, 14.0);
+                world.add(FloatingText::new(at, "The blade won't wake", palette::TEXT_DIM));
+            }
+        }
+        if input::pressed(GameAction::Dodge)
+            && !self.airborne()
+            && self.dodge_charges >= 1.0
+            && self.dodge_lockout <= 0.0
+        {
+            let movement = input::movement();
+            let dir = if movement != Vec2::ZERO { movement.normalize() } else { self.facing.to_vec() };
+            self.start_dodge(world, dir, 0.2, 235.0, true);
+            return true;
+        }
+        false
+    }
+
+    /// Tapping a mode key cycles modes; holding it opens a wheel (the world slows nearly to a stop) where a direction
+    /// picks the mode: Wind up, Fire right, Water down, Thunder left.
     fn update_mode_switch(&mut self, world: &mut World) {
-        let step = if input::pressed(GameAction::NextMode) {
-            1
-        } else if input::pressed(GameAction::PrevMode) {
-            -1
-        } else {
-            input::wheel_steps()
-        };
-        let modes = world.state.available_modes();
+        let modes = world.state.owned_modes();
         let mode = Self::mode(world);
         let mut target = None;
-        if step != 0 && modes.len() > 1 {
-            let index = modes.iter().position(|&m| m == mode).unwrap_or(0) as i32;
-            let n = modes.len() as i32;
-            target = Some(modes[((index + step + n) % n) as usize]);
+        for (action, step) in [(GameAction::NextMode, 1), (GameAction::PrevMode, -1)] {
+            if input::pressed(action) {
+                self.wheel_hold = 0.0;
+                self.wheel_step = step;
+                self.wheel_pick = None;
+            }
         }
-        let direct = [
-            GameAction::Mode1,
-            GameAction::Mode2,
-            GameAction::Mode3,
-            GameAction::Mode4,
-            GameAction::Mode5,
-            GameAction::Mode6,
-        ];
+        if self.wheel_hold >= 0.0 {
+            if input::held(GameAction::NextMode) || input::held(GameAction::PrevMode) {
+                self.wheel_hold += world.frame_delta;
+                if self.wheel_hold >= WHEEL_DELAY && modes.len() > 1 {
+                    self.wheel_open = true;
+                    world.slow_motion(0.08, 0.1);
+                    if let Some(pick) = wheel_direction(input::movement()).filter(|m| modes.contains(m)) {
+                        if self.wheel_pick != Some(pick) {
+                            audio::sfx(Sound::MenuMove);
+                        }
+                        self.wheel_pick = Some(pick);
+                    }
+                }
+            } else {
+                if self.wheel_open {
+                    target = self.wheel_pick;
+                } else if modes.len() > 1 {
+                    target = Some(cycle(&modes, mode, self.wheel_step));
+                }
+                self.wheel_hold = -1.0;
+                self.wheel_open = false;
+            }
+        }
+        let scroll = input::wheel_steps();
+        if scroll != 0 && modes.len() > 1 {
+            target = Some(cycle(&modes, mode, scroll));
+        }
+        let direct = [GameAction::Mode1, GameAction::Mode2, GameAction::Mode3, GameAction::Mode4];
         for (i, action) in direct.iter().enumerate() {
             if input::pressed(*action) && modes.contains(&MODES[i]) {
                 target = Some(MODES[i]);
@@ -925,41 +977,11 @@ impl Player {
     }
 
     pub fn switch_mode(&mut self, world: &mut World, mode: Element) {
-        if mode == Element::Aether && !world.state.resonance_full() {
-            audio::sfx(Sound::MenuCancel);
-            world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Resonance low", palette::TEXT_DIM));
-            return;
-        }
-        if self.overheat > 0.0 && mode != Element::None {
-            audio::sfx(Sound::MenuCancel);
-            world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Overheated!", palette::TEXT_DIM));
-            return;
-        }
-        let from = world.state.mode;
-        if from == Element::Aether {
-            world.state.burst_time = 0.0;
-            world.state.resonance = 0.0;
-        } else if mode == Element::Aether {
-            world.state.burst_time = world.state.burst_duration();
-            world.state.burst_return = from;
-            world.flash(Element::Aether.glow(), 0.25);
-        }
         world.state.mode = mode;
         self.mode_flash = 0.35;
-        audio::play(Sound::ChargeLevel, 0.5, if mode == Element::None { -0.3 } else { 0.2 });
+        audio::play(Sound::ChargeLevel, 0.5, 0.2);
         Particle::burst(world, self.center(), mode.glow(), 14, 50.0, 0.4, true);
-        world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), mode.label(), mode.glow()));
-    }
-
-    fn end_burst(&mut self, world: &mut World) {
-        let back = world.state.burst_return;
-        world.state.burst_time = 0.0;
-        world.state.resonance = 0.0;
-        world.state.mode = if self.overheat > 0.0 { Element::None } else { back };
-        self.mode_flash = 0.35;
-        audio::play(Sound::ChargeLevel, 0.5, -0.4);
-        Particle::burst(world, self.center(), Element::Aether.glow(), 14, 50.0, 0.4, true);
-        world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), "Aether fades", Element::Aether.glow()));
+        world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), mode.mode_label(), mode.glow()));
     }
 
     // ---- Melee --------------------------------------------------------------------------------------------------
@@ -1007,7 +1029,8 @@ impl Player {
                 self.swing_hit.push(id);
                 let (kind, poise, status, knock) =
                     if finisher { (HitKind::Finisher, 3.0, 1.4, 210.0) } else { (HitKind::Melee, 1.0, 0.8, 90.0) };
-                let hit = self.make_hit(world, if finisher { 1.6 } else { 1.0 }, kind, None, poise, status, knock);
+                let power = if finisher { 1.6 * world.state.mods().finisher } else { 1.0 };
+                let hit = self.make_hit(world, power, kind, None, poise, status, knock);
                 self.strike_target(world, id, hit);
             }
         }
@@ -1037,9 +1060,6 @@ impl Player {
                 let to = center - self.center();
                 if to.length() <= radius + 6.0 && (to.length() < 8.0 || to.normalize().dot(self.aim) > 0.35) {
                     world.chem_cut(tx + x, ty + y);
-                    if Self::mode(world) == Element::Aether {
-                        world.chem_cleanse(tx + x, ty + y);
-                    }
                 }
             }
         }
@@ -1317,51 +1337,6 @@ impl Player {
 
     // ---- Overload, SP and skills --------------------------------------------------------------------------------
 
-    fn add_overload(&mut self, world: &mut World, kind: HitKind) {
-        self.add_overload_scaled(world, kind, 1.0);
-    }
-
-    fn add_overload_scaled(&mut self, world: &mut World, kind: HitKind, scale: f32) {
-        let mode = Self::mode(world);
-        if matches!(mode, Element::None | Element::Aether) {
-            return;
-        }
-        let amount = scale
-            * match kind {
-                HitKind::Melee => 3.5,
-                HitKind::Finisher => 6.0,
-                HitKind::Bolt => 2.5,
-                HitKind::ChargedBolt => 7.0,
-                HitKind::Skill => 12.0,
-                _ => 2.0,
-            };
-        let resonance = if world.state.resonates(mode) { 0.75 } else { 1.0 }
-            * Group::of(kind).map_or(1.0, |g| Self::supports(world, g).overload);
-        let volatile = if pacts::active(&world.state, "volatility") { 2.0 } else { 1.0 };
-        self.overload +=
-            amount * world.state.acc().overload * world.state.mods().overload_for(mode) * resonance * volatile;
-        self.overload_idle = 0.0;
-        if self.overload >= 100.0 && world.state.mods().has("unbound") {
-            self.overload = 0.0;
-            let burn = (world.state.max_hp() / 10).max(1);
-            world.state.hp = (world.state.hp - burn).max(1);
-            world.add(DamageNumber::hurt(self.center(), burn, mode, false));
-            audio::play(Sound::Burn, 0.9, 0.0);
-        } else if self.overload >= 100.0 {
-            self.overheat_now(world);
-        }
-    }
-
-    fn overheat_now(&mut self, world: &mut World) {
-        self.overload = 0.0;
-        self.overheat = 3.0;
-        let was = Self::mode(world);
-        world.state.mode = Element::None;
-        audio::play(Sound::Burn, 1.0, -0.3);
-        Particle::burst(world, self.center(), was.glow(), 30, 90.0, 0.7, true);
-        world.add(FloatingText::new(self.center() - Vec2::new(0.0, 16.0), "OVERHEAT", was.glow()));
-    }
-
     /// The highest level the equipped skill can reach right now: limited by unlocked levels and SP.
     fn skill_cap(world: &World) -> i32 {
         let gems = Self::supports(world, Group::Special);
@@ -1431,7 +1406,6 @@ impl Player {
         self.skill = Some(Box::new(SkillAction::create(skill, level)));
         self.last_skill = Some((skill, level));
         world.add(SkillBanner::new(self.base.pos, skill, level));
-        self.add_overload_scaled(world, HitKind::Skill, 0.5 + 0.5 * level as f32);
         if level >= skills::MAX_LEVEL {
             self.trigger(world, Trigger::GreatSkill, None);
         }
@@ -1540,6 +1514,7 @@ impl Player {
             knockback: knock,
             from: self.center(),
             owner: Some(PLAYER_ID),
+            aether: self.aether_active(),
             ..Hit::new(Faction::Player, Self::stats(world))
         }
     }
@@ -1610,15 +1585,7 @@ impl Player {
                 world.heal_player(amount);
             }
         }
-        if hit.result.element_mod > 1.0 {
-            world.add_resonance(match hit.kind {
-                HitKind::Melee | HitKind::Bolt | HitKind::Skill => 3.0,
-                _ => 5.0,
-            });
-        }
-        if hit.element != Element::None {
-            self.add_overload(world, hit.kind);
-        }
+        self.feed_aether(world, hit);
     }
 
     /// The Meteor Art's landing: a fiery burst where the shot comes down.
@@ -1877,6 +1844,23 @@ impl Player {
     }
 }
 
+fn cycle(modes: &[Element], from: Element, step: i32) -> Element {
+    let index = modes.iter().position(|&m| m == from).unwrap_or(0) as i32;
+    let n = modes.len() as i32;
+    modes[(index + step).rem_euclid(n) as usize]
+}
+
+/// The quick-change wheel's mode in a stick direction; opposite elements face each other.
+pub fn wheel_direction(dir: Vec2) -> Option<Element> {
+    if dir.length() < 0.5 {
+        None
+    } else if dir.y.abs() > dir.x.abs() {
+        Some(if dir.y < 0.0 { Element::Wind } else { Element::Water })
+    } else {
+        Some(if dir.x > 0.0 { Element::Fire } else { Element::Thunder })
+    }
+}
+
 pub fn ignite_around(world: &mut World, at: Vec2, radius: i32) {
     let t = TILE as f32;
     let (cx, cy) = ((at.x / t).floor() as i32, ((at.y - 3.0) / t).floor() as i32);
@@ -1978,14 +1962,15 @@ impl Entity for Player {
             }
             let rotation = if self.is_dead() { (self.death_time * 3.0).min(1.0) * FRAC_PI_2 } else { 0.0 };
             hero_sprite::draw(batch, feet, self.facing, pose, frame, tint, false, 1.0 - fall * 0.7, rotation);
-            if self.overheat > 0.0 && (self.overheat * 8.0) as i32 % 2 == 0 {
+            if self.aether_active() {
+                let pulse = 0.2 + 0.15 * (self.time as f32 * 8.0).sin().abs();
                 hero_sprite::draw(
                     batch,
                     feet,
                     self.facing,
                     pose,
                     frame,
-                    Rgba::rgb(255, 90, 40).mul(0.35),
+                    Element::Aether.glow().mul(pulse),
                     true,
                     1.0,
                     0.0,

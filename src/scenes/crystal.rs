@@ -1,10 +1,10 @@
-//! The save crystal menu: the game is already saved; from here the player can fast travel or open the Circuit.
+//! The save crystal menu: the game is already saved; from here the player can fast travel or open the Weave.
 
 use bevy::math::Vec2;
 
-use super::circuit::CircuitScene;
 use super::map_scene;
 use super::scene::{Scene, SceneCtx};
+use super::weave::WeaveScene;
 use super::world::SCREEN_WIDTH;
 use crate::core::audio::{self, Sound};
 use crate::core::direction::Direction;
@@ -45,7 +45,7 @@ impl Scene for CrystalScene {
     fn enter(&mut self, ctx: &mut SceneCtx) {
         input::consume();
         let fixed = |label: &str| Row { label: label.to_string(), map: String::new(), tile: (0, 0) };
-        self.rows = vec![fixed("Stay here"), fixed("Open the Circuit")];
+        self.rows = vec![fixed("Stay here"), fixed("Open the Weave")];
         if let Some(world) = ctx.world() {
             for flag in world.state.flags.iter().filter(|f| f.starts_with("crystal:")) {
                 let parts: Vec<&str> = flag.split(':').collect();
@@ -81,7 +81,7 @@ impl Scene for CrystalScene {
         }
         if confirm && self.row == 1 {
             audio::sfx(Sound::MenuSelect);
-            ctx.push(CircuitScene::at_crystal());
+            ctx.push(WeaveScene::at_crystal());
             return;
         }
         if confirm {

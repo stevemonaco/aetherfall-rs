@@ -1,5 +1,6 @@
 //! Skills: one is equipped per mode and fired with the skill button. Tapping performs level 1; holding slows the world
-//! and charges toward levels 2 and 3, each costing one more SP pip.
+//! and charges toward levels 2 and 3, each costing one more SP pip. Aether "skills" are forms instead: the equipped
+//! one fires by itself when the Aether state wakes, at the level the blade has grown to.
 
 use super::element::Element;
 
@@ -33,28 +34,10 @@ const fn skill(
 
 use Element as E;
 
-pub const ALL: [SkillDef; 18] = [
-    skill(
-        "whirl",
-        "Whirlwind",
-        E::None,
-        "Spin, striking everything around you.",
-        ["One spin.", "Two wider spins.", "Three spins, ending in a shockwave."],
-    ),
-    skill(
-        "triple_shot",
-        "Triple Shot",
-        E::None,
-        "Throw a fan of bolts.",
-        ["Three bolts.", "Five piercing bolts.", "Nine piercing bolts that bounce again."],
-    ),
-    skill(
-        "phantom_step",
-        "Phantom Step",
-        E::None,
-        "A long dodge that leaves a decoy enemies attack.",
-        ["One decoy.", "The decoy bursts when it fades.", "Two bursting decoys."],
-    ),
+/// The mastery an element's first, second and third skills are learned at.
+pub const MASTERY_FOR: [i32; 3] = [0, 1, 3];
+
+pub const ALL: [SkillDef; 15] = [
     skill(
         "gale_slash",
         "Gale Slash",
@@ -151,22 +134,22 @@ pub const ALL: [SkillDef; 18] = [
         "prism_edge",
         "Prism Edge",
         E::Aether,
-        "Blades of every element converge on your target.",
-        ["Five blades.", "Ten blades.", "Ten blades and a burst of pure aether."],
+        "When Aether wakes, blades fly at the foes nearest you.",
+        ["Three blades.", "Four blades.", "Six blades and a burst of pure aether."],
     ),
     skill(
         "prism_ray",
         "Prism Ray",
         E::Aether,
-        "A beam of pure aether that pierces everything in a line.",
+        "When Aether wakes, a beam pierces everything along your aim.",
         ["One beam.", "A wider, stronger beam.", "Three beams."],
     ),
     skill(
         "sanctum",
         "Sanctum",
         E::Aether,
-        "A sanctuary that heals you and cleanses ailments and blight.",
-        ["Heals 15% of your life.", "Heals 25% of your life.", "Heals 35% and wards you from harm for three seconds."],
+        "When Aether wakes, a pulse cleanses ailments and blight and wards you for a moment.",
+        ["A brief ward.", "A longer ward.", "A long ward that also heals 6% of your life."],
     ),
 ];
 
@@ -176,11 +159,6 @@ pub fn get(id: &str) -> Option<&'static SkillDef> {
 
 pub fn for_element(element: Element) -> impl Iterator<Item = &'static SkillDef> {
     ALL.iter().filter(move |s| s.element == element)
-}
-
-/// The skill an element's sigil teaches (or the hero starts with, for Neutral).
-pub fn starter(element: Element) -> Option<&'static SkillDef> {
-    for_element(element).next()
 }
 
 /// The level a charge has reached after `held` real seconds.

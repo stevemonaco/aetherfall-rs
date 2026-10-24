@@ -11,8 +11,8 @@ pub enum Element {
     Aether,
 }
 
-pub const MODES: [Element; 6] =
-    [Element::None, Element::Wind, Element::Fire, Element::Water, Element::Thunder, Element::Aether];
+/// The modes the blade fights in, one per sigil.
+pub const MODES: [Element; 4] = [Element::Wind, Element::Fire, Element::Water, Element::Thunder];
 pub const BASIC: [Element; 4] = [Element::Wind, Element::Fire, Element::Water, Element::Thunder];
 
 impl Element {
@@ -50,6 +50,11 @@ impl Element {
 
     pub fn label(self) -> &'static str {
         if self == Element::None { "Neutral" } else { self.name() }
+    }
+
+    /// The name of a blade mode, or of the blade before its first sigil.
+    pub fn mode_label(self) -> &'static str {
+        if self == Element::None { "Dormant" } else { self.name() }
     }
 
     pub fn parse(s: Option<&str>) -> Element {

@@ -74,6 +74,8 @@ pub struct Hit {
     pub power: f32,
     pub element: Element,
     pub kind: HitKind,
+    /// Struck while the player's Aether is awake: it may pierce to the target's weakness, and opens Aether seals.
+    pub aether: bool,
     /// Damage to the target's break gauge.
     pub poise: f32,
     /// Multiplier on elemental status buildup.
@@ -101,6 +103,7 @@ impl Hit {
             power: 1.0,
             element: Element::None,
             kind: HitKind::Attack,
+            aether: false,
             poise: 1.0,
             status_power: 1.0,
             knockback: 120.0,

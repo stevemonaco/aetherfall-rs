@@ -27,7 +27,6 @@ use crate::entity_base;
 use crate::gameplay::combat::{self, CombatStats, DamageResult, Faction, Hit, HitKind};
 use crate::gameplay::element::{BASIC, Element};
 use crate::gameplay::game_data::{AttackDef, EnemyDef, data};
-use crate::gameplay::mastery;
 use crate::gameplay::pacts;
 use crate::gameplay::status::{Ailment, StatusSet};
 use crate::scenes::world::{KillInfo, World};
@@ -780,7 +779,16 @@ impl Enemy {
             return false;
         }
 
-        let element = if hit.element == Element::Aether { self.best_element_against(world) } else { hit.element };
+        let mut element = hit.element;
+        if hit.aether || element == Element::Aether {
+            let weak = self.weakness();
+            let pierces = element == Element::Aether || world.rng.next_f32() < world.state.pierce_chance(weak);
+            if weak != Element::None && pierces {
+                element = weak;
+            } else if element == Element::Aether {
+                element = Element::None;
+            }
+        }
         self.alert(world);
 
         if self.aura && hit.kind != HitKind::Environment && element == self.aura_element.opposite() {
@@ -799,7 +807,7 @@ impl Enemy {
             && self.phase != Phase::Broken
             && self.front_hit(world, hit.from)
         {
-            let bane = self.shield_bane();
+            let bane = self.weakness();
             let shattered = element == bane && bane != Element::None && hit.kind != HitKind::Tether;
             self.shield_hp -= match hit.kind {
                 _ if shattered => SHIELD_HP,
@@ -905,7 +913,6 @@ impl Enemy {
     }
 
     fn apply_ailments(&mut self, world: &mut World, hit: &Hit, element: Element, element_mod: f32) {
-        let resonance = if hit.is_player() && world.state.resonates(element) { 1.3 } else { 1.0 };
         let mut trait_mod = match element {
             Element::Fire if self.def.has_trait("flammable") => 1.5,
             Element::Thunder if self.def.has_trait("metal") => 1.5,
@@ -919,12 +926,8 @@ impl Enemy {
             };
             trait_mod *= world.state.mods().buildup_for(element) * soul;
         }
-        let buildup = 34.0
-            * hit.status_power
-            * (1.0 + hit.attacker.foc / 120.0)
-            * element_mod.clamp(0.25, 1.5)
-            * resonance
-            * trait_mod;
+        let buildup =
+            34.0 * hit.status_power * (1.0 + hit.attacker.foc / 120.0) * element_mod.clamp(0.25, 1.5) * trait_mod;
         let was_burning = self.status.burn > 0.0;
         let can_freeze = !self.heavy() && self.boss.is_none();
         let ailment = self.status.add(element, buildup, hit.attacker, can_freeze);
@@ -1048,28 +1051,13 @@ impl Enemy {
         safe_normalize(from - self.base.pos).dot(facing) > 0.3
     }
 
-    /// The element this enemy is weakest to, which also shatters its shield in one hit.
-    fn shield_bane(&self) -> Element {
+    /// The element this enemy is weakest to: Aether hits may pierce to it, and it shatters a shield in one hit.
+    fn weakness(&self) -> Element {
         BASIC
             .into_iter()
             .filter(|&e| self.def.resist_to(e) > 1.0)
             .max_by(|&a, &b| self.def.resist_to(a).total_cmp(&self.def.resist_to(b)))
             .unwrap_or(Element::None)
-    }
-
-    /// The element an Aether strike takes: this foe's weakest among the elements mastered well enough, else neutral.
-    fn best_element_against(&self, world: &World) -> Element {
-        let mut best = Element::None;
-        let mut best_mod = -1.0;
-        let lens = world.state.prism("prism_lens");
-        for e in BASIC.into_iter().filter(|&e| lens || world.state.mastery_level(e) >= mastery::ADEPT) {
-            let m = self.def.resist_to(e);
-            if m > best_mod || (m == best_mod && world.rng.next_f32() < 0.5) {
-                best = e;
-                best_mod = m;
-            }
-        }
-        best
     }
 
     pub fn damage(&mut self, world: &mut World, amount: i32, element: Element, crit: bool, suffix: &str) {
@@ -1173,7 +1161,6 @@ impl Enemy {
             pos: self.base.pos,
             boss: self.boss.is_some(),
             blighted: self.blighted,
-            element: self.last_element,
             weakness: self.last_weak,
         }
     }
@@ -1370,7 +1357,7 @@ impl Enemy {
         if self.shield {
             let dir = safe_normalize(world.hero.pos - self.base.pos);
             let at = self.base.pos - Vec2::new(4.0, self.base.height * scale / 2.0 + 8.0 + self.z) + dir * 7.0;
-            batch.draw(art::enemy_shield(self.shield_bane()), snap(at), Rgba::WHITE);
+            batch.draw(art::enemy_shield(self.weakness()), snap(at), Rgba::WHITE);
         }
         if self.phase == Phase::Broken || (self.phase == Phase::Stagger && self.phase_time < -0.3) {
             self.draw_stars(batch);

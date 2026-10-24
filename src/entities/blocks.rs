@@ -1,4 +1,4 @@
-//! Push blocks, pressure plates, tether anchors and levers, memory shards and Aether seals.
+//! Push blocks, pressure plates, tether anchors and levers, memory crystals and Aether seals.
 
 use bevy::math::Vec2;
 
@@ -381,15 +381,20 @@ impl Entity for TetherLever {
     }
 }
 
-/// A memory shard: touching it shows this place in its other era (the map's pair).
-pub struct LensShard {
+/// The flag set once the Bastion's crystals are restored, which lets memory crystals elsewhere be woken.
+const CRYSTALS_RESTORED: &str = "rift:ash_forge_anvil";
+
+/// A memory crystal: touching it shows this place in its other era (the map's pair). A crystal with a `key` sleeps
+/// until an Aether Mote wakes it; both eras' crystals share the key, so waking one wakes its twin.
+pub struct MemoryCrystal {
     base: EntityBase,
+    key: Option<String>,
     time: f32,
 }
 
-impl LensShard {
-    pub fn new(data: &EntityData) -> LensShard {
-        LensShard {
+impl MemoryCrystal {
+    pub fn new(data: &EntityData) -> MemoryCrystal {
+        MemoryCrystal {
             base: EntityBase {
                 pos: tile_feet(data.x as i32, data.y as i32),
                 solid: true,
@@ -397,20 +402,25 @@ impl LensShard {
                 height: 6.0,
                 ..EntityBase::default()
             },
+            key: data.str("key").map(|k| format!("crystal:{k}")),
             time: 0.0,
         }
     }
+
+    fn awake(&self, world: &World) -> bool {
+        self.key.as_ref().is_none_or(|k| world.state.flags.contains(k))
+    }
 }
 
-impl Entity for LensShard {
+impl Entity for MemoryCrystal {
     entity_base!();
 
     fn can_interact(&self, _world: &World) -> bool {
         true
     }
 
-    fn light(&self, _world: &World) -> Option<(f32, Rgba)> {
-        Some((50.0, Rgba::rgb(230, 200, 255)))
+    fn light(&self, world: &World) -> Option<(f32, Rgba)> {
+        self.awake(world).then_some((50.0, Rgba::rgb(230, 200, 255)))
     }
 
     fn added(&mut self, world: &mut World) {
@@ -420,20 +430,38 @@ impl Entity for LensShard {
 
     fn update(&mut self, world: &mut World, dt: f32) {
         self.time += dt;
-        if world.rng.next_f32() < 0.1 {
+        if self.awake(world) && world.rng.next_f32() < 0.1 {
             let at = self.base.pos + Vec2::new(world.rng.range(-6, 7) as f32, -12.0);
             world.add(Particle::new(at, Vec2::new(0.0, -12.0), Rgba::rgb(230, 200, 255), 0.8).spark());
         }
     }
 
     fn interact(&mut self, world: &mut World) {
-        world.swap_era(true);
+        let Some(key) = self.key.clone().filter(|_| !self.awake(world)) else {
+            world.swap_era();
+            return;
+        };
+        if !world.state.flags.contains(CRYSTALS_RESTORED) {
+            world.show_message(
+                "A memory crystal, dark and cold. Something in the Fallen Bastion once woke crystals like this.",
+            );
+        } else if !world.state.has("aether_mote") {
+            world.show_message("A memory crystal, dark and cold. An Aether Mote could wake it.");
+        } else {
+            let motes = world.state.count("aether_mote");
+            world.confirm(
+                format!("Wake the crystal with an Aether Mote? ({motes} held)"),
+                vec!["take:aether_mote".into(), format!("flag:{key}"), "era".into()],
+            );
+        }
     }
 
-    fn draw(&self, _world: &World, batch: &mut Batch) {
-        let bob = ((self.time * 3.0).sin() * 1.5).round();
+    fn draw(&self, world: &World, batch: &mut Batch) {
+        let awake = self.awake(world);
+        let bob = if awake { ((self.time * 3.0).sin() * 1.5).round() } else { 0.0 };
+        let tint = if awake { Rgba::WHITE } else { Rgba::rgb(110, 100, 130) };
         batch.draw(art::shadow(10), snap(self.base.pos - Vec2::new(5.0, 2.0)), Rgba::WHITE);
-        batch.draw(art_combat::memory_shard(), snap(self.base.pos - Vec2::new(6.0, 22.0 + bob)), Rgba::WHITE);
+        batch.draw(art_combat::memory_shard(), snap(self.base.pos - Vec2::new(6.0, 22.0 + bob)), tint);
     }
 }
 
@@ -504,12 +532,9 @@ impl Entity for AetherSeal {
     }
 
     fn take_hit(&mut self, world: &mut World, hit: &mut Hit) -> bool {
-        if hit.element != Element::Aether {
+        if !(hit.aether && world.state.aether_awakened()) {
             audio::play(Sound::Clink, 0.6, 0.0);
             self.shake = 0.15;
-            if hit.is_player() {
-                world.add_resonance(10.0);
-            }
             return true;
         }
         self.base.removed = true;
@@ -524,7 +549,8 @@ impl Entity for AetherSeal {
     }
 
     fn interact(&mut self, world: &mut World) {
-        world.show_message("A Concord seal of woven aether. No single element can open it.");
+        world
+            .show_message("A Concord seal of woven aether. No single element can open it; only every element at once.");
     }
 
     fn draw(&self, world: &World, batch: &mut Batch) {

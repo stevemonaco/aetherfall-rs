@@ -878,14 +878,13 @@ pub fn icon(id: &str) -> TexId {
                 );
                 cv.rect(4, 9, 6, 2, c(0xFF8A30).mul(0.5));
             }
-            "wind_orb" | "flame_ring" | "tide_ring" | "storm_ring" | "prism_band" => {
-                let gem = match id {
-                    "flame_ring" => c(0xFF8A30),
-                    "tide_ring" => c(0x4A9AF0),
-                    "storm_ring" => c(0xF8E060),
-                    "prism_band" => c(0xF0A0F0),
-                    _ => c(0x8AEAD0),
-                };
+            "gale_orb" | "flame_orb" | "tide_orb" | "storm_orb" => {
+                let gem = relic_color(id);
+                cv.circle(6.0, 6.5, 4.8, gem.lerp(palette::OUTLINE, 0.55)).circle(6.0, 6.5, 3.8, gem);
+                cv.circle(4.8, 5.2, 1.4, gem.lerp(Rgba::WHITE, 0.6)).set(4, 4, Rgba::WHITE);
+            }
+            "gale_bracer" | "flame_bracer" | "tide_bracer" | "storm_bracer" | "prism_band" => {
+                let gem = relic_color(id);
                 cv.ellipse(6.0, 7.0, 4.5, 4.0, c(0xE8C050)).ellipse(6.0, 7.0, 2.5, 2.0, Rgba::TRANSPARENT);
                 cv.shade(|x, y, col| {
                     if ((x - 6) * (x - 6)) as f32 / 6.25 + ((y - 7) * (y - 7)) as f32 / 4.0 < 1.0 {
@@ -898,6 +897,26 @@ pub fn icon(id: &str) -> TexId {
             }
             "elixir" => {
                 cv.rect(4, 1, 4, 2, WOOD[2]).ellipse(6.0, 7.5, 4.5, 4.0, c(0xF04A8A)).rect(4, 5, 2, 2, c(0xFFD0E8));
+            }
+            "weave_knot" => {
+                let thread = c(0xC8B8F0);
+                cv.line(1, 3, 10, 9, thread).line(1, 9, 10, 3, thread).line(6, 0, 6, 11, thread.mul(0.8));
+                cv.circle(6.0, 6.0, 2.2, c(0xF0E8FF));
+            }
+            "insight_tome" => {
+                cv.rect(2, 2, 8, 9, c(0x5A3A8A)).rect(3, 3, 6, 7, c(0x7A5AB0)).rect(9, 3, 1, 8, c(0xE8E0D0));
+                cv.rect(5, 5, 2, 3, c(0xF8D850));
+            }
+            "dormant_blade" => {
+                cv.line(2, 10, 9, 3, STONE[2]).line(3, 10, 10, 3, STONE[3]).line(1, 8, 4, 11, c(0x8A6A40));
+            }
+            "aether_mote" => {
+                cv.circle(6.0, 6.0, 4.5, c(0x6E2890)).circle(6.0, 6.0, 3.2, c(0xF496FF)).circle(
+                    5.0,
+                    5.0,
+                    1.4,
+                    Rgba::WHITE,
+                );
             }
             "rabbit_boots" => {
                 cv.rect(3, 2, 4, 7, c(0xE8E0D0)).rect(3, 8, 8, 3, c(0xE8E0D0)).rect(3, 2, 4, 1, Rgba::WHITE).rect(
@@ -1007,6 +1026,17 @@ pub fn icon(id: &str) -> TexId {
         cv.outline();
         cv
     })
+}
+
+/// The gem color of an element's orb or bracer, or the Prism Band.
+fn relic_color(id: &str) -> Rgba {
+    match id.split('_').next() {
+        Some("flame") => c(0xFF8A30),
+        Some("tide") => c(0x4A9AF0),
+        Some("storm") => c(0xF8E060),
+        Some("prism") => c(0xF0A0F0),
+        _ => c(0x8AEAD0),
+    }
 }
 
 fn key_icon(cv: &mut Canvas, metal: Rgba) {

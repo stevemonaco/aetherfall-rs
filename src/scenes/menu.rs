@@ -6,11 +6,11 @@ use std::sync::LazyLock;
 
 use bevy::math::Vec2;
 
-use super::circuit::CircuitScene;
 use super::dialogue::DialogueScene;
 use super::options::OptionsScene;
 use super::scene::{Scene, SceneCtx, world_below};
 use super::title::TitleScene;
+use super::weave::WeaveScene;
 use super::world::{SCREEN_HEIGHT, SCREEN_WIDTH, World};
 use crate::art::hero::{HeroPose, hero_sprite};
 use crate::art::{combat as combat_art, props};
@@ -32,7 +32,7 @@ use crate::gameplay::supports::Group;
 use crate::gameplay::{pacts, souls};
 use crate::scene_any;
 
-const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Souls", "Circuit", "Quests", "Foes", "Status", "System"];
+const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Souls", "Weave", "Quests", "Foes", "Status", "System"];
 const TAB_BOX: IRect = IRect::new(12, 12, 92, 120);
 const CONTENT_BOX: IRect = IRect::new(110, 12, 358, 246);
 const VISIBLE_ROWS: usize = 14;
@@ -150,7 +150,7 @@ impl MenuScene {
                     ..Row::new(soul.id, soul.name, format!("Rank {}", state.soul_rank(soul.id)))
                 })
                 .collect(),
-            "Circuit" => vec![Row::new("circuit", "Open the Circuit", format!("{} CP", state.circuit_points()))],
+            "Weave" => vec![Row::new("weave", "Open the Weave", format!("{} pts", state.weave_points()))],
             "Quests" => quest_rows(state),
             "Foes" => {
                 let mut foes: Vec<&EnemyDef> = state.kills.keys().filter_map(|id| data().enemies.get(id)).collect();
@@ -209,9 +209,9 @@ impl MenuScene {
                 world.spawn_companion();
                 audio::sfx(Sound::MenuSelect);
             }
-            "Circuit" => {
+            "Weave" => {
                 audio::sfx(Sound::MenuSelect);
-                return Some(Box::new(CircuitScene::new()));
+                return Some(Box::new(WeaveScene::new()));
             }
             "Quests" => {
                 if let Some(quest) = data().quests.get(&row.id).filter(|q| !complete(state, q)) {
@@ -304,7 +304,7 @@ impl MenuScene {
                 None => String::new(),
             },
             "Foes" => data().enemies.get(&row.id).map(|foe| describe_foe(state, foe)).unwrap_or_default(),
-            "Circuit" => "Spend Circuit Points on stats, skills and passives.".into(),
+            "Weave" => "Spend Weave points on stats and passives.".into(),
             "Skills" if row.socket.is_some() => match state.sockets.get(row.id.trim_start_matches("socket|")) {
                 Some(id) if !row.locked => {
                     items::get(id).map(|i| format!("{} Confirm to change.", i.description)).unwrap_or_default()
@@ -312,9 +312,22 @@ impl MenuScene {
                 _ if row.locked => {
                     format!("This socket opens at mastery {} in this mode.", mastery::ADEPT)
                 }
+                _ if row.socket.is_some_and(|s| s.0 == Element::Aether) => {
+                    "An empty socket for a Prism gem, from the Trial of the Prism.".into()
+                }
                 _ => "An empty socket. Support gems come from the golden Trial Rifts.".into(),
             },
             "Skills" => match row.mode.and_then(|mode| state.equipped_skill(mode).map(|s| (mode, s))) {
+                Some((Element::Aether, skill)) => {
+                    let level = state.aether_level();
+                    format!(
+                        "{} Lv{} {} Aether lasts {:.0}s; it grows with sigils and the blade's awakening. Confirm to swap.",
+                        skill.description,
+                        level,
+                        skill.levels[(level - 1).clamp(0, 2) as usize],
+                        state.aether_duration()
+                    )
+                }
                 Some((mode, skill)) => {
                     let unlocked = state.skill_level(mode);
                     let levels: Vec<String> = skill.levels[..unlocked as usize]
@@ -448,15 +461,7 @@ impl MenuScene {
             ),
             ("Life", format!("{} / {}", s.hp, s.max_hp()), palette::LIFE),
             ("SP", format!("{} / {}", s.sp as i32, s.max_sp() as i32), Rgba::rgb(120, 220, 255)),
-            (
-                "Mode",
-                if mastery::trains(mode) {
-                    format!("{}  (mastery {})", mode.label(), s.mastery_level(mode))
-                } else {
-                    mode.label().into()
-                },
-                mode.glow(),
-            ),
+            ("Mode", format!("{}  (mastery {})", mode.mode_label(), s.mastery_level(mode)), mode.glow()),
             ("Attack", format!("{}", s.atk(mode).round()), palette::TEXT),
             ("Defense", format!("{}", s.def(mode).round()), palette::TEXT),
             (
@@ -498,7 +503,8 @@ fn item_rows(state: &GameState) -> Vec<Row> {
         }
         let counted = matches!(item.kind, ItemKind::Consumable | ItemKind::Material)
             || item.id == "life_shard"
-            || item.id == "circuit_shard";
+            || item.id == "weave_knot"
+            || item.id == "aether_mote";
         let detail = if counted { format!("x{}", state.count(item.id)) } else { String::new() };
         rows.push(Row { icon: Some(props::icon(item.id)), ..Row::new(item.id, item.name, detail) });
     }
@@ -520,27 +526,29 @@ fn gear_rows(state: &GameState) -> Vec<Row> {
 
 fn skill_rows(state: &GameState) -> Vec<Row> {
     let mut rows = Vec::new();
-    for mode in state.owned_modes() {
-        let heading = if mastery::trains(mode) {
+    for mode in state.blade_pages() {
+        let shift = mode == Element::Aether;
+        let heading = if shift {
+            format!("Aether - level {}", state.aether_level())
+        } else {
             let xp = state.mastery_xp(mode);
             let level = mastery::level(xp);
             if level >= mastery::MAX_MASTERY {
-                format!("{} mode - mastered", mode.label())
+                format!("{} mode - mastered", mode.mode_label())
             } else {
-                format!("{} mode - mastery {level} ({}%)", mode.label(), (mastery::progress(xp) * 100.0) as i32)
+                format!("{} mode - mastery {level} ({}%)", mode.mode_label(), (mastery::progress(xp) * 100.0) as i32)
             }
-        } else {
-            format!("{} mode", mode.label())
         };
         rows.push(Row { icon: Some(combat_art::emblem(mode)), ..Row::header(heading) });
         let detail = match state.equipped_skill(mode) {
             Some(skill) => format!("{}  Lv {}", skill.name, state.skill_level(mode)),
             None => "-".into(),
         };
-        rows.push(Row { mode: Some(mode), ..Row::new(format!("skill|{}", mode.key()), "Skill", detail) });
+        let label = if shift { "Form" } else { "Skill" };
+        rows.push(Row { mode: Some(mode), ..Row::new(format!("skill|{}", mode.key()), label, detail) });
         let open = state.socket_count(mode);
-        let sockets = if mode == Element::Aether { 1 } else { 2 };
-        for group in Group::ALL {
+        let sockets = if shift { 1 } else { 2 };
+        for &group in GameState::socket_groups(mode) {
             for index in 0..sockets {
                 let key = GameState::socket_key(mode, group, index);
                 let locked = index >= open;
@@ -554,7 +562,11 @@ fn skill_rows(state: &GameState) -> Vec<Row> {
                     icon: gem.map(|id| props::icon(id)),
                     socket: Some((mode, group, index)),
                     locked,
-                    ..Row::new(format!("socket|{key}"), format!("{} gem", group.label()), detail)
+                    ..Row::new(
+                        format!("socket|{key}"),
+                        if shift { "Prism gem".to_string() } else { format!("{} gem", group.label()) },
+                        detail,
+                    )
                 });
             }
         }
@@ -584,7 +596,10 @@ fn gem_choices(state: &GameState, mode: Element, group: Group) -> Vec<(String, S
 fn socket_label(key: &str) -> String {
     let mut parts = key.split('.');
     let mode = Element::parse(parts.next());
-    format!("{} {}", mode.label(), parts.next().unwrap_or(""))
+    if mode == Element::Aether {
+        return mode.mode_label().to_string();
+    }
+    format!("{} {}", mode.mode_label(), parts.next().unwrap_or(""))
 }
 
 fn quest_rows(state: &GameState) -> Vec<Row> {

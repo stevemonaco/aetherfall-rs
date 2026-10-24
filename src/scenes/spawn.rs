@@ -1,7 +1,7 @@
 //! Builds entities from map file entries.
 
 use crate::entities::blight_hazards::{BlightGate, Cannon, StormGrid};
-use crate::entities::blocks::{AetherSeal, IceBlock, LensShard, PressurePlate, TetherLever, TetherPost};
+use crate::entities::blocks::{AetherSeal, IceBlock, MemoryCrystal, PressurePlate, TetherLever, TetherPost};
 use crate::entities::boss;
 use crate::entities::companion::DigSpot;
 use crate::entities::dummy::TrainingDummy;
@@ -57,7 +57,7 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
         "plate" => Box::new(PressurePlate::new(entry)),
         "post" => Box::new(TetherPost::new(entry)),
         "lever" => Box::new(TetherLever::new(entry)),
-        "shard" => Box::new(LensShard::new(entry)),
+        "shard" => Box::new(MemoryCrystal::new(entry)),
         "seal" => Box::new(AetherSeal::new(entry, &map_id)),
         "building" => {
             let building = Building::new(entry);

@@ -4,7 +4,7 @@ use super::element::Element;
 
 pub const MAX_MASTERY: i32 = 5;
 const THRESHOLDS: [i32; MAX_MASTERY as usize] = [800, 4500, 15000, 45000, 100000];
-/// The mastery at which a mode's second support sockets open and Aether can strike that element's weakness.
+/// The mastery at which a mode's second support sockets open.
 pub const ADEPT: i32 = 3;
 
 pub fn level(xp: i32) -> i32 {
@@ -26,9 +26,9 @@ pub fn progress(xp: i32) -> f32 {
     (xp - from) as f32 / (THRESHOLDS[lvl as usize] - from) as f32
 }
 
-/// Whether a mode earns mastery. Aether borrows its strength from the elements instead.
+/// Whether a mode earns mastery: only the four elements do.
 pub fn trains(mode: Element) -> bool {
-    mode != Element::Aether
+    !matches!(mode, Element::None | Element::Aether)
 }
 
 /// The blade's base power in a mode before the smith's work.

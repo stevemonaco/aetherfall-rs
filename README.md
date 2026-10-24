@@ -7,22 +7,27 @@ submodule (licensed sprites and music; keep this repository private).
 
 ## Status
 
-The whole game is ported: all acts and side zones, all seven bosses (including the Echo remixes), the Memory Lens
+The whole game is ported: all acts and side zones, all seven bosses (including the Echo remixes), the Bastion's
 eras, the Aether Tether puzzles, the Blighted expeditions with their grades, and the Hollow Below.
 
 Since the port, the combat systems have been reworked here (the C# game stays at 2.0); see
 [docs/combat-rework.md](docs/combat-rework.md):
 
-- The hero wakes with the dormant Aether Blade. Sigils set into its hilt unlock the element modes, and Corvin's forge
-  awakens the blade for timed Aether bursts fuelled by a Resonance gauge.
-- Each mode grows its own mastery from fighting in it.
+- The hero wakes with the dormant Aether Blade and can't attack until the first sigil wakes it. Each sigil unlocks
+  one of four element modes (there is no neutral mode); holding the mode key opens a quick-change wheel.
+- Landing hits fills the Aether meter. When it brims, Aether wakes for a few seconds and hits may pierce to the
+  target's weakness; taking hits drains it. Corvin's forge awakens the blade for a stronger Aether.
+- Each element grows its own mastery, which teaches its second and third skills. Its orb and bracer, found far from
+  its sigil, open charge levels 2 and 3.
 - One skill per mode on a single button: tap for level 1, hold (the world slows) for levels 2 and 3.
-- The Circuit is a single web of passives, triggers and keystones, reset for free at save crystals.
+- The Weave is a lattice of passives on a grid, themed by playstyle rather than element, unpicked for free at save
+  crystals.
 - Support gems socket into each mode's attack, ranged and special groups; they come from golden Trial Rifts.
 - The Hall of Echoes (an Echo Stone by the Leafhollow shrine) has training dummies that show damage per second.
+- The Memory Lens is gone: eras open at memory crystals, and crystals outside the Bastion need an Aether Mote.
 
 Map and dialogue data in `assets/data` started identical to the C# game's and now differs where the rework needed
-it (sigils, the trials, the training hall).
+it (sigils, the trials, the training hall, orbs and bracers, the Weave and memory crystals).
 
 ## Running
 
@@ -40,10 +45,9 @@ Test switches (native only), matching the C# game:
 --give wind_sigil,cleave_gem give items, sigils, gems or keys
 --level <n> --flags a,b      set level / story flags (pact:<id> enables a Pact)
 --mastery <n>                set every mode's mastery
---skills all                 learn every skill and unlock all three levels
---tree all                   learn every Circuit node whose arm is open
+--skills all                 learn every skill, unlock all three levels, full-strength Aether form
+--weave all                  take every node of the Weave
 --supports all               give every support gem and fill the open sockets
---resonance                  start with a full Aether Resonance gauge
 --script "right:20;attack:9" scripted input (action[+action]:frames; ...)
 --fuzz <seed>                random input for crash testing
 --boss-hp <scale>            scale boss life to reach late phases quickly

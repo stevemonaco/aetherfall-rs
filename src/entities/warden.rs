@@ -293,7 +293,7 @@ impl BossBrain for WardenBrain {
             return None;
         }
         let center = self.hurtbox(enemy).center();
-        if hit.element == self.shield.opposite() || hit.element == Element::Aether {
+        if hit.element == self.shield.opposite() || hit.aether {
             self.shield_up = false;
             self.shield_timer = 5.0;
             self.next(Step::Cracked, 3.0);

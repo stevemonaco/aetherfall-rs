@@ -1,4 +1,4 @@
-//! Circuit triggers: passives that fire when something happens in combat, each with its own cooldown.
+//! Weave triggers: passives that fire when something happens in combat, each with its own cooldown.
 
 use bevy::math::Vec2;
 
@@ -6,22 +6,21 @@ use super::Player;
 use crate::core::audio::{self, Sound};
 use crate::entities::combat_effects::Shockwave;
 use crate::entities::effects::{DamageNumber, FloatingText};
-use crate::entities::hazards::SteamCloud;
-use crate::gameplay::circuit::{Trigger, TriggerDef};
+use crate::entities::hazards::{Decoy, SteamCloud};
 use crate::gameplay::combat::{Hit, HitKind};
 use crate::gameplay::element::Element;
+use crate::gameplay::weave::{Trigger, TriggerDef};
 use crate::scenes::world::World;
 
 impl Player {
-    /// Runs every unlocked trigger listening for `event` whose mode matches and whose cooldown has run out.
+    /// Runs every woven trigger listening for `event` whose cooldown has run out.
     pub(super) fn trigger(&mut self, world: &mut World, event: Trigger, hit: Option<&Hit>) {
-        let mode = world.state.mode;
         let ready: Vec<TriggerDef> = world
             .state
             .mods()
             .triggers
             .iter()
-            .filter(|t| t.event == event && t.mode.is_none_or(|m| m == mode))
+            .filter(|t| t.event == event)
             .filter(|t| self.trigger_cooldowns.get(&t.effect).is_none_or(|&left| left <= 0.0))
             .cloned()
             .collect();
@@ -74,6 +73,9 @@ impl Player {
                 }
             }
             "flicker" => world.slow_enemies(2.0),
+            "phantom" => {
+                world.add(Decoy::new(self.pos()));
+            }
             "overflow" => {
                 world.state.sp = (world.state.sp + 100.0).min(world.state.max_sp());
                 let at = self.center() - Vec2::new(0.0, 22.0);

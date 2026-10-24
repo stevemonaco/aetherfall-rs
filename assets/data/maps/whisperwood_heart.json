@@ -55,7 +55,7 @@
       "x": 14.0,
       "y": 5.0,
       "style": 2,
-      "item": "circuit_shard",
+      "item": "weave_knot",
       "if": "rift:ww_hawk"
     },
     {

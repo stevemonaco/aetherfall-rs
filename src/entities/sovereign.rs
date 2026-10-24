@@ -282,15 +282,18 @@ impl BossBrain for SovereignBrain {
 
     fn before_hit(&mut self, enemy: &mut Enemy, world: &mut World, hit: &mut Hit) -> Option<bool> {
         let dying = enemy.boss.as_ref().is_some_and(|b| b.dying());
-        if !self.aether_form(enemy) || !hit.is_player() || hit.element == Element::Aether || dying {
+        if !self.aether_form(enemy) || !hit.is_player() || dying {
+            return None;
+        }
+        if hit.aether {
             return None;
         }
         audio::play(Sound::Clink, 0.8, 0.5);
-        world.add_resonance(6.0);
+        world.feed_aether(6.0);
         if !self.aether_warned {
             self.aether_warned = true;
             world.show_message(
-                "Sovereign Vael: The elements bow to me now. Only the whole Aether could reach me... and the Concord took that to its grave! (Your blade drinks in the light he sheds. Fill it and call the Aether.)",
+                "Sovereign Vael: The elements bow to me now. Only the whole Aether could reach me... and the Concord took that to its grave! (Your blade drinks in the light he sheds. Fill it, and let the Aether wake.)",
             );
         }
         Some(true)
@@ -403,7 +406,7 @@ impl Entity for ElementOrb {
             return false;
         }
         let center = self.hurtbox().center();
-        if hit.element != self.element && hit.element != Element::Aether {
+        if hit.element != self.element && !hit.aether {
             audio::sfx(Sound::Clink);
             Particle::burst(world, center, Rgba::WHITE, 4, 40.0, 0.2, true);
             return true;

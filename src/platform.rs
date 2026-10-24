@@ -32,7 +32,7 @@ use crate::entities::boss;
 use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::game_data::{IMAGE_FILES, data};
 use crate::gameplay::game_state::{self, GameState};
-use crate::gameplay::{circuit, mastery, skills, supports};
+use crate::gameplay::{mastery, skills, supports, weave};
 use crate::scenes::scene::SceneManager;
 use crate::scenes::title::TitleScene;
 use crate::scenes::world::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -54,11 +54,9 @@ pub struct LaunchOptions {
     pub level: Option<i32>,
     /// Sets every mode's mastery to this level.
     pub mastery: Option<i32>,
-    /// Starts with a full Aether Resonance gauge.
-    pub resonance: bool,
     /// Learns every skill and unlocks all three levels.
     pub all_skills: bool,
-    /// Unlocks every Circuit node whose arm is open.
+    /// Takes every node of the Weave.
     pub all_tree: bool,
     /// Gives every support gem and fills each open socket with the first that fits.
     pub all_supports: bool,
@@ -91,9 +89,8 @@ impl LaunchOptions {
             options.give = list("--give");
             options.level = value("--level").and_then(|v| v.parse().ok());
             options.mastery = value("--mastery").and_then(|v| v.parse().ok());
-            options.resonance = args.iter().any(|a| a == "--resonance");
             options.all_skills = value("--skills").as_deref() == Some("all");
-            options.all_tree = value("--tree").as_deref() == Some("all");
+            options.all_tree = value("--weave").as_deref() == Some("all") || value("--tree").as_deref() == Some("all");
             options.all_supports = value("--supports").as_deref() == Some("all");
             options.flags = list("--flags");
             options.script = value("--script");
@@ -378,9 +375,7 @@ fn finish_loading(world: &mut bevy::prelude::World) {
             for mode in MODES.into_iter().filter(|&m| mastery::trains(m)) {
                 state.mastery.insert(mode.key().to_string(), mastery::xp_for(level));
             }
-        }
-        if options.resonance {
-            state.resonance = 100.0;
+            state.sync_skills();
         }
         if options.all_skills {
             for skill in skills::ALL {
@@ -392,8 +387,8 @@ fn finish_loading(world: &mut bevy::prelude::World) {
             for gem in supports::ALL {
                 state.give(gem.id, 1);
             }
-            for mode in state.owned_modes() {
-                for group in supports::Group::ALL {
+            for mode in state.blade_pages() {
+                for &group in GameState::socket_groups(mode) {
                     for index in 0..state.socket_count(mode) {
                         let free = supports::ALL.iter().find(|g| {
                             g.fits_group(group)
@@ -408,15 +403,10 @@ fn finish_loading(world: &mut bevy::prelude::World) {
             }
         }
         if options.all_tree {
-            state.inventory.insert("circuit_point".into(), 200);
-            state.inventory.insert("circuit_shard".into(), 20);
-            let open: Vec<&str> = circuit::NODES
-                .iter()
-                .filter(|n| n.id != circuit::HUB && state.circuit_region_open(n.region))
-                .map(|n| n.id.as_str())
-                .collect();
-            for id in open {
-                state.unlock(id);
+            state.inventory.insert("insight_tome".into(), 200);
+            state.inventory.insert("weave_knot".into(), 20);
+            for node in weave::NODES.iter() {
+                state.take_node(&node.id);
             }
         }
         state.sp = state.max_sp();
@@ -463,14 +453,11 @@ fn gather_input(
         (Mode2, &[KeyCode::Digit2]),
         (Mode3, &[KeyCode::Digit3]),
         (Mode4, &[KeyCode::Digit4]),
-        (Mode5, &[KeyCode::Digit5]),
-        (Mode6, &[KeyCode::Digit6]),
         (Confirm, &[KeyCode::KeyJ, KeyCode::KeyZ, KeyCode::Space, KeyCode::Enter]),
         (Cancel, &[KeyCode::KeyK, KeyCode::KeyX, KeyCode::Escape, KeyCode::Backspace]),
         (Menu, &[KeyCode::Enter, KeyCode::Escape, KeyCode::Tab]),
         (Map, &[KeyCode::KeyM]),
         (Soul, &[KeyCode::KeyV]),
-        (Lens, &[KeyCode::KeyT]),
     ];
     let pad_map: [(GameAction, &[GamepadButton]); 16] = [
         (Up, &[GamepadButton::DPadUp]),
@@ -506,9 +493,6 @@ fn gather_input(
         }
         if pad.pressed(GamepadButton::RightThumb) {
             raw.actions[Soul as usize] = true;
-        }
-        if pad.pressed(GamepadButton::LeftThumb) {
-            raw.actions[Lens as usize] = true;
         }
         let left = pad.left_stick();
         let right = pad.right_stick();
@@ -793,7 +777,7 @@ fn take_shot(
                 s.mode
             );
             println!("DUMP flags={:?}", s.flags);
-            println!("DUMP circuit={:?} skills={:?}", s.circuit_nodes, s.equipped_skills);
+            println!("DUMP weave={:?} skills={:?}", s.weave_nodes, s.equipped_skills);
             println!(
                 "DUMP inventory={:?} sigils={:?} mastery={:?} equipment={:?}",
                 s.inventory, s.sigils, s.mastery, s.equipment

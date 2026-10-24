@@ -2,7 +2,7 @@
   // A quest starts when the flag quest:<id> is set (dialogue action "quest:<id>") and each stage is done once its
   // condition holds. The first unfinished stage is what the quest log and HUD show.
   "silent_village": {
-    "title": "The Silent Village", "giver": "Elder Orin", "region": "Leafhollow", "side": false, "reward": "a Circuit Shard",
+    "title": "The Silent Village", "giver": "Elder Orin", "region": "Leafhollow", "side": false, "reward": "a Weave Knot",
     "stages": [
       { "text": "Seal the rift in the north meadow of Windward Fields.", "done": "rift:leaf_herbalist" },
       { "text": "Seal the rift in the Mossy Grotto's eastern chamber.", "done": "rift:leaf_smith" },
@@ -24,7 +24,7 @@
     ]
   },
   "shrine_light": {
-    "title": "The Dark Shrine", "giver": "Sage Elm", "region": "Leafhollow", "reward": "a Circuit Shard",
+    "title": "The Dark Shrine", "giver": "Sage Elm", "region": "Leafhollow", "reward": "a Weave Knot",
     "stages": [
       { "text": "Seal the rift by the eastern cliffs of Windward Fields.", "done": "rift:leaf_shrine" },
       { "text": "Speak with Sage Elm at the restored shrine.", "done": "shrine_done" }

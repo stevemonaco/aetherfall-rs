@@ -117,7 +117,7 @@
       "type": "chest",
       "x": 6.0,
       "y": 54.0,
-      "item": "tide_ring"
+      "item": "focus_band"
     },
     {
       "type": "barrier",
@@ -175,7 +175,7 @@
       "type": "dig",
       "x": 34.0,
       "y": 49.0,
-      "item": "circuit_point"
+      "item": "insight_tome"
     },
     {
       "type": "decor",

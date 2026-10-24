@@ -1,5 +1,4 @@
 pub mod blight_gate;
-pub mod circuit;
 pub mod crystal;
 pub mod dialogue;
 pub mod game_over;
@@ -14,5 +13,6 @@ pub mod smith;
 pub mod spawn;
 pub mod story;
 pub mod title;
+pub mod weave;
 pub mod world;
 pub mod world_scene;

@@ -197,17 +197,11 @@ impl Entity for FirePatch {
 pub struct Decoy {
     base: EntityBase,
     age: f32,
-    bursts: bool,
 }
 
 impl Decoy {
     pub fn new(at: Vec2) -> Decoy {
-        Decoy { base: EntityBase::at(at), age: 0.0, bursts: false }
-    }
-
-    /// A decoy that explodes when it fades.
-    pub fn bursting(at: Vec2) -> Decoy {
-        Decoy { bursts: true, ..Decoy::new(at) }
+        Decoy { base: EntityBase::at(at), age: 0.0 }
     }
 }
 
@@ -226,16 +220,6 @@ impl Entity for Decoy {
                 world.decoy = None;
             }
             Particle::burst(world, self.base.pos - Vec2::new(0.0, 8.0), Rgba::rgb(200, 220, 255), 10, 40.0, 0.4, false);
-            if self.bursts {
-                let at = self.base.pos;
-                world.with_player(|p, w| {
-                    p.strike_area(w, at - Vec2::new(0.0, 6.0), 40.0, None, |p, w| {
-                        p.make_hit(w, 1.6, HitKind::Skill, Some(Element::None), 2.0, 1.0, 220.0)
-                    })
-                });
-                world.add(Shockwave::new(at, 40.0, Rgba::rgb(200, 220, 255)));
-                audio::play(Sound::Break, 0.8, 0.1);
-            }
         }
     }
 

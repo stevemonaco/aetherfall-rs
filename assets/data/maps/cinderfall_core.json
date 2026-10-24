@@ -72,7 +72,7 @@
       "flag": "boss_wyrm",
       "defeat": [
         "unflag:wyrm_arena",
-        "give:circuit_shard",
+        "give:weave_knot",
         "say:The wyrm sinks into the cooling stone. The caldera breathes out, and for a moment, it is merely warm."
       ],
       "unless": "boss_wyrm",

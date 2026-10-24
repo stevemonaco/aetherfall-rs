@@ -14,7 +14,7 @@ pub enum ItemKind {
     Accessory,
     Key,
     Material,
-    /// Permanent upgrades such as boots, rings and shards; owning one is enough (shards stack).
+    /// Permanent upgrades such as boots, orbs and shards; owning one is enough (shards stack).
     Powerup,
     /// A support gem, socketed from the Skills menu.
     Support,
@@ -31,7 +31,8 @@ pub struct AccessoryStats {
     pub gold: f32,
     pub exp: f32,
     pub sp_gain: f32,
-    pub overload: f32,
+    /// Multiplier on how fast the Aether meter fills.
+    pub aether: f32,
     pub jump_time: f32,
     pub fire_taken: f32,
     pub life_on_kill: f32,
@@ -55,7 +56,7 @@ impl AccessoryStats {
         gold: 1.0,
         exp: 1.0,
         sp_gain: 1.0,
-        overload: 1.0,
+        aether: 1.0,
         jump_time: 1.0,
         fire_taken: 1.0,
         life_on_kill: 0.0,
@@ -78,7 +79,7 @@ impl AccessoryStats {
             gold: a.gold * b.gold,
             exp: a.exp * b.exp,
             sp_gain: a.sp_gain * b.sp_gain,
-            overload: a.overload * b.overload,
+            aether: a.aether * b.aether,
             jump_time: a.jump_time.max(b.jump_time),
             fire_taken: a.fire_taken * b.fire_taken,
             life_on_kill: a.life_on_kill + b.life_on_kill,
@@ -111,8 +112,6 @@ pub struct ItemDef {
     pub accessory: AccessoryStats,
     /// Extra max life granted by armor.
     pub hp: i32,
-    /// The element a resonance ring attunes.
-    pub ring: Element,
 }
 
 const fn item(
@@ -123,7 +122,7 @@ const fn item(
     power: i32,
     description: &'static str,
 ) -> ItemDef {
-    ItemDef { id, name, kind, price, power, description, accessory: AccessoryStats::NONE, hp: 0, ring: Element::None }
+    ItemDef { id, name, kind, price, power, description, accessory: AccessoryStats::NONE, hp: 0 }
 }
 
 impl ItemDef {
@@ -134,11 +133,6 @@ impl ItemDef {
 
     const fn with_acc(mut self, acc: AccessoryStats) -> Self {
         self.accessory = acc;
-        self
-    }
-
-    const fn with_ring(mut self, ring: Element) -> Self {
-        self.ring = ring;
         self
     }
 }
@@ -198,8 +192,8 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { jump_time: 1.4, safe_falls: true, ..N }),
         item("salamander_scale", "Salamander Scale", Accessory, 0, 0, "Fire damage halved. ATK +5%.")
             .with_acc(AccessoryStats { fire_taken: 0.5, atk: 1.05, ..N }),
-        item("cool_stone", "Cool Stone", Accessory, 500, 0, "Elemental overload builds 35% slower.")
-            .with_acc(AccessoryStats { overload: 0.65, ..N }),
+        item("cool_stone", "Resonant Stone", Accessory, 500, 0, "The Aether meter fills 35% faster.")
+            .with_acc(AccessoryStats { aether: 1.35, ..N }),
         item("wind_feather", "Wind Feather", Accessory, 0, 0, "One extra dodge charge.")
             .with_acc(AccessoryStats { dodge_charges: 1, ..N }),
         item("parry_ring", "Duelist's Ring", Accessory, 0, 0, "Perfect guard window is much wider.")
@@ -248,68 +242,47 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             0,
             "A latching bolt (F / I, or X): pull yourself to anchors, pull foes and objects to you, rip off shields.",
         ),
-        item(
-            "memory_lens",
-            "Memory Lens",
-            Powerup,
-            0,
-            0,
-            "Look through time anywhere in the Bastion (T / L3), not just at memory shards.",
-        ),
         item("gale_dash", "Gale Boots", Powerup, 0, 0, "Dodges carry you across gaps up to three tiles wide."),
         item("life_shard", "Life Shard", Powerup, 0, 0, "Every four shards raise your life by 10%."),
         item("spirit_pip", "Spirit Gem", Powerup, 0, 0, "Your SP gauge grows by one pip."),
-        item("circuit_shard", "Circuit Shard", Powerup, 0, 0, "Opens a sealed branch of your Circuit."),
-        item("circuit_point", "Tome of Insight", Powerup, 0, 0, "Grants one extra Circuit Point."),
-        item(
-            "wind_orb",
-            "Gale Ring",
-            Powerup,
-            0,
-            0,
-            "Wind resonance: Wind ailments build 30% faster and overload 25% slower.",
-        )
-        .with_ring(Element::Wind),
-        item(
-            "flame_ring",
-            "Flame Ring",
-            Powerup,
-            0,
-            0,
-            "Fire resonance: Fire ailments build 30% faster and overload 25% slower.",
-        )
-        .with_ring(Element::Fire),
-        item(
-            "tide_ring",
-            "Tide Ring",
-            Powerup,
-            0,
-            0,
-            "Water resonance: Water ailments build 30% faster and overload 25% slower.",
-        )
-        .with_ring(Element::Water),
-        item(
-            "storm_ring",
-            "Storm Ring",
-            Powerup,
-            0,
-            0,
-            "Thunder resonance: Thunder ailments build 30% faster and overload 25% slower.",
-        )
-        .with_ring(Element::Thunder),
+        item("weave_knot", "Weave Knot", Powerup, 0, 0, "Ties off one of the Weave's keystones."),
+        item("insight_tome", "Tome of Insight", Powerup, 0, 0, "Grants one extra Weave point."),
+        item("gale_orb", "Gale Orb", Powerup, 0, 0, "Wind skills can be charged to level 2."),
+        item("flame_orb", "Flame Orb", Powerup, 0, 0, "Fire skills can be charged to level 2."),
+        item("tide_orb", "Tide Orb", Powerup, 0, 0, "Water skills can be charged to level 2."),
+        item("storm_orb", "Storm Orb", Powerup, 0, 0, "Thunder skills can be charged to level 2."),
+        item("gale_bracer", "Gale Bracer", Powerup, 0, 0, "Wind skills can be charged to level 3."),
+        item("flame_bracer", "Flame Bracer", Powerup, 0, 0, "Fire skills can be charged to level 3."),
+        item("tide_bracer", "Tide Bracer", Powerup, 0, 0, "Water skills can be charged to level 3."),
+        item("storm_bracer", "Storm Bracer", Powerup, 0, 0, "Thunder skills can be charged to level 3."),
         item(
             "prism_band",
             "Prism Band",
             Powerup,
             0,
             0,
-            "Every element resonates: ailments build faster and overload slower.",
-        )
-        .with_ring(Element::Aether),
+            "Aether pierces weaknesses 15% more often, and its meter fills 20% faster.",
+        ),
+        item(
+            "dormant_blade",
+            "Dormant Aether Blade",
+            Key,
+            0,
+            0,
+            "The Aether Blade, cold and still. It won't answer your hand until a sigil is set in its hilt.",
+        ),
         item("grotto_key", "Grotto Key", Key, 0, 0, "Opens the sealed door in the Mossy Grotto."),
         item("temple_key", "Coral Key", Key, 0, 0, "Opens a sealed door in the Sunken Temple."),
         item("spire_key", "Storm Key", Key, 0, 0, "Opens a sealed door in the Storm Spire."),
         item("sky_key", "Sky Key", Key, 0, 0, "Opens a sealed door in the Sky Citadel."),
+        item(
+            "aether_mote",
+            "Aether Mote",
+            Key,
+            400,
+            0,
+            "A drop of living aether. Wakes one sleeping memory crystal, opening that place's other time.",
+        ),
         item("ember_crystal", "Ember Crystal", Key, 0, 0, "One of the four great crystals, warm as a hearth."),
         item("tide_crystal", "Tide Crystal", Key, 0, 0, "One of the four great crystals. It sounds like the sea."),
         item("storm_crystal", "Storm Crystal", Key, 0, 0, "One of the four great crystals. It hums with thunder."),
@@ -337,11 +310,6 @@ pub fn get(id: &str) -> Option<&'static ItemDef> {
     ITEMS.get(id)
 }
 
-/// Every item, in definition order.
-pub fn all() -> &'static [ItemDef] {
-    &ALL_ITEMS
-}
-
 /// A sigil set into the Aether Blade's hilt: unlocks an element mode.
 #[derive(Clone, Copy, Debug)]
 pub struct SigilDef {
@@ -359,6 +327,17 @@ pub const SIGILS: [SigilDef; 4] = [
 
 pub fn sigil(id: &str) -> Option<&'static SigilDef> {
     SIGILS.iter().find(|s| s.id == id)
+}
+
+/// An element's orb and bracer, which open its skills' second and third charge levels.
+pub fn relics(element: Element) -> Option<(&'static str, &'static str)> {
+    match element {
+        Element::Wind => Some(("gale_orb", "gale_bracer")),
+        Element::Fire => Some(("flame_orb", "flame_bracer")),
+        Element::Water => Some(("tide_orb", "tide_bracer")),
+        Element::Thunder => Some(("storm_orb", "storm_bracer")),
+        _ => None,
+    }
 }
 
 pub fn name_of(id: &str) -> String {

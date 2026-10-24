@@ -21,7 +21,7 @@ use crate::world::map::TILE;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ProjectileHook {
     None,
-    /// A player shot: hits feed the player's SP and overload.
+    /// A player shot: hits feed the player's SP and Aether meter.
     PlayerShot,
     /// The Meteor Art: bursts into flame where it lands.
     Meteor,
@@ -161,6 +161,7 @@ impl Projectile {
             unblockable: self.unblockable,
             from: self.base.pos - self.velocity * 0.05,
             owner: Some(self.base.id),
+            aether: self.owner == Faction::Player && world.player.as_ref().is_some_and(|p| p.aether_active()),
             ..Hit::new(self.owner, self.attacker)
         };
         let connected = world.hit(id, &mut hit);
