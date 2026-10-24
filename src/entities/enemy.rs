@@ -33,6 +33,9 @@ use crate::gameplay::status::{Ailment, StatusSet};
 use crate::scenes::world::{KillInfo, World};
 use crate::world::map::TILE;
 
+/// Melee hits a shield takes before breaking; heavy hits count twice and plain bolts not at all.
+const SHIELD_HP: f32 = 6.0;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Phase {
     Idle,
@@ -82,6 +85,8 @@ pub struct Enemy {
     act_done: bool,
     wall_slam: bool,
     shield: bool,
+    shield_hp: f32,
+    enraged: bool,
     aura: bool,
     marked: f32,
     revived: bool,
@@ -137,6 +142,8 @@ impl Enemy {
             act_done: false,
             wall_slam: false,
             shield: def.has_trait("shield"),
+            shield_hp: SHIELD_HP,
+            enraged: false,
             aura: aura.is_some(),
             marked: 0.0,
             revived: false,
@@ -218,7 +225,7 @@ impl Enemy {
     }
 
     fn move_speed(&self) -> f32 {
-        self.def.speed * self.status.speed_factor()
+        self.def.speed * self.status.speed_factor() * if self.enraged { 1.35 } else { 1.0 }
     }
 
     pub fn move_by(&mut self, world: &World, delta: Vec2, flying: bool) -> Vec2 {
@@ -792,11 +799,34 @@ impl Enemy {
             && self.phase != Phase::Broken
             && self.front_hit(world, hit.from)
         {
-            audio::play(Sound::Clink, 0.8, 0.0);
+            let bane = self.shield_bane();
+            let shattered = element == bane && bane != Element::None && hit.kind != HitKind::Tether;
+            self.shield_hp -= match hit.kind {
+                _ if shattered => SHIELD_HP,
+                HitKind::Bolt | HitKind::Tether => 0.0,
+                HitKind::Finisher | HitKind::ChargedBolt | HitKind::Skill => 2.0,
+                _ => 1.0,
+            };
             let at = self.hurtbox().center() + safe_dir(hit.from - self.base.pos, Vec2::Y) * 6.0;
-            Particle::burst(world, at, Rgba::WHITE, 5, 40.0, 0.2, true);
-            self.knockback(hit.from, 50.0, 0.06);
             hit.result = DamageResult::blocked(false);
+            if self.shield_hp > 0.0 {
+                audio::play(Sound::Clink, 0.8, 0.0);
+                Particle::burst(world, at, Rgba::WHITE, 5, 40.0, 0.2, true);
+                self.knockback(hit.from, 50.0, 0.06);
+                return true;
+            }
+            self.shield = false;
+            audio::sfx(Sound::Break);
+            let label = self.base.pos - Vec2::new(0.0, self.base.height + 14.0);
+            if shattered {
+                Particle::burst(world, at, bane.glow(), 14, 70.0, 0.4, true);
+                world.add(FloatingText::new(label, "SHIELD SHATTERED", bane.glow()));
+                self.break_for(3.0);
+            } else {
+                Particle::burst(world, at, Rgba::WHITE, 14, 70.0, 0.4, true);
+                world.add(FloatingText::new(label, "SHIELD BROKEN", palette::HIGHLIGHT));
+                self.interrupt(0.4);
+            }
             return true;
         }
 
@@ -1016,6 +1046,15 @@ impl Enemy {
     fn front_hit(&self, world: &World, from: Vec2) -> bool {
         let facing = safe_normalize(world.hero.pos - self.base.pos);
         safe_normalize(from - self.base.pos).dot(facing) > 0.3
+    }
+
+    /// The element this enemy is weakest to, which also shatters its shield in one hit.
+    fn shield_bane(&self) -> Element {
+        BASIC
+            .into_iter()
+            .filter(|&e| self.def.resist_to(e) > 1.0)
+            .max_by(|&a, &b| self.def.resist_to(a).total_cmp(&self.def.resist_to(b)))
+            .unwrap_or(Element::None)
     }
 
     /// The element an Aether strike takes: this foe's weakest among the elements mastered well enough, else neutral.
@@ -1288,7 +1327,9 @@ impl Enemy {
         let telegraph = self.phase == Phase::Windup
             && self.attack.is_some_and(|i| self.phase_time > self.def.attacks[i].windup - 0.3)
             && (self.phase_time * 20.0) as i32 % 2 == 0;
-        let tint = self.status.tint().unwrap_or(if self.blighted {
+        let tint = self.status.tint().unwrap_or(if self.enraged {
+            Rgba::rgb(255, 140, 120)
+        } else if self.blighted {
             if self.revived { Rgba::rgb(150, 110, 190) } else { Rgba::rgb(215, 180, 240) }
         } else {
             Rgba::WHITE
@@ -1329,7 +1370,7 @@ impl Enemy {
         if self.shield {
             let dir = safe_normalize(world.hero.pos - self.base.pos);
             let at = self.base.pos - Vec2::new(4.0, self.base.height * scale / 2.0 + 8.0 + self.z) + dir * 7.0;
-            batch.draw(art::enemy_shield(), snap(at), Rgba::WHITE);
+            batch.draw(art::enemy_shield(self.shield_bane()), snap(at), Rgba::WHITE);
         }
         if self.phase == Phase::Broken || (self.phase == Phase::Stagger && self.phase_time < -0.3) {
             self.draw_stars(batch);
@@ -1464,9 +1505,11 @@ impl Entity for Enemy {
     fn on_tether(&mut self, world: &mut World) -> TetherResponse {
         if self.shield {
             self.shield = false;
-            self.break_for(2.0);
+            self.enraged = true;
+            self.alert(world);
+            self.interrupt(0.3);
             let at = self.base.pos - Vec2::new(0.0, self.base.height + 14.0);
-            world.add(FloatingText::new(at, "SHIELD RIPPED", palette::HIGHLIGHT));
+            world.add(FloatingText::new(at, "ENRAGED", Rgba::rgb(255, 80, 60)));
             return TetherResponse::Ripped;
         }
         if self.heavy() {
@@ -1499,8 +1542,9 @@ impl Entity for Enemy {
         self.contact_cooldown = (self.contact_cooldown - dt).max(0.0);
         self.hp_bar_time = (self.hp_bar_time - dt).max(0.0);
         self.marked = (self.marked - dt).max(0.0);
+        let cooldown_rate = if self.enraged { 1.5 } else { 1.0 };
         for c in self.cooldowns.values_mut() {
-            *c = (*c - dt).max(0.0);
+            *c = (*c - dt * cooldown_rate).max(0.0);
         }
 
         self.update_status(world, dt);

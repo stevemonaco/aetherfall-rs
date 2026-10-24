@@ -68,7 +68,7 @@ pub fn all() -> Vec<(String, TexId)> {
         s("tether_post", combat::tether_post()),
         s("lever", combat::lever()),
         s("guard_shield", combat::guard_shield()),
-        s("enemy_shield", combat::enemy_shield()),
+        s("enemy_shield", combat::enemy_shield(Element::Thunder)),
         s("hook", combat::hook()),
         s("vent", combat::vent()),
     ]);

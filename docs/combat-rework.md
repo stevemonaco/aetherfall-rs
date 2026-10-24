@@ -76,6 +76,14 @@ Veil, Arc Step, Flicker).
 | Trial of Cinders | Ashen Reach | Echo, Overdrive |
 | Trial of the Prism (after the blade awakens) | Cinderfall | Prism Lens, Everlight |
 
+## Shields and seals
+
+Shielded enemies no longer require the Aether Tether. A shield wears down after six blocked melee hits; finishers,
+charged shots and skills count twice (about three), and plain shots glance off. Any hit of the element on its emblem
+(the enemy's weakness) shatters it at once and stuns the enemy. The tether still rips it off in one pull, but leaves
+the enemy enraged: faster on its feet and quicker to attack again. Concord seals feed Resonance when struck, so an
+Aether burst can always be raised on the spot to open them.
+
 ## Combat rank
 
 A hit costs half a rank (carrying into the lower rank), and hits within one second of each other count once.

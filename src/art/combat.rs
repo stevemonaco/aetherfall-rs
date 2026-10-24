@@ -635,10 +635,12 @@ pub fn ice_block() -> TexId {
     })
 }
 
-pub fn enemy_shield() -> TexId {
-    gfx::cached("enemy_shield", || {
+/// An enemy's shield; its emblem shows the element that shatters it in one blow.
+pub fn enemy_shield(bane: Element) -> TexId {
+    gfx::cached(&format!("enemy_shield_{}", bane.name()), || {
         let mut cv = Canvas::new(8, 10);
-        cv.rect(0, 0, 8, 6, STONE[2]).ellipse(4.0, 6.0, 4.0, 4.0, STONE[2]).rect(3, 1, 2, 7, c(0xC84A3A));
+        let emblem = if bane == Element::None { c(0xC84A3A) } else { bane.glow() };
+        cv.rect(0, 0, 8, 6, STONE[2]).ellipse(4.0, 6.0, 4.0, 4.0, STONE[2]).rect(3, 1, 2, 7, emblem);
         cv.rect(0, 0, 8, 1, STONE[3]);
         cv.outline();
         cv

@@ -474,8 +474,8 @@ impl AetherSeal {
 impl Entity for AetherSeal {
     entity_base!();
 
-    fn can_interact(&self, _world: &World) -> bool {
-        true
+    fn can_interact(&self, world: &World) -> bool {
+        !world.state.aether_awakened()
     }
 
     fn faction(&self) -> Option<Faction> {
@@ -507,6 +507,9 @@ impl Entity for AetherSeal {
         if hit.element != Element::Aether {
             audio::play(Sound::Clink, 0.6, 0.0);
             self.shake = 0.15;
+            if hit.is_player() {
+                world.add_resonance(10.0);
+            }
             return true;
         }
         self.base.removed = true;
