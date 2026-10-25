@@ -70,6 +70,10 @@
     "###################::###################"
   ],
   "entities": [
+    {"type": "gate", "x": 18.0, "y": 0.0, "open": "rift:frost_pass", "look": "thorns"},
+    {"type": "gate", "x": 19.0, "y": 0.0, "open": "rift:frost_pass", "look": "thorns"},
+    {"type": "gate", "x": 20.0, "y": 0.0, "open": "rift:frost_pass", "look": "thorns"},
+    {"type": "gate", "x": 21.0, "y": 0.0, "open": "rift:frost_pass", "look": "thorns"},
     {
       "type": "trial",
       "x": 20.0,
@@ -78,7 +82,7 @@
       "to": "trial_frost",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_frost_well"
+      "done": "golden:trial_frost"
     },
     {
       "type": "warp",
@@ -139,12 +143,7 @@
       "y": 28.0,
       "item": "salamander_scale"
     },
-    {
-      "type": "chest",
-      "x": 35.0,
-      "y": 15.0,
-      "item": "elixir"
-    },
+    {"type": "chest", "x": 35.0, "y": 15.0, "item": "frost_core", "count": 2},
     {
       "type": "chest",
       "x": 4.0,
@@ -157,8 +156,7 @@
       "y": 56.0,
       "count": 6,
       "alive": 2,
-      "id": "crag_hearth",
-      "restores": "the great hearth of Highcrag",
+      "id": "frost_pass",
       "kinds": "brute,glacimp,rimeogre,weaver,harpy"
     },
     {
@@ -167,8 +165,7 @@
       "y": 28.0,
       "count": 7,
       "alive": 3,
-      "id": "crag_apprentice",
-      "restores": "Sage Ilda's apprentice",
+      "id": "frost_cairn",
       "kinds": "crag,glacimp,rime,rimeogre,weaver,harpy"
     },
     {

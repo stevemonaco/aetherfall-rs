@@ -55,6 +55,8 @@
     "################################################################"
   ],
   "entities": [
+    {"type": "gate", "x": 63.0, "y": 36.0, "open": "rift:reach_road", "look": "thorns"},
+    {"type": "gate", "x": 63.0, "y": 37.0, "open": "rift:reach_road", "look": "thorns"},
     {
       "type": "trial",
       "x": 31.0,
@@ -63,7 +65,7 @@
       "to": "trial_ash",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_ash_well"
+      "done": "golden:trial_ash"
     },
     {
       "type": "spawn",
@@ -189,8 +191,7 @@
       "alive": 3,
       "count": 8,
       "kinds": "ashrat,cinderslime,ashhound,cinderimp,cinderwasp,lavabloat",
-      "restores": "the tents of Ashford Camp",
-      "id": "ash_camp"
+      "id": "reach_road"
     },
     {
       "type": "rift",
@@ -199,8 +200,7 @@
       "alive": 3,
       "count": 8,
       "kinds": "ashhound,emberwraith,glasswhirl,cinderimp,cinderwasp,lavabloat",
-      "restores": "Varro the tinker",
-      "id": "ash_smith"
+      "id": "reach_wreck"
     },
     {
       "type": "rift",

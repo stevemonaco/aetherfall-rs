@@ -114,13 +114,7 @@
       "id": "leaf_bridge",
       "restores": "the old west bridge out of Leafhollow"
     },
-    {
-      "type": "dig",
-      "x": 7.0,
-      "y": 12.0,
-      "item": "spirit_tonic",
-      "count": 2
-    },
+    {"type": "dig", "x": 7.0, "y": 12.0, "gold": 100},
     {
       "type": "chest",
       "x": 9.0,
@@ -133,13 +127,7 @@
       "y": 12.0,
       "gold": 120
     },
-    {
-      "type": "chest",
-      "x": 38.0,
-      "y": 20.0,
-      "item": "herb",
-      "count": 2
-    },
+    {"type": "chest", "x": 38.0, "y": 20.0, "item": "beast_fang", "count": 2},
     {
       "type": "door",
       "x": 24.0,

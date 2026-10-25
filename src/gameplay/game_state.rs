@@ -18,7 +18,7 @@ use super::weave::{self, WeaveMods, WeaveNode};
 use crate::core::direction::Direction;
 use crate::core::storage;
 
-pub const SAVE_VERSION: i32 = 6;
+pub const SAVE_VERSION: i32 = 7;
 /// The oldest save version that can still be migrated.
 const OLDEST_SAVE: i32 = 3;
 pub const SLOT_COUNT: i32 = 3;
@@ -57,8 +57,9 @@ pub struct GameState {
     #[serde(alias = "CircuitNodes")]
     pub weave_nodes: BTreeSet<String>,
     pub souls_owned: Vec<String>,
+    /// The guardian spirit's current form, or None for its own shape.
     pub soul: Option<String>,
-    pub soul_xp: BTreeMap<String, i32>,
+    pub spirit_charms: [Option<String>; souls::CHARM_SLOTS],
     pub tracked_quest: Option<String>,
     pub pacts: BTreeSet<String>,
     pub kills: BTreeMap<String, i32>,
@@ -100,7 +101,7 @@ impl Default for GameState {
             weave_nodes: BTreeSet::new(),
             souls_owned: Vec::new(),
             soul: None,
-            soul_xp: BTreeMap::new(),
+            spirit_charms: [None, None],
             tracked_quest: None,
             pacts: BTreeSet::new(),
             kills: BTreeMap::new(),
@@ -359,10 +360,10 @@ impl GameState {
     }
 
     /// Brings a save from before the Weave and the Aether rework up to date: renamed items, rings turned into orbs,
-    /// the neutral mode and its skills gone, and skills matched to mastery. The Weave changed in versions 4 to 6, so
+    /// the neutral mode and its skills gone, and skills matched to mastery. The Weave changed in versions 4 to 7, so
     /// older saves get every point back.
     fn migrate(&mut self) {
-        if self.version < 6 {
+        if self.version < 7 {
             self.reset_weave();
         }
         self.version = SAVE_VERSION;
@@ -614,8 +615,9 @@ impl GameState {
         self.socketed(Element::Aether, Group::Special).iter().any(|s| s.id == id)
     }
 
-    pub fn soul_rank(&self, soul: &str) -> i32 {
-        souls::rank(self.soul_xp.get(soul).copied().unwrap_or(0))
+    /// Whether a charm is set into the spirit.
+    pub fn charm(&self, id: &str) -> bool {
+        self.spirit_charms.iter().any(|c| c.as_deref() == Some(id))
     }
 
     /// How much of a town's restoration is done, from 0 to 1.

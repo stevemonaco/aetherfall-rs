@@ -66,7 +66,7 @@ const fn prism(id: &'static str, name: &'static str, description: &'static str) 
 
 use Group::*;
 
-pub const ALL: [SupportDef; 21] = [
+pub const ALL: [SupportDef; 22] = [
     gem("cleave_gem", "Cleave Gem", Some(Attack), "Melee swings reach 30% wider, but deal 15% less damage."),
     gem(
         "momentum_gem",
@@ -87,7 +87,13 @@ pub const ALL: [SupportDef; 21] = [
         Some(Attack),
         "Swings dash you toward the nearest foe ahead, but deal 10% less damage.",
     ),
-    gem("sweep_gem", "Sweeping Gem", Some(Attack), "Swings loose a short crescent wave, but deal 15% less damage."),
+    gem("sweep_gem", "Sweeping Gem", Some(Attack), "Swings sweep all the way around you, but deal 15% less damage."),
+    gem(
+        "whirlwind_gem",
+        "Whirlwind Gem",
+        Some(Attack),
+        "Hold attack to whirl, striking everything around you as you move. Whirling burns SP.",
+    ),
     gem(
         "deflect_gem",
         "Deflecting Gem",
@@ -159,6 +165,7 @@ pub struct SupportMods {
     pub efficiency: bool,
     pub lunge: bool,
     pub sweep: bool,
+    pub whirlwind: bool,
     pub deflect: bool,
     pub sunder: bool,
     /// Chance a bolt flies one tier stronger.
@@ -189,6 +196,7 @@ impl Default for SupportMods {
             efficiency: false,
             lunge: false,
             sweep: false,
+            whirlwind: false,
             deflect: false,
             sunder: false,
             surge: 0.0,
@@ -257,6 +265,7 @@ impl SupportMods {
                     m.sweep = true;
                     m.damage *= 0.85;
                 }
+                "whirlwind_gem" => m.whirlwind = true,
                 "deflect_gem" => {
                     m.deflect = true;
                     m.swing_speed *= 0.9;

@@ -203,10 +203,14 @@ impl Entity for Chest {
     }
 }
 
-/// An invisible trigger that moves the player to another map (or another spot on this one).
+/// A trigger that moves the player to another map (or another spot on this one). Most fire when walked into; a boat
+/// (`art: skiff`) waits on the water instead and asks before casting off.
 pub struct Warp {
     base: EntityBase,
     art: Option<TexId>,
+    boat: bool,
+    prompt: String,
+    time: f32,
     pub target: String,
     pub target_tile: (i32, i32),
     pub target_facing: Direction,
@@ -229,8 +233,12 @@ impl Warp {
             art: match data.str("art") {
                 Some("stairs_down") => Some(art::stairs_down()),
                 Some("stairs_up") => Some(art::stairs_up()),
+                Some("skiff") => Some(art::skiff()),
                 _ => None,
             },
+            boat: data.str("art") == Some("skiff"),
+            prompt: data.str_or("prompt", "Take the boat?").to_string(),
+            time: 0.0,
             target: data.str_or("to", "").to_string(),
             target_tile: (data.int("tx", 0), data.int("ty", 0)),
             target_facing: Direction::parse(Some(data.str_or("facing", "down"))),
@@ -248,7 +256,34 @@ impl Entity for Warp {
         0
     }
 
+    fn can_interact(&self, _world: &World) -> bool {
+        self.boat
+    }
+
+    fn update(&mut self, _world: &mut World, dt: f32) {
+        self.time += dt;
+    }
+
+    fn interact(&mut self, world: &mut World) {
+        if !world.state.check(self.condition.as_deref()) {
+            let text = self.blocked_text.clone().unwrap_or_else(|| "The boat won't budge.".into());
+            world.show_message(&text);
+            return;
+        }
+        let facing = match self.target_facing {
+            Direction::Up => "up",
+            Direction::Left => "left",
+            Direction::Right => "right",
+            Direction::Down => "down",
+        };
+        let warp = format!("warp:{},{},{},{facing}", self.target, self.target_tile.0, self.target_tile.1);
+        world.confirm(self.prompt.clone(), vec![warp]);
+    }
+
     fn touch(&mut self, world: &mut World) {
+        if self.boat {
+            return;
+        }
         world.try_warp(
             self.condition.as_deref(),
             self.blocked_text.as_deref(),
@@ -260,7 +295,11 @@ impl Entity for Warp {
     }
 
     fn draw(&self, _world: &World, batch: &mut Batch) {
-        if let Some(art) = self.art {
+        let Some(art) = self.art else { return };
+        if self.boat {
+            let bob = (self.time * 2.0).sin().round();
+            batch.draw(art, snap(Vec2::new(self.base.pos.x - 16.0, self.base.pos.y - T + bob)), Rgba::WHITE);
+        } else {
             batch.draw(art, snap(Vec2::new(self.base.pos.x - 8.0, self.base.pos.y - T)), Rgba::WHITE);
         }
     }
@@ -384,6 +423,10 @@ impl Decor {
             "plant" => (art::plant(), Vec2::new(-8.0, -17.0), true),
             "rug" => (art::rug(), Vec2::new(-8.0, -15.0), false),
             "altar" => (bosses::altar(), Vec2::new(-16.0, -27.0), true),
+            "echo_stone" => (art::echo_stone(), Vec2::new(-8.0, -27.0), true),
+            "weave_shrine" => (art::weave_shrine(), Vec2::new(-16.0, -27.0), true),
+            "pact_shrine" => (art::pact_shrine(), Vec2::new(-8.0, -29.0), true),
+            "forge" => (art::forge(), Vec2::new(-16.0, -27.0), true),
             _ => (art::boulder(), Vec2::new(-8.0, -15.0), true),
         };
         let (tx, ty) = (data.x as i32, data.y as i32);
@@ -418,7 +461,7 @@ impl Decor {
         if self.kind == "well" {
             world.map.block(tx + 1, ty, true);
         }
-        if self.kind == "altar" {
+        if matches!(self.kind.as_str(), "altar" | "weave_shrine" | "forge") {
             world.map.block(tx - 1, ty, true);
             world.map.block(tx + 1, ty, true);
         }
@@ -429,7 +472,14 @@ impl Entity for Decor {
     entity_base!();
 
     fn light(&self, _world: &World) -> Option<(f32, Rgba)> {
-        (self.kind == "torch").then_some((64.0, Rgba::rgb(255, 170, 90)))
+        match self.kind.as_str() {
+            "torch" => Some((64.0, Rgba::rgb(255, 170, 90))),
+            "echo_stone" => Some((40.0, Rgba::rgb(120, 230, 255))),
+            "weave_shrine" => Some((44.0, Rgba::rgb(200, 170, 255))),
+            "pact_shrine" => Some((40.0, Rgba::rgb(255, 90, 60))),
+            "forge" => Some((56.0, Rgba::rgb(255, 150, 70))),
+            _ => None,
+        }
     }
 
     fn layer(&self) -> i32 {

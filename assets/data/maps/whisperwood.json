@@ -14,8 +14,8 @@
     "TTTTT.......TTTTTTTTTT......TTTTTTT....TTTTT",
     "TTTTT.....TTTTTTTT..........TTTTTTT...TTTTTT",
     "TTTTTTT...TTTTTTT..........TTTTTTTTTT.TTTTTT",
-    "TTTTTTTT.TTTTTTTT..........TTTTTTTTTT.TTTTTT",
-    "TTTTTTTT............w...........TTTTT.TTTTTT",
+    "TTTTTTTT.TTTTTTTT..........TTTTTTTTTT~TTTTTT",
+    "TTTTTTTT............w...........TTTTT~TTTTTT",
     "TTTTTTTTTTTTTT....wwwww.........TTTTT.TTTTTT",
     "TTTTTTTTTTTTTT..TTTTTw..TTTTTT..TTTTT.TTTTTT",
     "TTTTTTTTTTTTTT..TTTTTTTTTTTTTT..TTTTT..TTTTT",
@@ -47,7 +47,7 @@
       "to": "trial_wood",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_wood_well"
+      "done": "golden:trial_wood"
     },
     {
       "type": "warp",
@@ -150,25 +150,14 @@
       "facing": "right",
       "dialogue": "forager_pim"
     },
-    {
-      "type": "secret",
-      "x": 37.0,
-      "y": 9.0,
-      "w": 1,
-      "h": 2
-    },
+    {"type": "veil", "x": 37.0, "y": 9.0, "w": 1, "h": 2},
     {
       "type": "chest",
       "x": 37.0,
       "y": 5.0,
       "item": "life_shard"
     },
-    {
-      "type": "dig",
-      "x": 24.0,
-      "y": 8.0,
-      "item": "spirit_tonic"
-    },
+    {"type": "dig", "x": 24.0, "y": 8.0, "gold": 180},
     {
       "type": "dig",
       "x": 6.0,
@@ -179,7 +168,7 @@
       "type": "sign",
       "x": 38.0,
       "y": 13.0,
-      "text": "The trail ends at a wall of brambles that looks... not quite real."
+      "text": "The trail ends at a deep brook. A hawk's eye might spot the old stepping stones."
     },
     {
       "type": "enemy",

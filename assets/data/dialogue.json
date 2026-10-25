@@ -55,7 +55,7 @@
     { "if": "elder_ember", "speaker": "Elder Orin", "lines": [
         "East through the fields, then across Mistmoor Marsh to Brinewatch. They say a witch lives in the marsh; she may help you, if you are polite."
       ] },
-    { "if": "!silent_village_done", "speaker": "Elder Orin", "lines": [ "The rifts: one in the north meadow of the fields, another in the grotto's eastern chamber. Strike a rift once its monsters are spent, and it will close." ] },
+    { "if": "!silent_village_done", "speaker": "Elder Orin", "lines": [ "The rifts: one in the north meadow of the fields, another in the grotto's eastern chamber. Go near a rift and it tears open; beat back everything that pours out, and it will close." ] },
     { "speaker": "Elder Orin", "lines": [ "A fire burns in the grotto shrine, deeper than any torch. Whatever guards it guards something of the Concord's." ] }
   ],
 
@@ -78,7 +78,7 @@
         "If you ever close that one... I'd love to see the shrine light up again."
       ],
       "do": [ "quest:shrine_light" ] },
-    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, skills, souls, the Weave and your quests are all in there. M shows the world map." ] }
+    { "speaker": "Mira", "lines": [ "Open your menu with Esc or Tab: gear, skills, your guardian spirit, the Weave and your quests are all in there. M shows the world map." ] }
   ],
 
   "pip": [
@@ -130,7 +130,7 @@
       ],
       "do": [ "quest:brindle_gel", "shop:village" ] },
     { "if": "quest:brindle_gel,count:slime_gel:3,!brindle_done", "speaker": "Brindle", "lines": [ "Three gels, fresh and wobbly! A deal's a deal." ],
-      "do": [ "take:slime_gel*3", "flag:brindle_done", "give:potion", "gold:+150", "shop:village" ] },
+      "do": [ "take:slime_gel*3", "flag:brindle_done", "gold:+250", "shop:village" ] },
     { "speaker": "Brindle", "lines": [ "Welcome to Brindle's Goods! Herbs, hides and shields, all honest prices." ], "do": [ "shop:village" ] }
   ],
 
@@ -219,13 +219,13 @@
 
   "fisher": [
     { "if": "!quest:nets_and_hulls", "speaker": "Fisher Lin", "lines": [
-        "Half the harbour vanished with the rifts. Old Tam's net shed, Kett's boatyard... A couple of rifts in the marsh, folk say, still humming.",
+        "Half the harbour vanished with the rifts. Old Tam's net shed, Kett's boatyard... A couple of rifts out on Gullwing Shoals, folk say, still humming.",
         "Close them and maybe the waterfront comes back."
       ],
       "do": [ "quest:nets_and_hulls" ] },
     { "if": "rift:brine_fisher,rift:brine_shipwright,!nets_done", "speaker": "Fisher Lin", "lines": [ "Tam's shed and Kett's yard, back like they never left! Here, a little something from the whole waterfront." ],
-      "do": [ "flag:nets_done", "give:potion", "gold:+500" ] },
-    { "if": "!has:rabbit_boots", "speaker": "Fisher Lin", "lines": [ "The storms tore two planks off the pier. The skiff out to the shoals and the temple is out of reach unless you can leap like a marsh toad." ] },
+      "do": [ "flag:nets_done", "gold:+700" ] },
+    { "if": "!has:rabbit_boots", "speaker": "Fisher Lin", "lines": [ "The storms tore two planks off the pier, but the gaps are narrow. A quick dash will carry you over, and the skiff out to the shoals and the temple is moored at the end." ] },
     { "if": "!has:tide_crystal", "speaker": "Fisher Lin", "lines": [ "Those boots! You could hop the gaps easy. Press jump and go. Just don't land in the water." ] },
     { "speaker": "Fisher Lin", "lines": [ "Fish are biting again. Whatever you did down there, thank you." ] }
   ],
@@ -301,7 +301,7 @@
         "The lamp's lit! Can you see it? It shines down through the lake into the temple's lower halls, the way it did for a hundred years.",
         "Whatever's down there, at least now you'll see it coming. Take this, for the trouble."
       ],
-      "do": [ "flag:maren_done", "give:spirit_tonic*2" ] },
+      "do": [ "flag:maren_done", "gold:+400" ] },
     { "speaker": "Keeper Maren", "lines": [ "I trim the wick every hour. Old habits." ] }
   ],
 
@@ -328,7 +328,7 @@
 
   "spire_watch": [
     { "if": "!quest:highcrag_fires", "speaker": "Watchman Brann", "lines": [
-        "Rifts on the trail, rifts in the Spire. They took our hearth and the Sage's apprentice both. Close the ones on Frostpeak, if you can."
+        "Rifts on the trail, rifts in the Spire. They took our hearth and the Sage's apprentice both. Close the ones up on Stormbreak Ridge, if you can."
       ],
       "do": [ "quest:highcrag_fires" ] },
     { "if": "!has:storm_crystal", "speaker": "Watchman Brann", "lines": [
@@ -521,8 +521,8 @@
     { "if": "restored:ashford:40,!ash_reward_40", "speaker": "Quartermaster Ines", "lines": [ "Tents up, bellies full. Here; Pell found this in the ash and won't stop asking what it is." ], "do": [ "flag:ash_reward_40", "give:life_shard" ] },
     { "if": "restored:ashford:70,!ash_reward_70", "speaker": "Quartermaster Ines", "lines": [ "The forge breathes again. Corvin says this is yours; it was cooling on the anvil when the rifts opened." ], "do": [ "flag:ash_reward_70", "give:weave_knot" ] },
     { "if": "restored:ashford:100,!ash_reward_100", "speaker": "Quartermaster Ines", "lines": [ "Every last one of us, home. The camp wants you to have this." ], "do": [ "flag:ash_reward_100", "give:spirit_pip" ] },
-    { "if": "rift:ash_camp", "speaker": "Quartermaster Ines", "lines": [ "Supplies are thin, but you've earned first pick." ], "do": [ "shop:ashford" ] },
-    { "speaker": "Quartermaster Ines", "lines": [ "Out there, south-west of the pools, there's a rift that took our tents and half the camp with them. Close it and I can open the stores." ] }
+    { "if": "quest:cold_forge", "speaker": "Quartermaster Ines", "lines": [ "Supplies are thin, but you've earned first pick." ], "do": [ "shop:ashford" ] },
+    { "speaker": "Quartermaster Ines", "lines": [ "Out on the Ashen Barrens, past the Rim, there's a rift that took our tents and half the camp with them. Close it and I can open the stores." ] }
   ],
 
   "varro": [

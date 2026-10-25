@@ -48,7 +48,7 @@
       "to": "trial_cove",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_cove_well"
+      "done": "golden:trial_cove"
     },
     {
       "type": "tide",

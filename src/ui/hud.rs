@@ -11,6 +11,7 @@ use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entities::companion::Companion;
 use crate::entities::enemy::Enemy;
+use crate::entities::golden_breach::GoldenBreach;
 use crate::entities::player::Player;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::data;
@@ -181,6 +182,7 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
     draw_skill_hint(batch, state, player, mode, bx, y + 28);
 }
 
+/// The guardian spirit's form beside the vitals, with a bar that fills toward its next attack.
 fn draw_soul(batch: &mut Batch, world: &World) {
     let Some(companion) = world.companion.and_then(|id| world.get_as::<Companion>(id)) else { return };
     let at = Vec2::new(186.0, 10.0);
@@ -196,19 +198,9 @@ fn draw_soul(batch: &mut Batch, world: &World) {
         false,
     );
     let soul = companion.soul();
-    let tint = if companion.cooldown() > 0.0 { Rgba::GRAY.mul(0.6) } else { Rgba::WHITE };
-    batch.draw_src(art::spirit(soul.id, soul.glow), at, Some(IRect::new(0, 0, 12, 14)), tint);
-    if companion.cooldown() > 0.0 {
-        bar(
-            batch,
-            at.x as i32,
-            at.y as i32 + 16,
-            13,
-            1,
-            1.0 - companion.cooldown() / companion.cooldown_max(),
-            soul.glow,
-        );
-    } else {
+    batch.draw_src(art::spirit(soul.id, soul.glow), at, Some(IRect::new(0, 0, 12, 14)), Rgba::WHITE);
+    bar(batch, at.x as i32, at.y as i32 + 16, 13, 1, companion.readiness(world), soul.glow);
+    if !world.state.souls_owned.is_empty() {
         font::draw(
             batch,
             &input::glyph(GameAction::Soul),
@@ -218,7 +210,6 @@ fn draw_soul(batch: &mut Batch, world: &World) {
         );
     }
 }
-
 fn draw_quest(batch: &mut Batch, state: &GameState) {
     let Some(quest) = state.tracked_quest.as_ref().and_then(|id| data().quests.get(id)) else { return };
     let Some(stage) = quest.stages.iter().find(|s| !state.check(s.done.as_deref())) else { return };
@@ -346,8 +337,17 @@ fn draw_trial_mods(batch: &mut Batch, world: &World) {
     }
     let names: Vec<&str> = world.trial_mods.iter().map(|m| m.label()).collect();
     let text = names.join("  /  ");
-    let at = Vec2::new(((SCREEN_WIDTH - font::measure(&text)) / 2) as f32, 4.0);
-    font::draw(batch, &text, at, Rgba::rgb(255, 214, 110), Some(palette::TEXT_SHADOW));
+    let centered = |text: &str, y: f32| Vec2::new(((SCREEN_WIDTH - font::measure(text)) / 2) as f32, y);
+    font::draw(batch, &text, centered(&text, 4.0), Rgba::rgb(255, 214, 110), Some(palette::TEXT_SHADOW));
+    let Some(breach) = world.entities_of::<GoldenBreach>().next() else { return };
+    if let Some((wave, waves, left)) = breach.progress() {
+        let line = format!("Wave {wave}/{waves}  -  {left} left");
+        font::draw(batch, &line, centered(&line, 14.0), palette::TEXT, Some(palette::TEXT_SHADOW));
+    }
+    if let Some(seconds) = breach.collapse_in() {
+        let line = format!("Return to the breach! It collapses in {:.1}s", seconds.max(0.0));
+        font::draw(batch, &line, centered(&line, 24.0), Rgba::rgb(255, 110, 90), Some(palette::TEXT_SHADOW));
+    }
 }
 
 fn draw_cursor(batch: &mut Batch, mode: Element) {

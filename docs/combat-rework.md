@@ -122,9 +122,9 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
 
 ## Items
 
-- Healing stacks lower: three herbs, two draughts, two spirit tonics, one elixir. A remedy that doesn't fit is used
-  on the spot instead of being lost. Elites rarely drop remedies now
-  (8% draught, 12% tonic), herb drops are rare, and several chests and gifts give gold instead.
+- Healing comes only from towns: shops, and two early gifts (the Elder's herbs and the Brinewatch mayor's elixir).
+  No chest, dig spot or foe outside a town holds a remedy. Stacks are small: three herbs, two draughts, two spirit
+  tonics, one elixir. A remedy that doesn't fit is used on the spot instead of being lost.
 - The Scholar's Lens grants 20% more EXP and the Fortune Coin 50% more gold. Both are sold in Highcrag (act 3) for
   2400 G and 1500 G; the Lens is also at Ashford's tinker.
 
@@ -143,13 +143,13 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
   (bursts a moment after death), Noxious (trails poison clouds), Thorned (plain bolts glance off), Rallying (calls up
   to four lesser kin), Aura-bound (the old elemental aura that only its opposite strips) and Hulking (40% more life,
   never flinches).
-- An elite kill gives three times the EXP, four times the gold, a guaranteed heart and a small chance at a draught or
-  spirit tonic.
+- An elite kill gives three times the EXP, four times the gold and a guaranteed heart.
 - Roaming packs: entering a combat map (not towns, boss rooms or Blighted expeditions) has a 30% chance (60%
   under the Swarm pact) to hold an elite of one of the map's kinds with two to four of its foes, somewhere reachable
   but well away from the entrance and the exits.
-- Elite rifts pour out the elite first, then escorts from the rift's kinds (or the map's own foes when it lists
-  none) up to its count (3 by default). The rift wavers once the elite and the escorts are all down.
+- Rifts are breaches: walking near one tears it open, a purple circle spreads, and its whole quota swarms out of the
+  edge within a couple of seconds. Elite rifts send the elite first, then escorts (3 by default). Once every foe it
+  sent has fallen the breach seals itself and restores what it held; there's nothing to strike.
 
 ## Bestiary
 
@@ -192,24 +192,27 @@ and, for dungeon approaches, a save crystal by the entrance.
   (2.6, 2.6 and 3.0 per hit).
 - Every support but Surging has a drawback. The Aether page has a single socket for Prism supports: Prism Lens (pierces 20% more
   often, 1.5s shorter) and Everlight (3s longer, meter fills 20% slower).
-- New gems: Lunging (swings dash to the nearest foe ahead), Sweeping (swings loose a short crescent wave),
+- New gems: Lunging (swings dash to the nearest foe ahead), Sweeping (every swing sweeps a full circle around you),
+  Whirlwind (hold attack to spin while moving, striking on every beat; whirling burns 20 SP a second),
   Deflecting (swings cut down enemy shots; finishers send them back), Sundering (shields wear twice as fast, guards
   break faster), Surging (bolts surge a tier 25% of the time, with no drawback), Seeking (bolts curve toward foes) and Executioner (35%
   more damage to broken or frozen foes, 10% less otherwise). All but Surging carry a drawback.
 
-## Trial Rifts
+## Golden rifts
 
-Golden rifts lead to a 46x30 arena themed to the host, with its own hazards (bog, ice, pits, metal, water).
+A golden crack in the world leads to a 46x30 arena themed to its host, with its own hazards (bog, ice, pits, metal,
+water). At its heart is a golden rift.
 
-- Foes already roam the arena, and an elite pack always waits deeper in.
-- Four rifts to seal, one holding an elite, plus a golden wellspring that pours foes without end from the moment you
-  arrive. The wellspring can't be sealed until the other four are.
-- Sealing the wellspring summons the Rift Champion: one of the trial's foes at boss size, with nine times a foe's
-  life, an extra affix and a life bar across the screen. If you leave before it falls, it waits there for you.
-- Every visit rolls two trial mods (three in the Trial of the Prism), shown at the top of the screen: Haste, Volatile,
-  Eruptions, Ironhide, Elite Tide and Bloodthirst. Each mod adds 25% EXP and gold to the trial's kills.
-- Defeating the champion opens three gem chests.
-
+- Coming near the rift opens one great breach (radius about nine tiles) that pours out four escalating waves: 8 foes;
+  10 foes and an elite; 12 foes and two elites; then the Rift Champion with 6 escorts. The waves are fixed, so there is
+  nothing to farm.
+- The breach holds you in: outside its gold ring your life drains (5% a second, never below 1), and after 6 seconds
+  outside it collapses, sweeps away its foes and must be fought again from the first wave.
+- The Rift Champion is one of the trial's foes at 1.5x size with five times a foe's life and an extra affix. Every
+  4.5 seconds it alternates a ring of telegraphed blasts around you with a nova of shots from itself.
+- Every visit rolls two trial mods (three in the Trial of the Prism), shown at the top of the screen with the wave
+  counter: Haste, Volatile, Eruptions, Ironhide, Elite Tide and Bloodthirst. Each adds 25% EXP and gold.
+- Clearing the last wave opens the gem chests around the rift.
 | Trial | Host | Gems |
 |---|---|---|
 | Trial of Thorns | Whisperwood | Cleave, Brutal, Lunging |
@@ -217,11 +220,37 @@ Golden rifts lead to a 46x30 arena themed to the host, with its own hazards (bog
 | Trial of Salt | Salt Mine | Piercing, Lingering, Seeking |
 | Trial of Rime | Frostpeak | Multishot, Leech, Sundering |
 | Trial of Tides | Cove | Efficiency, Haste, Surging |
-| Trial of Cinders | Ashen Reach | Echo, Overdrive, Deflecting |
+| Trial of Cinders | Ashen Reach | Echo, Overdrive, Deflecting, Whirlwind |
 | Trial of the Prism (after the blade awakens) | Cinderfall | Prism Lens, Everlight, Executioner |
 
-## Shields
+## The guardian spirit
 
+- The hero wakes with a guardian spirit that fights beside them by itself: it zaps the nearest foe every couple of
+  seconds. Spirit hits scale with the hero's stats and don't trigger support gems.
+- Freeing a beast from a rift teaches the spirit its form, each with its own auto-attack and exploration perk:
+  - Hound (Windward Fields): bites; sniffs out buried treasure.
+  - Hawk (Whisperwood's heart): dives and marks foes to take more damage; reveals hidden crossings (`"type": "veil"`
+    tiles that become walkable planks while it flies with you, as over the brook in Whisperwood).
+  - Lantern Wisp (Fallen Bastion): flings light; lights the dark and reveals cloaked foes.
+  - Ember Sprite (Ashen Reach): spits fireballs; burns away thickets you walk up to, and fire ailments build faster.
+- The Soul button cycles the forms the spirit knows; the Spirit tab of the menu also picks a form and sets two charm
+  slots. The Guardian (Sunken Temple) and Stormling (Storm Spire) now leave charms instead: the Guardian Charm turns
+  aside a projectile every 10 seconds, the Storm Charm arcs each spirit attack on to a second foe.
+- Two Weave notables strengthen it: Kindred Spirit (+30% spirit damage) and Pack Leader (+25% attack speed, +10%
+  damage). Soul ranks are gone.
+
+## Towns
+
+- Towns start sparse; restorations fill them in. Rifts on the road to a town now clear the way instead: thorns of
+  rift-growth seal each exit until that map's rift is sealed (Thornback Hills to the Grotto, Mistmoor Marsh to the
+  Causeway, the Causeway to Brinewatch, Rimewater Gorge to Frostpeak, Frostpeak to Highcrag, the Ashen Reach to
+  Ashford).
+- Towns are restored by rifts past them: Brinewatch's net shed and shipwright from Gullwing Shoals, Highcrag's hearth
+  and apprentice from Stormbreak Ridge, Ashford's tents and tinker from the Ashen Barrens.
+- Leafhollow's Echo Stone (the training hall) returns with the Weave shrine. Each shrine has its own look now: Echo
+  Stone, Weave shrine, Pact Shrine and Corvin's forge no longer borrow the Sky Altar.
+
+## Shields
 Shielded enemies no longer require the Aether Tether. A shield wears down after six blocked melee hits; finishers,
 charged shots and skills count twice (about three), and plain shots glance off. Any hit of the element on its emblem
 (the enemy's weakness) shatters it at once and stuns the enemy. The tether still rips it off in one pull, but leaves

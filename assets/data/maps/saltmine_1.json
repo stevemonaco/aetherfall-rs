@@ -47,7 +47,7 @@
       "to": "trial_mine",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_mine_well"
+      "done": "golden:trial_mine"
     },
     {
       "type": "warp",

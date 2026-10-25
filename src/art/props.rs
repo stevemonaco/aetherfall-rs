@@ -121,6 +121,82 @@ pub fn pot() -> TexId {
     })
 }
 
+/// A standing monolith whose runes glow cyan: the Echo Stone of the training hall.
+pub fn echo_stone() -> TexId {
+    gfx::cached("echo_stone", || {
+        let mut cv = Canvas::new(16, 28);
+        cv.rect(2, 24, 12, 4, STONE[1]).rect(2, 24, 12, 1, STONE[2]);
+        cv.rect(4, 3, 8, 22, STONE[1])
+            .rect(5, 1, 6, 3, STONE[1])
+            .rect(4, 3, 2, 22, STONE[2])
+            .rect(5, 1, 2, 2, STONE[2]);
+        let rune = c(0x7AF0FF);
+        cv.line(8, 6, 8, 10, rune).line(7, 8, 9, 8, rune).line(7, 13, 9, 15, rune).line(9, 13, 7, 15, rune);
+        cv.line(8, 18, 8, 21, rune).rect(7, 18, 3, 1, rune);
+        cv.outline();
+        cv
+    })
+}
+
+/// A pedestal with a floating knot of threads: the shrine where the Weave is tended.
+pub fn weave_shrine() -> TexId {
+    gfx::cached("weave_shrine", || {
+        let mut cv = Canvas::new(32, 28);
+        cv.rect(6, 22, 20, 6, STONE[1])
+            .rect(6, 22, 20, 1, STONE[3])
+            .rect(10, 14, 12, 8, STONE[2])
+            .rect(10, 14, 12, 1, STONE[3]);
+        let (thread, glow) = (c(0xC8A8FF), c(0xF4ECFF));
+        for i in 0..8 {
+            let a = i as f32 * TAU / 8.0;
+            cv.line(16, 7, (16.0 + a.cos() * 6.0) as i32, (7.0 + a.sin() * 5.0) as i32, thread);
+        }
+        cv.circle(16.0, 7.0, 2.2, glow);
+        cv.rect(11, 17, 2, 2, thread).rect(19, 17, 2, 2, thread);
+        cv.outline();
+        cv
+    })
+}
+
+/// A dark obelisk crowned with a red ember: where Pacts of Heat are sworn.
+pub fn pact_shrine() -> TexId {
+    gfx::cached("pact_shrine", || {
+        let mut cv = Canvas::new(16, 30);
+        let (dark, mid) = (c(0x2A1E28), c(0x4A3440));
+        cv.rect(1, 26, 14, 4, dark).rect(1, 26, 14, 1, mid);
+        cv.rect(4, 8, 8, 18, dark).rect(4, 8, 2, 18, mid).rect(5, 5, 6, 3, dark);
+        cv.circle(8.0, 3.5, 3.0, c(0xC83A1E)).circle(8.0, 3.5, 1.6, c(0xFFB040));
+        cv.line(7, 12, 9, 12, c(0xC83A1E)).line(8, 13, 8, 18, c(0xC83A1E)).line(6, 16, 10, 16, c(0xC83A1E));
+        cv.outline();
+        cv
+    })
+}
+
+/// A furnace with an anvil before it: Forgemaster Corvin's forge.
+pub fn forge() -> TexId {
+    gfx::cached("forge", || {
+        let mut cv = Canvas::new(32, 28);
+        cv.rect(14, 2, 16, 24, STONE[1]).rect(14, 2, 16, 2, STONE[3]).rect(18, 10, 8, 8, c(0x2A1810));
+        cv.rect(19, 12, 6, 6, c(0xFF8A2A)).rect(20, 14, 4, 4, c(0xFFD24A)).rect(20, 0, 4, 3, STONE[2]);
+        let iron = c(0x4A4A58);
+        cv.rect(1, 16, 14, 4, iron).rect(0, 16, 3, 2, iron).rect(5, 20, 6, 4, iron).rect(3, 24, 10, 3, iron);
+        cv.rect(1, 16, 14, 1, c(0x8A8A98));
+        cv.outline();
+        cv
+    })
+}
+/// A small wooden skiff with a furled sail, moored at a pier.
+pub fn skiff() -> TexId {
+    gfx::cached("skiff", || {
+        let mut cv = Canvas::new(32, 16);
+        let (dark, mid, light) = (WOOD[0], WOOD[1], WOOD[2]);
+        cv.rect(4, 10, 24, 4, mid).rect(2, 9, 28, 2, light).rect(6, 14, 20, 1, dark);
+        cv.rect(15, 1, 2, 9, dark).rect(17, 2, 6, 6, c(0xE8E0C8)).rect(17, 2, 6, 1, c(0xFFF8E8));
+        cv.rect(8, 11, 3, 1, dark).rect(21, 11, 3, 1, dark);
+        cv.outline();
+        cv
+    })
+}
 pub fn well() -> TexId {
     gfx::cached("well", || {
         let mut cv = Canvas::new(32, 32);

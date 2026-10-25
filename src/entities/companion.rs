@@ -1,13 +1,15 @@
-//! The equipped soul, travelling with the player. It applies its passive while present and performs its active when
-//! the Soul button is pressed and its cooldown has run out. Actives grow stronger as the soul ranks up. Also buried
-//! treasure, which only the hound can sniff out.
+//! The guardian spirit, travelling with the player in whichever form it has taken. It attacks nearby foes by itself,
+//! applies its form's perk, and the Soul button cycles its forms. Also buried treasure, which only the hound can sniff
+//! out.
 
 use bevy::math::Vec2;
 
-use super::combat_effects::{ClawEffect, Exclaim, LightningStrike, Shockwave};
+use super::combat_effects::{Beam, ClawEffect, Exclaim, LightningArc};
 use super::effects::Particle;
 use super::enemy::Enemy;
 use super::entity::{Entity, EntityBase, EntityId};
+use super::obstacles::{ObstacleKind, TileObstacle};
+use super::projectile::Projectile;
 use crate::art::{combat as art_combat, props as art};
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
@@ -17,9 +19,9 @@ use crate::core::gfx::{self, Batch};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::combat::HitKind;
+use crate::gameplay::combat::{Faction, Hit, HitKind};
 use crate::gameplay::element::Element;
-use crate::gameplay::souls::SoulDef;
+use crate::gameplay::souls::{self, SoulDef};
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, TILE, tile_feet};
 
@@ -60,14 +62,14 @@ fn draw_animal(batch: &mut Batch, sheet: AnimalSheet, feet: Vec2, facing: Direct
 pub struct Companion {
     base: EntityBase,
     soul: &'static SoulDef,
-    cooldown: f32,
     time: f32,
+    attack_timer: f32,
     bark_timer: f32,
     guard_timer: f32,
     velocity: Vec2,
+    /// The foe a hound or hawk is lunging at.
     prey: Option<EntityId>,
     facing: Direction,
-    rank: i32,
 }
 
 impl Companion {
@@ -75,14 +77,13 @@ impl Companion {
         Companion {
             base: EntityBase { pos: at, width: 6.0, height: 6.0, ..EntityBase::default() },
             soul,
-            cooldown: 0.0,
             time: 0.0,
+            attack_timer: 1.0,
             bark_timer: 0.0,
             guard_timer: 0.0,
             velocity: Vec2::ZERO,
             prey: None,
             facing: Direction::Down,
-            rank: 1,
         }
     }
 
@@ -90,31 +91,32 @@ impl Companion {
         self.soul
     }
 
-    pub fn cooldown(&self) -> f32 {
-        self.cooldown
+    /// How far the next attack has come, from 0 to 1, for the HUD.
+    pub fn readiness(&self, world: &World) -> f32 {
+        1.0 - (self.attack_timer / Self::interval(self.soul, world)).clamp(0.0, 1.0)
     }
 
-    pub fn cooldown_max(&self) -> f32 {
-        self.soul.cooldown * (1.0 - 0.15 * (self.rank - 1) as f32)
+    pub fn guard_ready(&self, world: &World) -> bool {
+        world.state.charm("guardian_charm") && self.guard_timer <= 0.0
     }
 
-    pub fn guard_ready(&self) -> bool {
-        self.soul.id == "guardian" && self.guard_timer <= 0.0
-    }
-
-    /// The Guardian turns aside a projectile; returns whether it did.
+    /// The Guardian Charm turns aside a projectile; returns whether it did.
     pub fn try_block(&mut self, world: &mut World, shot_at: Vec2) -> bool {
-        if !self.guard_ready() {
+        if !self.guard_ready(world) {
             return false;
         }
-        self.guard_timer = 10.0 / self.power();
+        self.guard_timer = 10.0;
         audio::play(Sound::Clink, 0.9, 0.4);
         Particle::burst(world, shot_at, self.soul.glow, 10, 60.0, 0.3, true);
         true
     }
 
-    fn power(&self) -> f32 {
-        1.0 + 0.25 * (self.rank - 1) as f32
+    fn interval(soul: &SoulDef, world: &World) -> f32 {
+        soul.interval / (1.0 + world.state.mods().spirit_speed)
+    }
+
+    fn power(world: &World) -> f32 {
+        1.0 + world.state.mods().spirit
     }
 
     fn flies(&self) -> bool {
@@ -122,15 +124,35 @@ impl Companion {
     }
 
     fn passive(&mut self, world: &mut World, dt: f32) {
-        if self.soul.id == "hound" {
-            self.bark_timer -= dt;
-            let me = self.base.pos;
-            let near = world.entities_of::<DigSpot>().any(|d| d.base.pos.distance(me) < 90.0);
-            if near && self.bark_timer <= 0.0 {
-                self.bark_timer = 2.5;
-                world.add(Exclaim::new(self.base.id, self.base.pos, self.base.height));
-                audio::play(Sound::MenuMove, 0.5, 0.6);
+        match self.soul.id {
+            "hound" => {
+                self.bark_timer -= dt;
+                let me = self.base.pos;
+                let near = world.entities_of::<DigSpot>().any(|d| d.base.pos.distance(me) < 90.0);
+                if near && self.bark_timer <= 0.0 {
+                    self.bark_timer = 2.5;
+                    world.add(Exclaim::new(self.base.id, self.base.pos, self.base.height));
+                    audio::play(Sound::MenuMove, 0.5, 0.6);
+                }
             }
+            "ember" => {
+                let hero = world.hero.pos;
+                let thickets: Vec<EntityId> = world
+                    .entities_of::<TileObstacle>()
+                    .filter(|o| o.kind == ObstacleKind::Thicket && o.base().pos.distance(hero) < 24.0)
+                    .map(|o| o.base().id)
+                    .collect();
+                for id in thickets {
+                    let mut hit = Hit {
+                        element: Element::Fire,
+                        kind: HitKind::Spirit,
+                        from: self.base.pos,
+                        ..Hit::new(Faction::Player, world.state.stats(world.state.mode))
+                    };
+                    world.hit(id, &mut hit);
+                }
+            }
+            _ => {}
         }
         if world.rng.next_f32() < 0.15 && self.flies() {
             let at = self.base.pos - Vec2::new(world.rng.range(-3, 4) as f32, 12.0);
@@ -138,121 +160,112 @@ impl Companion {
         }
     }
 
-    fn nearest_enemy(world: &World, range: f32) -> Option<EntityId> {
-        let hero = world.hero.pos;
+    fn nearest_enemy(world: &World, from: Vec2, range: f32, except: Option<EntityId>) -> Option<EntityId> {
         world
             .entities_of::<Enemy>()
-            .filter(|e| e.targetable() && e.base.pos.distance(hero) < range)
-            .min_by(|a, b| a.base.pos.distance(hero).total_cmp(&b.base.pos.distance(hero)))
+            .filter(|e| e.targetable() && e.base.pos.distance(from) < range && Some(e.base.id) != except)
+            .min_by(|a, b| a.base.pos.distance(from).total_cmp(&b.base.pos.distance(from)))
             .map(|e| e.base.id)
     }
 
-    fn activate(&mut self, world: &mut World) {
-        if self.cooldown > 0.0 {
-            audio::play(Sound::MenuCancel, 0.5, 0.0);
-            return;
+    /// Strikes a foe with the spirit's power; the Storm Charm carries the blow on to a second foe.
+    fn strike(world: &mut World, target: EntityId, power: f32, element: Element) {
+        let power = power * Self::power(world);
+        let at = world.get(target).map(|e| e.hurtbox().center());
+        world.with_player(|p, w| {
+            let hit = p.make_hit(w, power, HitKind::Spirit, Some(element), 1.0, 1.0, 80.0);
+            p.strike_target(w, target, hit);
+        });
+        let Some(at) = at.filter(|_| world.state.charm("storm_charm")) else { return };
+        if let Some(next) = Self::nearest_enemy(world, at, 70.0, Some(target)) {
+            let to = world.get(next).map(|e| e.hurtbox().center()).unwrap_or(at);
+            world.add(LightningArc::new(at, to));
+            world.with_player(|p, w| {
+                let hit = p.make_hit(w, power * 0.6, HitKind::Spirit, Some(Element::Thunder), 0.5, 1.0, 40.0);
+                p.strike_target(w, next, hit);
+            });
         }
-        let power = self.power();
-        let mut used = true;
+    }
+
+    fn attack(&mut self, world: &mut World) -> bool {
+        let range = match self.soul.id {
+            "hawk" => 150.0,
+            "hound" => 120.0,
+            _ => 110.0,
+        };
+        let Some(target) = Self::nearest_enemy(world, world.hero.pos, range, None) else { return false };
+        let to = world.get(target).map(|e| e.hurtbox().center()).unwrap_or(self.base.pos);
+        let from = self.base.pos - Vec2::new(0.0, 10.0);
         match self.soul.id {
-            "hound" => {
-                self.prey = Self::nearest_enemy(world, 160.0);
-                used = self.prey.is_some();
-                if used {
-                    audio::play(Sound::Swing, 0.8, 0.4);
-                }
-            }
-            "hawk" => {
-                let view = world.camera.view();
-                for id in world.ids_of::<Enemy>() {
-                    world.with_as::<Enemy, _>(id, |e, _| {
-                        if view.contains_point(e.base.pos.x as i32, e.base.pos.y as i32) {
-                            e.mark(8.0);
-                        }
-                    });
-                }
-                audio::play(Sound::ChargeLevel, 0.7, 0.5);
-                world.flash(Rgba::rgb(255, 220, 160), 0.15);
-            }
-            "lantern" => {
-                let me = self.base.pos;
-                for id in world.ids_of::<Enemy>() {
-                    world.with_as::<Enemy, _>(id, |e, _| {
-                        if e.base.pos.distance(me) < 90.0 * power {
-                            e.stun(1.5 * power);
-                        }
-                    });
-                }
-                world.flash(Rgba::rgb(255, 245, 200), 0.3);
-                world.add(Shockwave::new(me, 90.0 * power, Rgba::rgb(255, 240, 180)));
-                audio::play(Sound::ChargeLevel, 1.0, 0.6);
-            }
-            "guardian" => {
-                world.with_player(|p, _| p.begin_aegis(3.0 * power));
-                audio::play(Sound::Heal, 0.7, 0.0);
+            "hound" | "hawk" => {
+                self.prey = Some(target);
+                audio::play(Sound::Swing, 0.6, 0.4);
             }
             "ember" => {
-                let at = self.base.pos - Vec2::new(0.0, 6.0);
-                world.with_player(|p, w| {
-                    p.strike_area(w, at, 36.0 * power, None, move |p, w| {
-                        p.make_hit(w, 1.5 * power, HitKind::Skill, Some(Element::Fire), 2.0, 2.0, 160.0)
-                    })
-                });
-                world.add(Shockwave::new(self.base.pos, 36.0 * power, Element::Fire.glow()));
-                let (tx, ty) = self.base.tile_pos();
-                for y in -1..=1 {
-                    for x in -1..=1 {
-                        world.chem_ignite(tx + x, ty + y);
-                    }
-                }
-                audio::sfx(Sound::ShootFire);
+                let dir = safe_normalize(to - from);
+                let mut ball = Projectile::new(Faction::Player, world.state.stats(world.state.mode), from, dir * 170.0);
+                ball.power = 0.6 * Self::power(world);
+                ball.element = Element::Fire;
+                ball.kind = HitKind::Spirit;
+                ball.lifetime = 0.9;
+                ball.size = 6.0;
+                ball.texture = art::fireball();
+                ball.frame_width = 12;
+                ball.trail_color = Element::Fire.glow();
+                world.add(ball);
+                audio::play(Sound::ShootFire, 0.4, 0.5);
             }
-            "stormling" => {
-                let target = Self::nearest_enemy(world, 180.0);
-                used = target.is_some();
-                if let Some(id) = target {
-                    let pos = world.get(id).map(|e| e.base().pos).unwrap_or_default();
-                    world.add(LightningStrike::new(pos));
-                    world.with_player(|p, w| {
-                        let hit = p.make_hit(w, 2.0 * power, HitKind::Skill, Some(Element::Thunder), 3.0, 2.5, 60.0);
-                        p.strike_target(w, id, hit);
-                    });
-                    audio::play(Sound::Break, 0.7, 0.5);
-                }
+            "lantern" => {
+                world.add(Beam::new(from, to, self.soul.glow));
+                Self::strike(world, target, 0.4, Element::None);
+                audio::play(Sound::ChargeLevel, 0.3, 0.9);
             }
-            "echo" => {
-                used = world.with_player(|p, w| p.replay_last_skill(w)).unwrap_or(false);
+            _ => {
+                world.add(LightningArc::new(from, to));
+                Self::strike(world, target, 0.35, Element::None);
+                audio::play(Sound::Clink, 0.4, 0.9);
             }
-            _ => {}
         }
-        if !used {
-            audio::play(Sound::MenuCancel, 0.5, 0.0);
-            return;
-        }
-        self.cooldown = self.cooldown_max();
-        *world.state.soul_xp.entry(self.soul.id.to_string()).or_default() += 1;
-        Particle::burst(world, self.base.pos - Vec2::new(0.0, 8.0), self.soul.glow, 12, 50.0, 0.4, true);
+        true
     }
 
     fn hunt(&mut self, world: &mut World, dt: f32) {
-        let Some(prey) = self.prey.and_then(|id| world.get_as::<Enemy>(id)).filter(|e| !e.base.removed) else {
+        let Some(prey) = self.prey.and_then(|id| world.get_as::<Enemy>(id)).filter(|e| e.targetable()) else {
             self.prey = None;
             return;
         };
         let (prey_id, prey_pos, prey_center) = (prey.base.id, prey.base.pos, prey.hurtbox().center());
         let to = prey_pos - self.base.pos;
         if to.length() < 10.0 {
-            let power = self.power();
-            world.with_player(|p, w| {
-                let hit = p.make_hit(w, 1.3 * power, HitKind::Skill, Some(Element::None), 3.0, 0.0, 220.0);
-                p.strike_target(w, prey_id, hit);
-            });
+            let hawk = self.soul.id == "hawk";
+            Self::strike(world, prey_id, if hawk { 0.7 } else { 0.6 }, Element::None);
+            if hawk {
+                world.with_as::<Enemy, _>(prey_id, |e, _| e.mark(4.0));
+            }
             world.add(ClawEffect::new(prey_center, safe_normalize(to + Vec2::splat(0.01)), Rgba::WHITE));
             self.prey = None;
             return;
         }
         self.facing = Direction::from_vec(to, self.facing);
         self.base.pos += to.normalize() * 260.0 * dt;
+    }
+
+    /// The Soul button cycles through the forms the spirit has learned.
+    fn cycle_form(&mut self, world: &mut World) {
+        let mut forms = vec![souls::SPIRIT.id];
+        forms.extend(world.state.souls_owned.iter().filter_map(|id| souls::get(id)).map(|s| s.id));
+        if forms.len() < 2 {
+            audio::play(Sound::MenuCancel, 0.5, 0.0);
+            return;
+        }
+        let at = forms.iter().position(|&f| f == self.soul.id).unwrap_or(0);
+        let next = souls::get(forms[(at + 1) % forms.len()]).unwrap_or(&souls::SPIRIT);
+        self.soul = next;
+        self.prey = None;
+        world.state.soul = (next.id != souls::SPIRIT.id).then(|| next.id.to_string());
+        Particle::burst(world, self.base.pos - Vec2::new(0.0, 8.0), next.glow, 14, 50.0, 0.4, true);
+        world.toast(format!("Spirit form: {}", next.name));
+        audio::play(Sound::ChargeLevel, 0.6, 0.6);
     }
 }
 
@@ -265,13 +278,19 @@ impl Entity for Companion {
 
     fn update(&mut self, world: &mut World, dt: f32) {
         self.time += dt;
-        self.rank = world.state.soul_rank(self.soul.id);
-        self.cooldown = (self.cooldown - dt).max(0.0);
         self.guard_timer = (self.guard_timer - dt).max(0.0);
+        if input::pressed(GameAction::Soul) && !world.input_locked() && !world.hero.dead {
+            self.cycle_form(world);
+        }
 
         if self.prey.is_some() {
             self.hunt(world, dt);
             return;
+        }
+
+        self.attack_timer -= dt;
+        if self.attack_timer <= 0.0 && !world.hero.dead {
+            self.attack_timer = if self.attack(world) { Self::interval(self.soul, world) } else { 0.3 };
         }
 
         let facing = world.hero.facing;
@@ -294,14 +313,10 @@ impl Entity for Companion {
         } else {
             self.velocity = Vec2::ZERO;
         }
-
         self.passive(world, dt);
-        if input::pressed(GameAction::Soul) && !world.input_locked() && !world.hero.dead {
-            self.activate(world);
-        }
     }
 
-    fn draw(&self, _world: &World, batch: &mut Batch) {
+    fn draw(&self, world: &World, batch: &mut Batch) {
         let flies = self.flies();
         let z = if flies { 12.0 + (self.time * 3.0).sin() * 2.0 } else { 0.0 };
         batch.draw(
@@ -332,7 +347,7 @@ impl Entity for Companion {
                 );
             }
         }
-        if self.guard_ready() {
+        if self.guard_ready(world) {
             let ring = art_combat::ring();
             batch.draw_ex(
                 ring,
@@ -348,7 +363,6 @@ impl Entity for Companion {
         }
     }
 }
-
 /// Buried treasure. Only a hound can sniff it out; dig where it barks.
 pub struct DigSpot {
     base: EntityBase,

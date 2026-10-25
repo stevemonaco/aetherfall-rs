@@ -205,7 +205,7 @@
       "type": "sign",
       "x": 24.0,
       "y": 16.0,
-      "text": "Pier closed: planks washed out. (Signed, the Mayor)"
+      "text": "Pier closed: two planks washed out. Dash across at your own risk. (Signed, the Mayor)"
     },
     {
       "type": "sign",
@@ -213,15 +213,7 @@
       "y": 6.0,
       "text": "The Gull's Rest Inn."
     },
-    {
-      "type": "warp",
-      "x": 42.0,
-      "y": 16.0,
-      "facing": "right",
-      "tx": 2,
-      "to": "shoals",
-      "ty": 20
-    },
+    {"type": "warp", "x": 42.0, "y": 13.0, "to": "shoals", "tx": 2, "ty": 20, "facing": "right", "art": "skiff", "prompt": "Take the skiff out to Gullwing Shoals?"},
     {
       "type": "decor",
       "x": 40.0,
@@ -238,7 +230,7 @@
       "type": "sign",
       "x": 41.0,
       "y": 18.0,
-      "text": "The skiff to Gullwing Shoals. The Sunken Temple lies at the far end of the islands."
+      "text": "The skiff to Gullwing Shoals is moored at the end of the pier. The Sunken Temple lies at the far end of the islands."
     },
     {
       "type": "decor",
@@ -338,7 +330,7 @@
       "name": "Old Sailor",
       "dialogue": "sailor",
       "wander": 2
-    },
+    , "if": "rift:brine_shipwright"},
     {
       "type": "npc",
       "x": 19.0,
@@ -347,7 +339,7 @@
       "name": "Nim",
       "dialogue": "nim",
       "wander": 3
-    },
+    , "if": "rift:brine_fisher"},
     {
       "type": "npc",
       "x": 8.0,

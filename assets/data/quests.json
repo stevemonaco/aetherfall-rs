@@ -39,10 +39,10 @@
   }
 ,
   "nets_and_hulls": {
-    "title": "Nets and Hulls", "giver": "Fisher Lin", "region": "Brinewatch", "reward": "potions and gold",
+    "title": "Nets and Hulls", "giver": "Fisher Lin", "region": "Gullwing Shoals", "reward": "gold",
     "stages": [
-      { "text": "Seal the rift by the lake in Mistmoor Marsh.", "done": "rift:brine_fisher" },
-      { "text": "Seal the rift in the north-east of Mistmoor Marsh.", "done": "rift:brine_shipwright" },
+      { "text": "Seal the rift by the wreck in Gullwing Shoals.", "done": "rift:brine_fisher" },
+      { "text": "Seal the rift at the rookery in Gullwing Shoals.", "done": "rift:brine_shipwright" },
       { "text": "Tell Fisher Lin.", "done": "nets_done" }
     ]
   },
@@ -54,10 +54,10 @@
     ]
   },
   "highcrag_fires": {
-    "title": "Cold Hearths", "giver": "Watchman Brann", "region": "Frostpeak", "reward": "Highcrag's thanks",
+    "title": "Cold Hearths", "giver": "Watchman Brann", "region": "Stormbreak Ridge", "reward": "Highcrag's thanks",
     "stages": [
-      { "text": "Seal the rift near the Frostpeak trailhead.", "done": "rift:crag_hearth" },
-      { "text": "Seal the rift on the Frostpeak switchbacks.", "done": "rift:crag_apprentice" }
+      { "text": "Seal the rift by the old watchtower on Stormbreak Ridge.", "done": "rift:crag_hearth" },
+      { "text": "Seal the rift in the lightning scar on Stormbreak Ridge.", "done": "rift:crag_apprentice" }
     ]
   },
   "torvald_anvil": {
@@ -77,10 +77,10 @@
     ]
   },
   "ashford_rebuilt": {
-    "title": "Ashford Rising", "giver": "Quartermaster Ines", "region": "The Ashen Reach", "reward": "supplies and a tinker",
+    "title": "Ashford Rising", "giver": "Quartermaster Ines", "region": "The Ashen Barrens", "reward": "supplies and a tinker",
     "stages": [
-      { "text": "Seal the rift south-west of the Reach's glass pools.", "done": "rift:ash_camp" },
-      { "text": "Seal the rift north of the glass pools.", "done": "rift:ash_smith" }
+      { "text": "Seal the rift by the old engine in the Ashen Barrens.", "done": "rift:ash_camp" },
+      { "text": "Seal the rift under the broken wall of the Ashen Barrens.", "done": "rift:ash_smith" }
     ]
   },
   "lost_foragers": {

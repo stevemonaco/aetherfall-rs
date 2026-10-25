@@ -146,13 +146,7 @@
       "y": 38.0,
       "item": "chain_mail"
     },
-    {
-      "type": "chest",
-      "x": 41.0,
-      "y": 30.0,
-      "count": 2,
-      "item": "herb"
-    },
+    {"type": "chest", "x": 41.0, "y": 30.0, "gold": 80},
     {
       "type": "chest",
       "x": 5.0,

@@ -6,7 +6,7 @@ use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use bevy::math::Vec2;
 
-use super::combat_effects::{Afterimage, Shockwave, SkillBanner, SlashEffect};
+use super::combat_effects::{Afterimage, Shockwave, SkillBanner, SlashEffect, SpinEffect};
 use super::companion::Companion;
 use super::effects::{DamageNumber, FloatingText, Particle};
 use super::entity::{Entity, EntityBase, EntityId, PLAYER_ID};
@@ -39,6 +39,7 @@ use crate::world::map::{TILE, Terrain, tile_center};
 mod aether;
 mod guard;
 mod triggers;
+mod whirl;
 
 const BASE_SPEED: f32 = 92.0;
 const HURT_INVULNERABLE: f32 = 0.6;
@@ -95,6 +96,9 @@ pub struct Player {
     swing_hit: Vec<EntityId>,
     /// Where a Lunging gem's swing is dashing to.
     lunge_target: Option<Vec2>,
+    /// Seconds spent whirling, or negative when not (the Whirlwind gem).
+    whirl_time: f32,
+    whirl_beat: f32,
     attack_time: f32,
     combo_reset: f32,
     throw_held: f32,
@@ -151,7 +155,6 @@ pub struct Player {
     /// Real seconds the skill button has been held, or negative when not charging.
     skill_held: f32,
     skill_level_reached: i32,
-    last_skill: Option<(&'static SkillDef, i32)>,
     skill: Option<Box<SkillAction>>,
     /// Power of the skill being performed: 1, or less for an Echo gem's repeat.
     skill_scale: f32,
@@ -195,6 +198,8 @@ impl Player {
             aether: 0.0,
             swing_hit: Vec::new(),
             lunge_target: None,
+            whirl_time: -1.0,
+            whirl_beat: 0.0,
             attack_time: -1.0,
             combo_reset: 0.0,
             throw_held: -1.0,
@@ -243,7 +248,6 @@ impl Player {
             ward_time: 0.0,
             skill_held: -1.0,
             skill_level_reached: 0,
-            last_skill: None,
             skill: None,
             skill_scale: 1.0,
             echo: None,
@@ -396,6 +400,9 @@ impl Player {
         }
         if self.attack_time >= 0.0 {
             speed *= 0.25;
+        }
+        if self.whirling() {
+            speed *= whirl::WHIRL_SPEED;
         }
         speed
     }
@@ -932,6 +939,11 @@ impl Player {
         }
 
         self.guard_cancels();
+        self.try_whirl(world);
+        if self.whirling() {
+            self.update_whirl(world, dt);
+            return false;
+        }
         if self.attack_time >= 0.0 {
             self.update_swing(world, dt);
             return true;
@@ -1058,16 +1070,17 @@ impl Player {
         audio::play(Sound::Swing, 1.0, self.combo_step as f32 * 0.12);
         let finisher = self.combo_step == 2;
         let radius = Self::swing_radius(world, finisher);
-        world.add(SlashEffect::new(
-            self.center(),
-            self.aim,
-            Self::mode(world),
-            radius,
-            finisher,
-            self.combo_step % 2 == 1,
-        ));
         if gems.sweep {
-            self.loose_crescent(world, radius, finisher);
+            world.add(SpinEffect::new(self.center(), Self::mode(world), 0.2));
+        } else {
+            world.add(SlashEffect::new(
+                self.center(),
+                self.aim,
+                Self::mode(world),
+                radius,
+                finisher,
+                self.combo_step % 2 == 1,
+            ));
         }
     }
 
@@ -1081,33 +1094,6 @@ impl Player {
             .map(|(_, _, b)| b.center())
             .filter(|&c| c.distance(me) < 72.0 && (c - me).normalize_or_zero().dot(self.aim) > 0.4)
             .min_by(|a, b| a.distance(me).total_cmp(&b.distance(me)))
-    }
-
-    /// The Sweeping gem's wave, loosed from the edge of the swing so it reaches what the blade cannot.
-    fn loose_crescent(&self, world: &mut World, radius: f32, finisher: bool) {
-        let mode = Self::mode(world);
-        let gems = Self::supports(world, Group::Attack);
-        let start = self.center() + self.aim * radius * 0.8;
-        let mut wave =
-            Projectile::new(Faction::Player, Self::stats(world), start + Vec2::new(0.0, 6.0), self.aim * 220.0);
-        wave.power = if finisher { 0.8 } else { 0.45 } * gems.damage;
-        wave.element = mode;
-        wave.kind = HitKind::Melee;
-        wave.poise = 0.5 * gems.poise;
-        wave.status_power = 0.5 * gems.status;
-        wave.knockback = 60.0;
-        wave.lifetime = 0.28;
-        wave.piercing = true;
-        wave.size = if finisher { 18.0 } else { 14.0 };
-        wave.scale = if finisher { 1.6 } else { 1.2 };
-        wave.texture = props::wind_slash();
-        wave.tint = mode.light();
-        wave.trail_color = mode.glow();
-        wave.rotate_to_velocity = true;
-        wave.reflectable = false;
-        wave.execute = gems.execute;
-        wave.hook = ProjectileHook::PlayerShot;
-        world.add(wave);
     }
 
     /// The Deflecting gem: enemy shots inside the swing are cut down, or sent back by a finisher.
@@ -1161,7 +1147,17 @@ impl Player {
             for (id, faction, hurtbox) in world.damageables() {
                 if faction == Faction::Player
                     || self.swing_hit.contains(&id)
-                    || !self.in_arc(&hurtbox, radius, if finisher { 105.0 } else { 80.0 } * reach)
+                    || !self.in_arc(
+                        &hurtbox,
+                        radius,
+                        if gems.sweep {
+                            180.0
+                        } else if finisher {
+                            105.0
+                        } else {
+                            80.0
+                        } * reach,
+                    )
                 {
                     continue;
                 }
@@ -1500,7 +1496,6 @@ impl Player {
         self.skill_scale = 1.0;
         self.echo = gems.echo.then_some((skill, level, 0.45));
         self.skill = Some(Box::new(SkillAction::create(skill, level)));
-        self.last_skill = Some((skill, level));
         world.add(SkillBanner::new(self.base.pos, skill, level));
         if level >= skills::MAX_LEVEL {
             self.trigger(world, Trigger::GreatSkill, None);
@@ -1510,18 +1505,6 @@ impl Player {
     /// Life spent per skill level under the Blood Art keystone.
     fn blood_cost(world: &World) -> f32 {
         world.state.max_hp() as f32 * 0.08
-    }
-
-    /// The Echo soul performs the last skill again, at the same level, for free.
-    pub fn replay_last_skill(&mut self, world: &mut World) -> bool {
-        let Some((skill, level)) = self.last_skill else { return false };
-        if !self.can_act() || self.airborne() {
-            return false;
-        }
-        self.cancel_actions();
-        self.skill = Some(Box::new(SkillAction::create(skill, level)));
-        world.add(SkillBanner::new(self.base.pos, skill, level));
-        true
     }
 
     /// Wards the player from all harm for a while (Sanctum).

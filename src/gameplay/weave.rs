@@ -147,6 +147,10 @@ pub struct WeaveMods {
     pub surge: f32,
     /// Extra melee reach, as a fraction.
     pub reach: f32,
+    /// Extra damage for the guardian spirit, as a fraction.
+    pub spirit: f32,
+    /// Extra attack speed for the guardian spirit, as a fraction.
+    pub spirit_speed: f32,
     pub buildup: HashMap<Element, f32>,
     pub passives: HashSet<String>,
     pub triggers: Vec<TriggerDef>,
@@ -173,6 +177,8 @@ impl Default for WeaveMods {
             aether_time: 0.0,
             surge: 0.0,
             reach: 0.0,
+            spirit: 0.0,
+            spirit_speed: 0.0,
             buildup: HashMap::new(),
             passives: HashSet::new(),
             triggers: Vec::new(),
@@ -381,6 +387,16 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
     ),
     // Spirit
     (-4, 0, Notable, "spirit_well", "Spirit Well", "SP builds 15% faster.", "sp:1.15"),
+    (-3, 0, Notable, "kindred", "Kindred Spirit", "Your guardian spirit deals 30% more damage.", "spirit:0.3"),
+    (
+        -5,
+        2,
+        Notable,
+        "pack_leader",
+        "Pack Leader",
+        "Your guardian spirit attacks 25% faster and deals 10% more damage.",
+        "spirit_speed:0.25,spirit:0.1",
+    ),
     (
         -4,
         -2,
@@ -652,6 +668,8 @@ pub fn compute<'a>(taken: impl Iterator<Item = &'a String>) -> WeaveMods {
                 "aether_time" => mods.aether_time += value(1),
                 "surge" => mods.surge += value(1),
                 "reach" => mods.reach += value(1),
+                "spirit" => mods.spirit += value(1),
+                "spirit_speed" => mods.spirit_speed += value(1),
                 "passive" => {
                     mods.passives.insert(p[1].to_string());
                     if p[1] == "tailwind" {

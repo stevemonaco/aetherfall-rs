@@ -18,6 +18,8 @@ pub enum ItemKind {
     Powerup,
     /// A support gem, socketed from the Skills menu.
     Support,
+    /// A charm set into the guardian spirit.
+    Charm,
 }
 
 /// Bonuses granted by an equipped accessory or shield. Multipliers default to 1 (no change).
@@ -246,6 +248,15 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             "The First Concord's heart. ATK, DEF, life +20%. Blight corrupts you half as fast.",
         )
         .with_acc(AccessoryStats { atk: 1.2, def: 1.2, hp: 1.2, blight_taken: 0.5, ..N }),
+        item(
+            "guardian_charm",
+            "Guardian Charm",
+            Charm,
+            0,
+            0,
+            "Your spirit turns aside one projectile every 10 seconds.",
+        ),
+        item("storm_charm", "Storm Charm", Charm, 0, 0, "Your spirit's attacks arc on to a second foe."),
         item("rabbit_boots", "Rabbit Boots", Powerup, 0, 0, "Jump over pits and narrow water (C / L, or Y)."),
         item(
             "aether_tether",
@@ -329,6 +340,10 @@ static ITEMS: LazyLock<HashMap<&'static str, ItemDef>> =
 
 pub fn get(id: &str) -> Option<&'static ItemDef> {
     ITEMS.get(id)
+}
+
+pub fn all() -> impl Iterator<Item = &'static ItemDef> {
+    ALL_ITEMS.iter()
 }
 
 /// A sigil set into the Aether Blade's hilt: unlocks an element mode.

@@ -53,7 +53,7 @@
       "to": "trial_prism",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_prism_well",
+      "done": "golden:trial_prism",
       "if": "aether_awakened"
     },
     {

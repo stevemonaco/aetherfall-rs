@@ -7,10 +7,11 @@ use crate::entities::companion::DigSpot;
 use crate::entities::dummy::TrainingDummy;
 use crate::entities::enemy::Enemy;
 use crate::entities::entity::Entity;
+use crate::entities::golden_breach::GoldenBreach;
 use crate::entities::hazards::GasVent;
 use crate::entities::obstacles::{Brazier, Crate, ObstacleKind, TileObstacle, Turbine};
 use crate::entities::props::{Building, Chest, Decor, Npc, Sign, Warp};
-use crate::entities::puzzles::{FloorSwitch, Gate, LockedDoor, SaveCrystal, SpanBridge, Trigger};
+use crate::entities::puzzles::{FloorSwitch, Gate, HiddenPath, LockedDoor, SaveCrystal, SpanBridge, Trigger};
 use crate::entities::rift::Rift;
 use crate::entities::tide::Tide;
 use crate::entities::trial::TrialGate;
@@ -37,12 +38,14 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
         "rift" => Box::new(Rift::new(entry)),
         "dig" => Box::new(DigSpot::new(entry, &map_id)),
         "span" => Box::new(SpanBridge::new(entry)),
+        "veil" => Box::new(HiddenPath::new(entry)),
         "turbine" => Box::new(Turbine::new(entry)),
         "tide" => Box::new(Tide::new(entry)),
         "storm" => Box::new(StormGrid::new(entry)),
         "cannon" => Box::new(Cannon::new(entry)),
         "blightgate" => Box::new(BlightGate::new(entry)),
         "trial" => Box::new(TrialGate::new(entry)),
+        "golden" => Box::new(GoldenBreach::new(entry)),
         "dummy" => Box::new(TrainingDummy::new(entry)),
         "brazier" => Box::new(Brazier::new(entry)),
         "crate" => Box::new(Crate::new(entry)),

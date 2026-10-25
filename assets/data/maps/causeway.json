@@ -36,6 +36,8 @@
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
   ],
   "entities": [
+    {"type": "gate", "x": 59.0, "y": 14.0, "open": "rift:causeway_toll", "look": "thorns"},
+    {"type": "gate", "x": 59.0, "y": 15.0, "open": "rift:causeway_toll", "look": "thorns"},
     {
       "type": "warp",
       "x": 0.0,
@@ -102,13 +104,7 @@
       "y": 6.0,
       "item": "insight_tome"
     },
-    {
-      "type": "chest",
-      "x": 3.0,
-      "y": 10.0,
-      "count": 1,
-      "item": "potion"
-    },
+    {"type": "chest", "x": 3.0, "y": 10.0, "gold": 300},
     {
       "type": "chest",
       "x": 32.0,

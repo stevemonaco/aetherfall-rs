@@ -84,7 +84,7 @@
       "y": 13.0,
       "name": "Pact Shrine",
       "dialogue": "pact_shrine",
-      "kind": "altar"
+      "kind": "pact_shrine"
     },
     {
       "type": "blightgate",

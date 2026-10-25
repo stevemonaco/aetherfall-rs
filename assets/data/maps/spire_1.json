@@ -47,13 +47,7 @@
       "y": 7.0,
       "element": "water"
     },
-    {
-      "type": "chest",
-      "x": 2.0,
-      "y": 7.0,
-      "item": "spirit_tonic",
-      "count": 3
-    },
+    {"type": "chest", "x": 2.0, "y": 7.0, "item": "storm_glass", "count": 2},
     {
       "type": "barrier",
       "x": 23.0,

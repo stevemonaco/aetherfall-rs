@@ -50,6 +50,7 @@
     "TTTTTTTTTTTTTTTTTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTT"
   ],
   "entities": [
+    {"type": "gate", "x": 28.0, "y": 3.0, "open": "rift:thornback_den", "look": "thorns"},
     {
       "type": "warp",
       "x": 27.0,
@@ -127,13 +128,7 @@
       "y": 13.0,
       "item": "insight_tome"
     },
-    {
-      "type": "chest",
-      "x": 26.0,
-      "y": 33.0,
-      "item": "herb",
-      "count": 3
-    },
+    {"type": "chest", "x": 26.0, "y": 33.0, "gold": 150},
     {
       "type": "chest",
       "x": 50.0,

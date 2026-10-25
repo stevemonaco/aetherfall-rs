@@ -27,8 +27,11 @@ Since the port, the combat systems have been reworked here (the C# game stays at
   bring escorts out of elite rifts.
 - Eight more zones; every act's dungeon now lies a journey away from its town.
 - 34 new foes and nine new enemy attacks (mortars, hooks, whirls, healers and warders among them).
-- Support gems socket into each mode's attack, ranged and special groups; they come from golden Trial Rifts, themed
-  arenas with an endless wellspring, rolled hardships and a Rift Champion guarding the gems.
+- Support gems socket into each mode's attack, ranged and special groups; they come from golden rifts: themed arenas
+  holding one great breach of escalating waves, rolled hardships and a Rift Champion.
+- Rifts are breaches: come near and a fixed swarm pours out; beat it and the rift seals itself.
+- A guardian spirit fights beside the hero and learns beast forms (Hound, Hawk, Lantern Wisp, Ember Sprite), each with
+  an auto-attack and an exploration perk; charms change every form.
 - Guarding wears down and lets damage through unless it is timed; bolts can surge into stronger tiers.
 - The Hall of Echoes (an Echo Stone by the Leafhollow shrine) has training dummies that show damage per second.
 - The Memory Lens is gone: eras open at memory crystals, and crystals outside the Bastion need an Aether Mote.
@@ -86,9 +89,9 @@ almost line for line. Bevy is the platform: window, input, audio, assets, GPU re
   mapping and scripts, synthesized sound effects and music control, settings and storage.
 - `world/` – map data, the per-pixel terrain baker, themes, water, chemistry, lighting, weather, camera.
 - `art/` – procedural sprites (props, combat effects, bosses) and the person rig used by the hero and villagers.
-- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Weave, souls, pacts, and
+- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Weave, the guardian spirit's forms, pacts, and
   enemy and dialogue data.
-- `entities/` – the player, enemies and bosses, projectiles, effects, props, puzzles, rifts, souls. Entities are
+- `entities/` – the player, enemies and bosses, projectiles, effects, props, puzzles, rifts, the guardian spirit. Entities are
   updated one at a time with exclusive access to the rest of the world; reactions to an entity mid-update (a parry,
   a reflected shot) travel back through the `Hit` it passed.
 - `scenes/` – the world, dialogue, menus, shops, the title screen and the rest of the scene stack.

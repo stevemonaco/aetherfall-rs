@@ -1,10 +1,6 @@
-//! A monster rift: a tear where stolen light leaks out. Once the player comes near it pours out waves of enemies;
-//! defeating its quota leaves it unstable, and striking it then seals it for good, releasing whatever it held (a
-//! villager, a building, a soul...). Sealing sets the flag `rift:id`.
-//!
-//! A wellspring (`endless`) pours foes without end and only wavers once its `after` condition holds (usually every
-//! other rift sealed). A rift with a `champion` summons that foe, boss-sized, when sealed; its death sets
-//! `champion:id`.
+//! A monster rift: a tear where stolen light leaks out. When the player comes near it splits open into a breach and a
+//! fixed swarm pours out of its edge all at once; once every foe it sent has fallen it seals itself, releasing
+//! whatever it held (a villager, a building, a soul, a cleared path...). Sealing sets the flag `rift:id`.
 
 use std::f32::consts::TAU;
 
@@ -17,22 +13,26 @@ use crate::art::{combat as art_combat, props as art};
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
 use crate::core::font;
-use crate::core::geom::{Box2, IRect, snap};
-use crate::core::gfx::Batch;
+use crate::core::geom::{IRect, snap};
+use crate::core::gfx::{self, Batch};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::combat::{Faction, Hit};
 use crate::gameplay::game_data::data;
+use crate::gameplay::pacts;
 use crate::gameplay::trial_mods::TrialMod;
-use crate::gameplay::{pacts, souls};
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, tile_center};
+
+/// How far the breach spreads from the rift.
+pub const BREACH_RADIUS: f32 = 76.0;
+/// Seconds between foes as the swarm pours out.
+const SPAWN_GAP: f32 = 0.12;
+const PURPLE: Rgba = Rgba::rgb(200, 120, 255);
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum RiftState {
     Dormant,
-    Pouring,
-    Unstable,
+    Open,
     Sealed,
 }
 
@@ -42,23 +42,17 @@ pub struct Rift {
     kinds: Vec<String>,
     then: Vec<String>,
     quota: i32,
-    alive: i32,
     level: Option<i32>,
     restores: Option<String>,
     soul: Option<String>,
     elite: Option<String>,
-    elite_id: Option<EntityId>,
-    elite_down: bool,
-    endless: bool,
-    after: Option<String>,
-    champion: Option<String>,
     wake: f32,
     spawned: Vec<EntityId>,
+    /// Foes still to pour out of the breach.
+    pending: i32,
     state: RiftState,
     time: f32,
     spawn_timer: f32,
-    flash: f32,
-    killed: i32,
     spawn_count: i32,
 }
 
@@ -82,23 +76,16 @@ impl Rift {
                 .collect(),
             then: data.strings("do"),
             quota: data.int("count", if data.str("elite").is_some() { 3 } else { 6 }),
-            alive: data.int("alive", 3),
             level: (level > 0).then_some(level),
             restores: data.str("restores").map(str::to_string),
             soul: data.str("soul").map(str::to_string),
             elite: data.str("elite").map(str::to_string),
-            elite_id: None,
-            elite_down: false,
-            endless: data.bool("endless", false),
-            after: data.str("after").map(str::to_string),
-            champion: data.str("champion").map(str::to_string),
-            wake: data.float("wake", 120.0),
+            wake: data.float("wake", 64.0),
             spawned: Vec::new(),
+            pending: 0,
             state: RiftState::Dormant,
             time: 0.0,
             spawn_timer: 0.0,
-            flash: 0.0,
-            killed: 0,
             spawn_count: 0,
         }
     }
@@ -107,38 +94,14 @@ impl Rift {
         format!("rift:{}", self.id)
     }
 
-    fn champion_flag(&self) -> String {
-        format!("champion:{}", self.id)
-    }
-
-    fn summon_champion(&self, world: &mut World) {
-        let Some(def) = self.champion.as_ref().and_then(|k| data().enemies.get(k)) else { return };
-        let level = self.level.unwrap_or(world.chem.zone_level.max(def.level));
-        let champion =
-            Enemy::champion(def, self.base.pos + Vec2::new(0.0, 6.0), Some(level), world, self.champion_flag());
-        world.add(champion);
-        world.add(Puff::new(self.base.pos - Vec2::new(0.0, 6.0), Rgba::rgb(255, 214, 110)));
-        world.add(FloatingText::new(
-            self.base.pos - Vec2::new(0.0, 44.0),
-            "A champion steps through!",
-            palette::HIGHLIGHT,
-        ));
-        audio::play(Sound::BossRoar, 0.9, -0.2);
-        world.camera.shake(0.5, 2.0);
-    }
-
-    fn swarm(world: &World) -> bool {
-        pacts::active(&world.state, "swarm")
-    }
-
     fn quota(&self, world: &World) -> i32 {
-        if Self::swarm(world) { self.quota * 3 / 2 } else { self.quota }
+        let swarm = if pacts::active(&world.state, "swarm") { 1.5 } else { 1.0 };
+        (self.quota as f32 * swarm) as i32 + i32::from(self.elite.is_some())
     }
 
-    /// Foes left before the rift wavers: its quota, plus the elite when it holds one.
-    fn remaining(&self, world: &World) -> i32 {
-        let elite = if self.elite.is_some() && !self.elite_down { 1 } else { 0 };
-        self.quota(world) - self.killed + elite
+    /// Foes still to beat before the rift seals: those yet to pour out and those still standing.
+    fn remaining(&self) -> i32 {
+        self.pending + self.spawned.len() as i32
     }
 
     /// The kinds this rift pours out; without a list it borrows the map's own foes.
@@ -154,77 +117,48 @@ impl Rift {
         roster[world.rng.below(roster.len() as i32) as usize].to_string()
     }
 
-    fn pour(&mut self, world: &mut World, dt: f32) {
-        let mut i = self.spawned.len();
-        while i > 0 {
-            i -= 1;
-            let id = self.spawned[i];
-            let defeated = match world.get_as::<Enemy>(id) {
-                Some(e) if !e.base.removed => continue,
-                Some(e) => e.hp <= 0,
-                // Removed enemies leave the world before the rift sees them; a missing one was defeated.
-                None => true,
-            };
-            self.spawned.remove(i);
-            if Some(id) == self.elite_id {
-                self.elite_down = defeated;
-                self.elite_id = None;
-            } else if defeated {
-                self.killed += 1;
-            }
-        }
+    fn open(&mut self, world: &mut World) {
+        self.state = RiftState::Open;
+        self.pending = self.quota(world);
+        self.spawn_timer = 0.5;
+        audio::play(Sound::BossRoar, 0.6, 0.5);
+        world.camera.shake(0.4, 1.5);
+        world.add(BreachZone::new(self.base.pos, self.flag()));
+        world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, 40.0), "A breach tears open!", PURPLE));
+    }
 
-        let done = if self.endless {
-            self.after.as_deref().is_none_or(|c| world.state.check(Some(c)))
-        } else {
-            self.remaining(world) <= 0
-        };
-        if done {
-            self.state = RiftState::Unstable;
-            audio::play(Sound::ChargeLevel, 1.0, 0.3);
-            world.add(FloatingText::new(
-                self.base.pos - Vec2::new(0.0, 40.0),
-                "The rift wavers... strike it!",
-                palette::HIGHLIGHT,
-            ));
+    fn pour(&mut self, world: &mut World, dt: f32) {
+        self.spawned.retain(|&id| world.get_as::<Enemy>(id).is_some_and(|e| !e.base.removed && e.hp > 0));
+        if self.remaining() <= 0 {
+            self.seal(world);
             return;
         }
-
-        let summon_elite = self.elite.is_some() && self.elite_id.is_none() && !self.elite_down;
-        let escorts = self.spawned.len() as i32 - if self.elite_id.is_some() { 1 } else { 0 };
-        let pending = if summon_elite {
-            1
-        } else if self.endless {
-            self.alive - escorts
-        } else {
-            self.alive.min(self.quota(world) - self.killed) - escorts
-        };
-        if pending <= 0 {
+        if self.pending <= 0 {
             return;
         }
         self.spawn_timer -= dt;
         if self.spawn_timer > 0.0 {
             return;
         }
-        self.spawn_timer = if self.endless { 2.2 } else { 1.1 };
-        let kind = if summon_elite { self.elite.clone().unwrap_or_default() } else { self.pick_kind(world) };
+        self.spawn_timer = SPAWN_GAP;
+        let leader = self.elite.is_some() && self.spawn_count == 0;
+        let kind = if leader { self.elite.clone().unwrap_or_default() } else { self.pick_kind(world) };
+        self.pending -= 1;
+        self.spawn_count += 1;
         let Some(def) = data().enemies.get(&kind) else { return };
         let angle = world.rng.next_f32() * TAU;
-        let at = self.base.pos + Vec2::new(angle.cos() * 14.0, angle.sin() * 8.0 + 6.0);
+        let reach = BREACH_RADIUS * (0.55 + world.rng.next_f32() * 0.4);
+        let at = world.nearest_open(self.base.pos + Vec2::new(angle.cos() * reach, angle.sin() * reach * 0.7));
         let zone = world.chem.zone_level;
         let level = self.level.unwrap_or(if zone > 1 { zone } else { def.level });
-        self.spawn_count += 1;
-        let elite = summon_elite
-            || (Self::swarm(world) && self.spawn_count % 3 == 0)
+        let elite = leader
+            || (pacts::active(&world.state, "swarm") && self.spawn_count % 3 == 0)
             || (world.trial_mod(TrialMod::EliteTide) && self.spawn_count % 4 == 0);
         let enemy = if elite { Enemy::elite(def, at, Some(level), world) } else { Enemy::new(def, at, Some(level)) };
-        let id = world.add(enemy);
+        let id = world.add(enemy.hunting());
         self.spawned.push(id);
-        if summon_elite {
-            self.elite_id = Some(id);
-        }
         world.add(Puff::new(at - Vec2::new(0.0, 6.0), Rgba::rgb(200, 140, 255)));
-        audio::play(Sound::Door, 0.5, 0.6);
+        audio::play(Sound::Door, 0.4, 0.6);
     }
 
     fn seal(&mut self, world: &mut World) {
@@ -238,17 +172,17 @@ impl Rift {
         let center = self.base.pos - Vec2::new(0.0, 14.0);
         Particle::burst(world, center, Rgba::rgb(230, 190, 255), 40, 110.0, 0.9, true);
         world.add(RestoreMote::new(center));
+        world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, 40.0), "The breach seals.", palette::HIGHLIGHT));
         if let Some(r) = &self.restores {
             world.toast(format!("Restored: {r}"));
         }
-        if let Some(soul) = self.soul.as_deref().and_then(souls::get) {
-            world.free_soul(soul);
+        if let Some(soul) = self.soul.clone() {
+            world.free_soul(&soul);
         }
         if !self.then.is_empty() {
             let actions = self.then.clone();
             world.run_actions(&actions);
         }
-        self.summon_champion(world);
         self.base.removed = true;
     }
 }
@@ -256,56 +190,22 @@ impl Rift {
 impl Entity for Rift {
     entity_base!();
 
-    fn faction(&self) -> Option<Faction> {
-        Some(if self.state == RiftState::Unstable { Faction::Neutral } else { Faction::Player })
-    }
-
-    fn hurtbox(&self) -> Box2 {
-        Box2::new(self.base.pos.x - 12.0, self.base.pos.y - 28.0, 24.0, 28.0)
-    }
-
     fn light(&self, _world: &World) -> Option<(f32, Rgba)> {
-        let color = if self.endless { Rgba::rgb(255, 200, 110) } else { Rgba::rgb(200, 120, 255) };
-        (self.state != RiftState::Sealed).then_some((70.0, color))
+        (self.state != RiftState::Sealed).then_some((70.0, PURPLE))
     }
 
     fn added(&mut self, world: &mut World) {
-        if !world.state.flags.contains(&self.flag()) {
-            return;
-        }
-        self.base.removed = true;
-        // Leaving before the champion fell must not lose it: it waits where its rift was.
-        if self.champion.is_some() && !world.state.flags.contains(&self.champion_flag()) {
-            self.summon_champion(world);
+        if world.state.flags.contains(&self.flag()) {
+            self.base.removed = true;
         }
     }
 
     fn update(&mut self, world: &mut World, dt: f32) {
         self.time += dt;
-        self.flash = (self.flash - dt).max(0.0);
         match self.state {
-            RiftState::Dormant => {
-                if world.hero.pos.distance(self.base.pos) < self.wake {
-                    self.state = RiftState::Pouring;
-                    self.spawn_timer = 0.6;
-                    audio::play(Sound::BossRoar, 0.5, 0.5);
-                    world.camera.shake(0.3, 1.0);
-                    world.add(FloatingText::new(
-                        self.base.pos - Vec2::new(0.0, 40.0),
-                        "A rift tears open!",
-                        Rgba::rgb(220, 160, 255),
-                    ));
-                }
-            }
-            RiftState::Pouring => self.pour(world, dt),
-            RiftState::Unstable => {
-                if world.rng.next_f32() < 0.3 {
-                    let at =
-                        self.base.pos - Vec2::new(world.rng.range(-10, 11) as f32, 14.0 + world.rng.below(10) as f32);
-                    world.add(Particle::new(at, Vec2::new(0.0, -20.0), Rgba::WHITE, 0.4).spark());
-                }
-            }
-            RiftState::Sealed => {}
+            RiftState::Dormant if world.hero.pos.distance(self.base.pos) < self.wake => self.open(world),
+            RiftState::Open => self.pour(world, dt),
+            _ => {}
         }
         if self.state != RiftState::Sealed && world.rng.next_f32() < 0.25 {
             let a = world.rng.next_f32() * TAU;
@@ -315,55 +215,27 @@ impl Entity for Rift {
         }
     }
 
-    fn take_hit(&mut self, world: &mut World, hit: &mut Hit) -> bool {
-        if hit.source != Faction::Player {
-            return false;
-        }
-        if self.state != RiftState::Unstable {
-            self.flash = 0.1;
-            audio::play(Sound::Clink, 0.5, -0.3);
-            return true;
-        }
-        self.seal(world);
-        true
-    }
-
-    fn draw(&self, world: &World, batch: &mut Batch) {
+    fn draw(&self, _world: &World, batch: &mut Batch) {
         let center = self.base.pos - Vec2::new(0.0, 14.0);
         let pulse = 1.0 + (self.time * 4.0).sin() * 0.08;
-        let size = match self.state {
-            RiftState::Unstable => 0.8 + (self.time * 18.0).sin() * 0.12,
-            RiftState::Dormant => 0.75,
-            _ => 1.0,
-        };
+        let size = if self.state == RiftState::Dormant { 0.75 } else { 1.1 };
         let frame = (self.time * 8.0) as i32 % 4;
-        let tint = if self.flash > 0.0 {
-            Rgba::WHITE
-        } else if self.state == RiftState::Unstable {
-            Rgba::WHITE.lerp(Rgba::rgb(255, 230, 255), 0.5)
-        } else if self.endless {
-            Rgba::rgb(255, 214, 140)
-        } else {
-            Rgba::WHITE
-        };
         batch.draw(art::shadow(24), snap(self.base.pos - Vec2::new(12.0, 4.0)), Rgba::WHITE.mul(0.6));
-        let src = Some(IRect::new(frame * 32, 0, 32, 40));
         batch.draw_ex(
             art_combat::rift_portal(),
             snap(center),
-            src,
-            tint,
+            Some(IRect::new(frame * 32, 0, 32, 40)),
+            Rgba::WHITE,
             0.0,
             Vec2::new(16.0, 20.0),
             Vec2::splat(size * pulse),
             false,
             false,
         );
-        if self.state == RiftState::Pouring {
-            let text = if self.endless { "~".to_string() } else { self.remaining(world).to_string() };
+        if self.state == RiftState::Open {
             font::draw_centered(
                 batch,
-                &text,
+                &self.remaining().to_string(),
                 snap(center - Vec2::new(0.0, 30.0)),
                 Rgba::rgb(230, 200, 255),
                 Some(palette::TEXT_SHADOW),
@@ -372,6 +244,63 @@ impl Entity for Rift {
     }
 }
 
+/// The breach's mark on the ground: it spreads open when the rift tears and fades once the rift is sealed.
+pub struct BreachZone {
+    base: EntityBase,
+    flag: String,
+    age: f32,
+    fade: f32,
+}
+
+impl BreachZone {
+    pub fn new(center: Vec2, flag: String) -> BreachZone {
+        BreachZone { base: EntityBase::at(center), flag, age: 0.0, fade: 1.0 }
+    }
+}
+
+impl Entity for BreachZone {
+    entity_base!();
+
+    fn layer(&self) -> i32 {
+        0
+    }
+
+    fn update(&mut self, world: &mut World, dt: f32) {
+        self.age += dt;
+        if world.state.flags.contains(&self.flag) {
+            self.fade -= dt * 1.5;
+            if self.fade <= 0.0 {
+                self.base.removed = true;
+            }
+        }
+    }
+
+    fn draw(&self, _world: &World, batch: &mut Batch) {
+        let grow = (self.age / 0.8).min(1.0);
+        let r = BREACH_RADIUS * (1.0 - (1.0 - grow) * (1.0 - grow));
+        let pulse = 0.85 + (self.age * 3.0).sin() * 0.15;
+        let disc = art_combat::disc();
+        let (dw, _) = gfx::size(disc);
+        let scale = Vec2::new(r * 2.0 / dw as f32, r * 1.4 / dw as f32);
+        let origin = Vec2::splat(dw as f32 / 2.0);
+        batch.draw_ex(disc, self.base.pos, None, PURPLE.mul(0.12 * self.fade), 0.0, origin, scale, false, false);
+        let ring = art_combat::ring();
+        let (rw, _) = gfx::size(ring);
+        let ring_scale = scale * dw as f32 / rw as f32;
+        let rorigin = Vec2::splat(rw as f32 / 2.0);
+        batch.draw_ex(
+            ring,
+            self.base.pos,
+            None,
+            PURPLE.mul(0.6 * pulse * self.fade),
+            0.0,
+            rorigin,
+            ring_scale,
+            false,
+            false,
+        );
+    }
+}
 /// A mote of restored light that rises from a sealed rift and streaks away toward what it restored.
 pub struct RestoreMote {
     base: EntityBase,

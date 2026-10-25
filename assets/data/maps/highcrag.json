@@ -255,7 +255,7 @@
       "sprite": "hunter3",
       "name": "Climber Vesk",
       "dialogue": "climber"
-    },
+    , "if": "rift:crag_hearth"},
     {
       "type": "npc",
       "x": 21.0,

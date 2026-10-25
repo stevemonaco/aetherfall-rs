@@ -16,12 +16,13 @@ use crate::world::map::{EntityData, TILE, Terrain, tile_feet};
 
 const T: f32 = TILE as f32;
 
-/// Iron bars that are open exactly while their `open` condition holds.
+/// Iron bars (or a wall of rift-thorns) that are open exactly while their `open` condition holds.
 pub struct Gate {
     base: EntityBase,
     tile: (i32, i32),
     open_condition: String,
     open_amount: f32,
+    thorns: bool,
 }
 
 impl Gate {
@@ -32,6 +33,7 @@ impl Gate {
             tile,
             open_condition: data.str_or("open", "never").to_string(),
             open_amount: 0.0,
+            thorns: data.str("look") == Some("thorns"),
         }
     }
 
@@ -67,10 +69,16 @@ impl Entity for Gate {
 
     fn draw(&self, _world: &World, batch: &mut Batch) {
         let visible = (T * (1.0 - self.open_amount)) as i32;
-        if visible > 0 {
-            let dest = IRect::new(self.tile.0 * TILE, self.tile.1 * TILE, TILE, visible);
-            batch.draw_dest(art::gate(), dest, Some(IRect::new(0, TILE - visible, TILE, visible)), Rgba::WHITE);
+        if visible <= 0 {
+            return;
         }
+        if self.thorns {
+            let tint = Rgba::rgb(220, 170, 255).mul(1.0 - self.open_amount);
+            batch.draw(art::thorns(), Vec2::new((self.tile.0 * TILE) as f32, (self.tile.1 * TILE) as f32), tint);
+            return;
+        }
+        let dest = IRect::new(self.tile.0 * TILE, self.tile.1 * TILE, TILE, visible);
+        batch.draw_dest(art::gate(), dest, Some(IRect::new(0, TILE - visible, TILE, visible)), Rgba::WHITE);
     }
 }
 
@@ -339,6 +347,86 @@ impl Entity for SpanBridge {
             for x in self.tiles.x..self.tiles.right() {
                 batch.draw(tex, Vec2::new((x * TILE) as f32, (y * TILE) as f32), Rgba::WHITE);
             }
+        }
+    }
+}
+
+/// A crossing only the hawk can see: while the spirit flies as a hawk these tiles become ghostly planks the hero can
+/// walk on, and they fade again once it changes form (never from under the hero's feet).
+pub struct HiddenPath {
+    base: EntityBase,
+    tiles: IRect,
+    original: Vec<Terrain>,
+    shown: bool,
+    time: f32,
+}
+
+impl HiddenPath {
+    pub fn new(data: &EntityData) -> HiddenPath {
+        let tiles = IRect::new(data.x as i32, data.y as i32, data.int("w", 1), data.int("h", 1));
+        HiddenPath {
+            base: EntityBase {
+                pos: Vec2::new((tiles.x * TILE) as f32 + T / 2.0, (tiles.bottom() * TILE) as f32),
+                width: 0.0,
+                height: 0.0,
+                ..EntityBase::default()
+            },
+            tiles,
+            original: Vec::new(),
+            shown: false,
+            time: 0.0,
+        }
+    }
+
+    fn cells(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        (self.tiles.y..self.tiles.bottom()).flat_map(move |y| (self.tiles.x..self.tiles.right()).map(move |x| (x, y)))
+    }
+}
+
+impl Entity for HiddenPath {
+    entity_base!();
+
+    fn layer(&self) -> i32 {
+        0
+    }
+
+    fn added(&mut self, world: &mut World) {
+        self.original = self.cells().map(|(x, y)| world.map.at(x, y)).collect();
+    }
+
+    fn update(&mut self, world: &mut World, dt: f32) {
+        self.time += dt;
+        let hawk = world.state.soul.as_deref() == Some("hawk");
+        if hawk == self.shown {
+            return;
+        }
+        let area = crate::core::geom::Box2::new(
+            (self.tiles.x * TILE) as f32,
+            (self.tiles.y * TILE) as f32,
+            (self.tiles.w * TILE) as f32,
+            (self.tiles.h * TILE) as f32,
+        );
+        if !hawk && world.hero.hitbox.intersects(&area) {
+            return;
+        }
+        self.shown = hawk;
+        let cells: Vec<(i32, i32)> = self.cells().collect();
+        for (i, (x, y)) in cells.into_iter().enumerate() {
+            world.map.set_terrain(x, y, if hawk { Terrain::Bridge } else { self.original[i] });
+        }
+        if hawk {
+            audio::play(Sound::ChargeLevel, 0.5, 0.8);
+        }
+    }
+
+    fn draw(&self, _world: &World, batch: &mut Batch) {
+        if !self.shown {
+            return;
+        }
+        let tint = Rgba::rgb(255, 225, 160).mul(0.55 + (self.time * 3.0).sin() * 0.15);
+        let tex = art_combat::planks(self.tiles.w >= self.tiles.h);
+        for (x, y) in self.cells() {
+            batch.draw(tex, Vec2::new((x * TILE) as f32, (y * TILE) as f32), tint);
         }
     }
 }

@@ -31,7 +31,7 @@ use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::pacts;
 use crate::gameplay::rank::CombatRank;
 use crate::gameplay::skills;
-use crate::gameplay::souls::{self, SoulDef};
+use crate::gameplay::souls;
 use crate::gameplay::trial_mods::{self, TrialMod};
 use crate::gameplay::weave::Trigger;
 use crate::world::ambience::Ambience;
@@ -767,13 +767,10 @@ impl World {
         if roster.len() < 4 || arena || self.data.blight_area.is_some() {
             return;
         }
-        let chance = if trial {
-            1.0
-        } else if pacts::active(&self.state, "swarm") {
-            0.6
-        } else {
-            0.3
-        };
+        if trial {
+            return;
+        }
+        let chance = if pacts::active(&self.state, "swarm") { 0.6 } else { 0.3 };
         if self.rng.next_f32() >= chance {
             return;
         }
@@ -825,7 +822,7 @@ impl World {
     }
 
     /// The given spot if the player can stand there, otherwise the nearest tile that is open.
-    fn nearest_open(&self, pos: Vec2) -> Vec2 {
+    pub fn nearest_open(&self, pos: Vec2) -> Vec2 {
         let t = TILE as f32;
         let (x, y) = ((pos.x / t).floor() as i32, ((pos.y - 3.0) / t).floor() as i32);
         if !self.map.blocks_walking(x, y) {
@@ -989,38 +986,42 @@ impl World {
         self.flash(Rgba::rgb(220, 180, 255), 0.3);
     }
 
-    /// Replaces the travelling soul with whichever is equipped now.
+    /// Replaces the guardian spirit with one in whichever form is chosen now. It wakes with the hero, so it is always
+    /// there once the game has begun.
     pub fn spawn_companion(&mut self) {
         if let Some(id) = self.companion.take() {
             self.with_entity(id, |e, _| e.base_mut().removed = true);
         }
-        if let Some(soul) = self.state.soul.as_deref().and_then(souls::get) {
-            let id = self.add(crate::entities::companion::Companion::new(soul, self.hero.pos));
-            self.companion = Some(id);
-        }
+        let form = self.state.soul.as_deref().and_then(souls::get).unwrap_or(&souls::SPIRIT);
+        let id = self.add(crate::entities::companion::Companion::new(form, self.hero.pos));
+        self.companion = Some(id);
     }
 
-    pub fn free_soul(&mut self, soul: &'static SoulDef) {
-        if self.state.souls_owned.iter().any(|s| s == soul.id) {
+    /// A beast freed from a rift: it teaches the spirit its form, or leaves a charm behind.
+    pub fn free_soul(&mut self, id: &str) {
+        audio::sfx(Sound::LevelUp);
+        if let Some(charm) = souls::charm_for(id) {
+            self.state.give(charm, 1);
+            let item = items::get(charm).map_or(String::new(), |i| format!("{}\n{}", i.name, i.description));
+            self.show_message(&format!(
+                "A spirit is freed, and leaves a charm for your guardian.\n{item}\nSet it from the Spirit tab."
+            ));
             return;
         }
-        let first = self.state.souls_owned.is_empty();
-        self.state.give(&format!("soul_{}", soul.id), 1);
-        audio::sfx(Sound::LevelUp);
-        let mut text = format!(
-            "A soul is freed: the {}! It will travel with you.\n{}\n{} ({})",
-            soul.name,
-            soul.passive,
-            soul.active,
-            input::glyph(GameAction::Soul)
-        );
-        if first {
-            text.push_str("\nChoose which soul travels with you from the Souls tab of the menu.");
+        let Some(form) = souls::get(id) else { return };
+        if self.state.souls_owned.iter().any(|s| s == form.id) {
+            return;
         }
-        self.show_message(&text);
+        self.state.give(&format!("soul_{}", form.id), 1);
+        self.show_message(&format!(
+            "The {} is freed, and your guardian spirit learns its form!\n{}\n{}\nCycle forms with {}.",
+            form.name,
+            form.attack,
+            form.perk,
+            input::glyph(GameAction::Soul)
+        ));
         self.spawn_companion();
     }
-
     pub fn toast(&mut self, text: impl Into<String>) {
         self.toasts.insert(0, (text.into(), 2.6));
     }
@@ -1393,14 +1394,7 @@ impl World {
         if kill.blighted && self.rng.next_f32() < 0.04 * multiplier {
             self.add(Pickup::item(kill.pos + Vec2::new(-4.0, 0.0), "blight_core"));
         }
-        if kill.elite {
-            for (item, chance) in [("potion", 0.08), ("spirit_tonic", 0.12)] {
-                if self.rng.next_f32() < chance * multiplier {
-                    let offset = Vec2::new(self.rng.range(-8, 9) as f32, 4.0);
-                    self.add(Pickup::item(kill.pos + offset, item));
-                }
-            }
-        }
+
         if (kill.elite || self.rng.next_f32() < 0.1) && !kill.boss {
             let amount = (self.state.max_hp() / 10).max(4);
             self.add(Pickup::heart(kill.pos + Vec2::new(4.0, 0.0), amount));

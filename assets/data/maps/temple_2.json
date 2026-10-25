@@ -93,13 +93,7 @@
       "y": 10.0,
       "item": "feather_charm"
     },
-    {
-      "type": "chest",
-      "x": 33.0,
-      "y": 10.0,
-      "count": 2,
-      "item": "spirit_tonic"
-    },
+    {"type": "chest", "x": 33.0, "y": 10.0, "item": "tide_pearl", "count": 2},
     {
       "type": "sign",
       "x": 17.0,

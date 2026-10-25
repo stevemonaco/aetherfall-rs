@@ -45,10 +45,10 @@
       "type": "decor",
       "x": 31.0,
       "y": 14.0,
-      "kind": "altar",
+      "kind": "echo_stone",
       "name": "Echo Stone",
       "dialogue": "echo_stone"
-    },
+    , "if": "rift:leaf_shrine"},
     {
       "type": "decor",
       "x": 19.0,
@@ -174,7 +174,7 @@
       "x": 33.0,
       "y": 14.0,
       "restore": "rift:leaf_shrine",
-      "kind": "altar"
+      "kind": "weave_shrine"
     },
     {
       "type": "npc",
@@ -364,7 +364,7 @@
       "sprite": "thief2",
       "name": "Pip",
       "dialogue": "pip"
-    },
+    , "if": "rift:leaf_herbalist"},
     {
       "type": "npc",
       "x": 15.0,

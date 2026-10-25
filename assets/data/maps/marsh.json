@@ -46,6 +46,8 @@
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
   ],
   "entities": [
+    {"type": "gate", "x": 55.0, "y": 20.0, "open": "rift:marsh_reeds", "look": "thorns"},
+    {"type": "gate", "x": 55.0, "y": 21.0, "open": "rift:marsh_reeds", "look": "thorns"},
     {
       "type": "trial",
       "x": 28.0,
@@ -54,7 +56,7 @@
       "to": "trial_marsh",
       "tx": 23,
       "ty": 24,
-      "done": "champion:trial_marsh_well"
+      "done": "golden:trial_marsh"
     },
     {
       "type": "vent",
@@ -86,9 +88,8 @@
       "y": 22.0,
       "alive": 3,
       "kinds": "toad,coil,leech,croaker,mudeel",
-      "restores": "Old Tam's net shed in Brinewatch",
       "count": 7,
-      "id": "brine_fisher"
+      "id": "marsh_reeds"
     },
     {
       "type": "rift",
@@ -96,9 +97,8 @@
       "y": 6.0,
       "alive": 3,
       "kinds": "mirecap,coil,toad,leech,croaker,mudeel",
-      "restores": "the shipwright's yard in Brinewatch",
       "count": 8,
-      "id": "brine_shipwright"
+      "id": "marsh_hollow"
     },
     {
       "type": "dig",
@@ -163,13 +163,7 @@
       "y": 4.0,
       "item": "swift_anklet"
     },
-    {
-      "type": "chest",
-      "x": 5.0,
-      "y": 12.0,
-      "item": "herb",
-      "count": 3
-    },
+    {"type": "chest", "x": 5.0, "y": 12.0, "gold": 200},
     {
       "type": "decor",
       "x": 12.0,

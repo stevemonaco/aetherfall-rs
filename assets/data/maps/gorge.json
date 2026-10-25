@@ -70,6 +70,8 @@
     "###################::###################"
   ],
   "entities": [
+    {"type": "gate", "x": 19.0, "y": 0.0, "open": "rift:gorge_camp", "look": "thorns"},
+    {"type": "gate", "x": 20.0, "y": 0.0, "open": "rift:gorge_camp", "look": "thorns"},
     {"type":"warp","x":19.0,"y":63.0,"facing":"down","to":"brinewatch","tx":12,"ty":1,"w":2},
     {"type":"warp","x":19.0,"y":0.0,"facing":"up","to":"frostpeak","tx":19,"ty":62,"w":2},
     {"type":"sign","x":17.0,"y":60.0,"text":"Rimewater Gorge. The trail climbs to Frostpeak and Highcrag beyond."},

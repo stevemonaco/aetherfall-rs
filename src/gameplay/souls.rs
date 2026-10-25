@@ -1,4 +1,5 @@
-//! Freed souls that travel with the player: an always-on passive and an active on a cooldown.
+//! The guardian spirit that wakes with the hero. It fights at their side on its own; every beast freed from a rift
+//! teaches it a new form (an auto-attack and an exploration perk), and charms set into it change every form.
 
 use crate::core::color::Rgba;
 
@@ -6,81 +7,71 @@ use crate::core::color::Rgba;
 pub struct SoulDef {
     pub id: &'static str,
     pub name: &'static str,
-    pub passive: &'static str,
-    pub active: &'static str,
-    pub cooldown: f32,
+    pub attack: &'static str,
+    pub perk: &'static str,
+    /// Seconds between attacks before any Weave bonus.
+    pub interval: f32,
     pub glow: Rgba,
 }
 
-pub const ALL: [SoulDef; 7] = [
+/// The spirit's own shape, before it has learned any beast.
+pub const SPIRIT: SoulDef = SoulDef {
+    id: "spirit",
+    name: "Guardian Spirit",
+    attack: "Zaps the nearest foe now and then.",
+    perk: "No perk of its own; free beasts from rifts to teach it new forms.",
+    interval: 2.0,
+    glow: Rgba::rgb(200, 220, 255),
+};
+
+pub const ALL: [SoulDef; 4] = [
     SoulDef {
         id: "hound",
         name: "Hound",
-        passive: "Sniffs out buried treasure; dig where it barks.",
-        active: "Sic 'em: lunges at the nearest foe.",
-        cooldown: 12.0,
+        attack: "Bounds over and bites the nearest foe.",
+        perk: "Sniffs out buried treasure; dig where it barks.",
+        interval: 1.6,
         glow: Rgba::rgb(240, 210, 140),
     },
     SoulDef {
         id: "hawk",
         name: "Hawk",
-        passive: "Spots hidden passages and secret walls.",
-        active: "Mark Prey: foes in sight take more damage for 8 seconds.",
-        cooldown: 20.0,
+        attack: "Dives at a foe and marks it to take more damage.",
+        perk: "Sees paths no one else can: hidden crossings appear while it flies with you.",
+        interval: 2.4,
         glow: Rgba::rgb(230, 170, 110),
     },
     SoulDef {
         id: "lantern",
         name: "Lantern Wisp",
-        passive: "Lights the dark around you and reveals cloaked foes.",
-        active: "Flash: blinds and staggers nearby foes.",
-        cooldown: 14.0,
+        attack: "Flings motes of light at the nearest foe.",
+        perk: "Lights the dark around you and reveals cloaked foes.",
+        interval: 1.4,
         glow: Rgba::rgb(255, 230, 150),
-    },
-    SoulDef {
-        id: "guardian",
-        name: "Guardian",
-        passive: "Turns aside one projectile every 10 seconds.",
-        active: "Aegis: projectiles can't touch you for 3 seconds.",
-        cooldown: 22.0,
-        glow: Rgba::rgb(170, 210, 255),
     },
     SoulDef {
         id: "ember",
         name: "Ember Sprite",
-        passive: "Your dodges set grass alight and fire ailments build faster.",
-        active: "Flare: a burst of fire around the sprite.",
-        cooldown: 12.0,
+        attack: "Spits fireballs that set foes and grass alight.",
+        perk: "Burns away thorny thickets you walk up to; fire ailments build faster.",
+        interval: 1.8,
         glow: Rgba::rgb(255, 140, 60),
-    },
-    SoulDef {
-        id: "stormling",
-        name: "Stormling",
-        passive: "Thunder ailments build faster.",
-        active: "Strike: calls lightning onto the nearest foe.",
-        cooldown: 10.0,
-        glow: Rgba::rgb(250, 235, 120),
-    },
-    SoulDef {
-        id: "echo",
-        name: "Echo",
-        passive: "Remembers the last skill you performed.",
-        active: "Reprise: performs it again at no SP cost.",
-        cooldown: 40.0,
-        glow: Rgba::rgb(220, 190, 255),
     },
 ];
 
+/// Charms set into the spirit, and the freed souls that leave each one behind.
+pub const CHARMS: [(&str, &str); 2] = [("guardian", "guardian_charm"), ("stormling", "storm_charm")];
+pub const CHARM_SLOTS: usize = 2;
+
+/// A form by id; "spirit" (or nothing) is the spirit's own shape.
 pub fn get(id: &str) -> Option<&'static SoulDef> {
+    if id == SPIRIT.id {
+        return Some(&SPIRIT);
+    }
     ALL.iter().find(|s| s.id == id)
 }
 
-pub fn rank(xp: i32) -> i32 {
-    if xp >= 30 {
-        3
-    } else if xp >= 10 {
-        2
-    } else {
-        1
-    }
+/// The charm a freed soul leaves instead of a form, if it is one of those.
+pub fn charm_for(soul: &str) -> Option<&'static str> {
+    CHARMS.iter().find(|(s, _)| *s == soul).map(|(_, charm)| *charm)
 }

@@ -25,6 +25,8 @@ pub enum HitKind {
     Environment,
     Status,
     Tether,
+    /// The guardian spirit's own attacks.
+    Spirit,
 }
 
 /// An attacker's combat numbers, captured when the hit is created.

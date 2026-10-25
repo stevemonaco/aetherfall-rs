@@ -198,6 +198,35 @@ impl Enemy {
         }
     }
 
+    /// A Rift Champion's own attacks, every few seconds: a ring of telegraphed blasts around the hero, then a nova of
+    /// shots from itself.
+    pub(super) fn update_champion(&mut self, world: &mut World, dt: f32) {
+        self.champion_beat -= dt;
+        if self.champion_beat > 0.0 || self.frozen() {
+            return;
+        }
+        self.champion_beat = 4.5;
+        self.champion_turn += 1;
+        let stats = self.stats();
+        if self.champion_turn % 2 == 1 {
+            let hero = world.hero.pos;
+            for i in 0..6 {
+                let a = i as f32 * TAU / 6.0 + self.champion_turn as f32;
+                let at = hero + Vec2::new(a.cos() * 34.0, a.sin() * 22.0);
+                world.add(Detonation::new(at, stats, Element::None, 18.0, 1.0, 1.1));
+            }
+            world.add(Detonation::new(hero, stats, Element::None, 18.0, 1.3, 1.1));
+            audio::play(Sound::ChargeLevel, 0.8, -0.4);
+        } else {
+            let from = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() / 2.0);
+            for i in 0..14 {
+                let a = i as f32 * TAU / 14.0;
+                world.add(Projectile::enemy_shot("dark", from, Vec2::new(a.cos(), a.sin()), stats, 0.9, 1.0));
+            }
+            audio::play(Sound::ShootFire, 0.8, -0.2);
+        }
+    }
+
     /// A Volatile trait's parting blast.
     pub(super) fn trait_death(&self, world: &mut World) {
         if let Some(element) = self.def.trait_value("volatile") {

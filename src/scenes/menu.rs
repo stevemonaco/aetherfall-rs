@@ -32,7 +32,7 @@ use crate::gameplay::supports::Group;
 use crate::gameplay::{pacts, souls};
 use crate::scene_any;
 
-const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Souls", "Weave", "Quests", "Foes", "Status", "System"];
+const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Spirit", "Weave", "Quests", "Foes", "Status", "System"];
 const TAB_BOX: IRect = IRect::new(12, 12, 92, 120);
 const CONTENT_BOX: IRect = IRect::new(110, 12, 358, 246);
 const VISIBLE_ROWS: usize = 14;
@@ -141,15 +141,7 @@ impl MenuScene {
             "Items" => item_rows(state),
             "Gear" => gear_rows(state),
             "Skills" => skill_rows(state),
-            "Souls" => state
-                .souls_owned
-                .iter()
-                .filter_map(|id| souls::get(id))
-                .map(|soul| Row {
-                    marked: state.soul.as_deref() == Some(soul.id),
-                    ..Row::new(soul.id, soul.name, format!("Rank {}", state.soul_rank(soul.id)))
-                })
-                .collect(),
+            "Spirit" => spirit_rows(state),
             "Weave" => vec![Row::new("weave", "Open the Weave", format!("{} pts", state.weave_points()))],
             "Quests" => quest_rows(state),
             "Foes" => {
@@ -204,9 +196,19 @@ impl MenuScene {
                     audio::sfx(Sound::MenuSelect);
                 }
             }
-            "Souls" => {
-                state.soul = if state.soul.as_deref() == Some(row.id.as_str()) { None } else { Some(row.id.clone()) };
-                world.spawn_companion();
+            "Spirit" => {
+                if let Some(slot) = row.id.strip_prefix("charm") {
+                    let owned = items::all().filter(|i| i.kind == ItemKind::Charm && state.count(i.id) > 0);
+                    self.pick_choices = std::iter::once(("".to_string(), "(empty)".to_string()))
+                        .chain(owned.map(|i| (i.id.to_string(), i.name.to_string())))
+                        .collect();
+                    self.pick_slot = Some(format!("charm:{slot}"));
+                    self.pick_row = 0;
+                    self.pick_scroll = 0;
+                } else {
+                    state.soul = (row.id != souls::SPIRIT.id).then(|| row.id.clone());
+                    world.spawn_companion();
+                }
                 audio::sfx(Sound::MenuSelect);
             }
             "Weave" => {
@@ -250,6 +252,18 @@ impl MenuScene {
             return;
         }
         let id = if self.pick_row == 0 { None } else { Some(self.pick_choices[self.pick_row].0.clone()) };
+        if let Some(slot) = self.pick_slot.as_deref().and_then(|s| s.strip_prefix("charm:")) {
+            let slot: usize = slot.parse().unwrap_or(0);
+            for (i, charm) in state.spirit_charms.iter_mut().enumerate() {
+                if i != slot && id.is_some() && *charm == id {
+                    *charm = None;
+                }
+            }
+            state.spirit_charms[slot] = id;
+            audio::sfx(Sound::MenuSelect);
+            self.pick_slot = None;
+            return;
+        }
         if let Some(key) = self.pick_slot.as_deref().and_then(|s| s.strip_prefix("socket:")) {
             state.set_socket(key, id.as_deref());
             audio::sfx(Sound::MenuSelect);
@@ -282,12 +296,18 @@ impl MenuScene {
         }
         match self.tab_name() {
             "Gear" => "Choose equipment for this slot.".into(),
-            "Souls" => match souls::get(&row.id) {
-                Some(soul) => {
-                    let verb = if state.soul.as_deref() == Some(row.id.as_str()) { "dismiss" } else { "bring along" };
-                    format!("{} {} Confirm to {verb}.", soul.passive, soul.active)
+            "Spirit" => match souls::get(&row.id) {
+                Some(form) => format!(
+                    "{} {} Confirm to take this form, or cycle forms with the Soul button.",
+                    form.attack, form.perk
+                ),
+                None => {
+                    let slot: usize = row.id.strip_prefix("charm").and_then(|s| s.parse().ok()).unwrap_or(0);
+                    match state.spirit_charms[slot].as_deref().and_then(items::get) {
+                        Some(charm) => format!("{} Confirm to change.", charm.description),
+                        None => "An empty charm slot. Charms change every form the spirit takes.".into(),
+                    }
                 }
-                None => String::new(),
             },
             "Quests" => match data().quests.get(&row.id) {
                 Some(quest) => {
@@ -777,4 +797,17 @@ impl Scene for MenuScene {
             self.draw_choices(batch);
         }
     }
+}
+
+/// The spirit's forms (its own shape first, then each beast it has learned), then its charm slots.
+fn spirit_rows(state: &GameState) -> Vec<Row> {
+    let current = state.soul.as_deref().unwrap_or(souls::SPIRIT.id);
+    let forms = std::iter::once(&souls::SPIRIT).chain(state.souls_owned.iter().filter_map(|id| souls::get(id)));
+    let mut rows: Vec<Row> =
+        forms.map(|form| Row { marked: form.id == current, ..Row::new(form.id, form.name, "Form") }).collect();
+    for (slot, charm) in state.spirit_charms.iter().enumerate() {
+        let name = charm.as_deref().map_or("(empty)".to_string(), items::name_of);
+        rows.push(Row::new(format!("charm{slot}"), format!("Charm {}", ["I", "II"][slot]), name));
+    }
+    rows
 }

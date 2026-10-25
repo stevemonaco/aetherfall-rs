@@ -56,7 +56,7 @@
     {"type": "chest", "x": 4.0, "y": 31.0, "item": "weave_knot"},
     {"type": "chest", "x": 44.0, "y": 31.0, "item": "insight_tome", "count": 2},
     {"type": "chest", "x": 5.0, "y": 6.0, "gold": 2800},
-    {"type": "chest", "x": 43.0, "y": 6.0, "item": "elixir"},
+    {"type": "chest", "x": 43.0, "y": 6.0, "item": "blight_core"},
     {"type": "enemy", "x": 9.0, "y": 23.0, "kind": "husk"},
     {"type": "enemy", "x": 7.0, "y": 21.0, "kind": "husk"},
     {"type": "enemy", "x": 10.0, "y": 25.0, "kind": "crawler"},

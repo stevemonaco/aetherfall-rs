@@ -109,6 +109,8 @@ pub struct Enemy {
     act_ticks: i32,
     regen: f32,
     champion: bool,
+    champion_beat: f32,
+    champion_turn: u32,
     /// Set when this foe dies, e.g. to open a trial's reward chests.
     death_flag: Option<String>,
 }
@@ -175,6 +177,8 @@ impl Enemy {
             act_ticks: 0,
             regen: 0.0,
             champion: false,
+            champion_beat: 3.0,
+            champion_turn: 0,
             death_flag: None,
         }
     }
@@ -191,11 +195,11 @@ impl Enemy {
         enemy
     }
 
-    /// A Rift Champion: an elite grown to boss size, with nine times a foe's life, an extra affix and a life bar
-    /// across the screen. Its death sets `flag`.
+    /// A Rift Champion: an elite grown to boss size, with five times a foe's life, an extra affix, a cycle of its own
+    /// blasts and novas, and a life bar across the screen. Its death sets `flag`.
     pub fn champion(def: &'static EnemyDef, at: Vec2, level: Option<i32>, world: &World, flag: String) -> Enemy {
         let mut enemy = Enemy::new(def, at, Some(level.unwrap_or(def.level) + 3));
-        enemy.max_hp *= 9;
+        enemy.max_hp *= 5;
         enemy.hp = enemy.max_hp;
         enemy.guard_max = (def.guard * 2.5).max(16.0);
         enemy.guard_value = enemy.guard_max;
@@ -207,6 +211,13 @@ impl Enemy {
         enemy.phase = Phase::Chase;
         enemy.roll_affixes(world, 1);
         enemy
+    }
+
+    /// Already alert and closing in, as foes pouring from a breach are.
+    pub fn hunting(mut self) -> Enemy {
+        self.alerted = true;
+        self.phase = Phase::Chase;
+        self
     }
 
     pub fn is_champion(&self) -> bool {
@@ -1030,7 +1041,6 @@ impl Enemy {
         if hit.is_player() {
             let soul = match (world.state.soul.as_deref(), element) {
                 (Some("ember"), Element::Fire) => 1.2,
-                (Some("stormling"), Element::Thunder) => 1.3,
                 _ => 1.0,
             };
             trait_mod *= world.state.mods().buildup_for(element) * soul;
@@ -1203,15 +1213,6 @@ impl Enemy {
     /// The hawk's mark: this enemy takes extra damage for a while.
     pub fn mark(&mut self, seconds: f32) {
         self.marked = self.marked.max(seconds);
-    }
-
-    /// Stuns the enemy (not bosses) for a moment.
-    pub fn stun(&mut self, seconds: f32) {
-        if self.boss.is_some() || self.hp <= 0 {
-            return;
-        }
-        self.set_phase(Phase::Stagger);
-        self.phase_time = 0.35 - seconds;
     }
 
     pub fn end_reel(&mut self) {
@@ -1692,6 +1693,9 @@ impl Entity for Enemy {
         self.think(world, dt);
         self.update_affixes(world, dt);
         self.update_traits(world, dt);
+        if self.champion {
+            self.update_champion(world, dt);
+        }
         if self.deals_contact_damage() {
             self.touch_target(world);
         }
