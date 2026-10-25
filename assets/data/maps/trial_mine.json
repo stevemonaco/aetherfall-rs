@@ -36,9 +36,11 @@
     "##############################################"
   ],
   "entities": [
+    
+    
     {"type": "trial", "x": 23.0, "y": 26.0, "name": "Trial of Salt", "exit": true, "to": "saltmine_1", "tx": 22, "ty": 16},
     {"type": "golden", "x": 23.0, "y": 13.0, "id": "trial_mine", "kinds": "coil,inkling,tidetoad,mudeel,lobster,skeleton,spider,blueslime", "level": 23, "champion": "lobster"},
-    {"type": "chest", "x": 19.0, "y": 10.0, "item": "pierce_gem", "if": "golden:trial_mine", "style": 3},
+    {"type": "chest", "x": 19.0, "y": 10.0, "item": "pierce_gem", "if": "golden_heat:trial_mine", "style": 3},
     {"type": "chest", "x": 22.0, "y": 10.0, "item": "linger_gem", "if": "golden:trial_mine", "style": 3},
     {"type": "chest", "x": 25.0, "y": 10.0, "item": "seeking_gem", "if": "golden:trial_mine", "style": 3}
   ]

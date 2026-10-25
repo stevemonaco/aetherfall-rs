@@ -197,6 +197,38 @@ pub fn skiff() -> TexId {
         cv
     })
 }
+/// A white crystal on a stone pedestal, tinted by the element it answers to.
+pub fn crystal_switch() -> TexId {
+    gfx::cached("crystal_switch", || {
+        let mut cv = Canvas::new(12, 22);
+        cv.rect(2, 17, 8, 5, STONE[1]).rect(2, 17, 8, 1, STONE[3]);
+        for y in 0..16 {
+            let half = if y < 8 { y as f32 * 0.5 } else { (16 - y) as f32 * 0.5 };
+            for x in 0..12 {
+                let dx = x as f32 + 0.5 - 6.0;
+                if dx.abs() <= half {
+                    let shade = if dx < 0.0 { Rgba::WHITE } else { c(0xC8C8D8) };
+                    cv.set(x, y + 1, shade);
+                }
+            }
+        }
+        cv.outline();
+        cv
+    })
+}
+
+/// A short stone post an orb sits on, for toggle switches.
+pub fn toggle_post() -> TexId {
+    gfx::cached("toggle_post", || {
+        let mut cv = Canvas::new(12, 16);
+        cv.rect(3, 5, 6, 9, STONE[1])
+            .rect(3, 5, 2, 9, STONE[2])
+            .rect(1, 13, 10, 3, STONE[1])
+            .rect(1, 13, 10, 1, STONE[3]);
+        cv.outline();
+        cv
+    })
+}
 pub fn well() -> TexId {
     gfx::cached("well", || {
         let mut cv = Canvas::new(32, 32);
@@ -474,9 +506,11 @@ pub fn house(tiles_w: i32, tiles_h: i32, door_tile: i32, roof: &str) -> TexId {
                 WOOD[1],
             );
         }
-        let dx = door_tile * 16 + 3;
-        cv.rect(dx - 1, h - 18, 12, 16, WOOD[0]).rect(dx, h - 17, 10, 15, WOOD[2]);
-        cv.rect(dx + 4, h - 17, 2, 15, WOOD[1]).rect(dx + 7, h - 10, 1, 2, c(0xF8D850));
+        if door_tile >= 0 {
+            let dx = door_tile * 16 + 3;
+            cv.rect(dx - 1, h - 18, 12, 16, WOOD[0]).rect(dx, h - 17, 10, 15, WOOD[2]);
+            cv.rect(dx + 4, h - 17, 2, 15, WOOD[1]).rect(dx + 7, h - 10, 1, 2, c(0xF8D850));
+        }
 
         for y in 0..wall_top + 2 {
             for x in 0..w {
@@ -494,6 +528,26 @@ pub fn house(tiles_w: i32, tiles_h: i32, door_tile: i32, roof: &str) -> TexId {
         }
         cv.rect(0, 0, w, 3, roof_ramp[1]).rect(0, wall_top + 1, w, 2, roof_ramp[0]);
         cv.rect(w - 14, 0, 6, 3, STONE[1]).rect(w - 13, -1, 4, 1, STONE[2]);
+        cv.outline();
+        cv
+    })
+}
+
+/// The bubble over a townsperson with something new to say: "!" for a quest or a gift, "?" for news.
+pub fn npc_marker(gift: bool) -> TexId {
+    gfx::cached(if gift { "npc_marker_gift" } else { "npc_marker_news" }, || {
+        let mut cv = Canvas::new(11, 13);
+        let white = c(0xF8F4E8);
+        cv.rect(1, 1, 9, 9, white).rect(2, 0, 7, 11, white).rect(0, 2, 11, 7, white);
+        cv.rect(4, 11, 3, 1, white).rect(5, 12, 1, 1, white);
+        if gift {
+            let gold = c(0xD88A10);
+            cv.rect(4, 2, 3, 4, gold).rect(5, 6, 1, 1, gold).rect(4, 8, 3, 1, gold);
+        } else {
+            let blue = c(0x3878D8);
+            cv.rect(4, 2, 3, 1, blue).rect(3, 3, 2, 1, blue).rect(6, 3, 2, 2, blue);
+            cv.rect(5, 5, 2, 1, blue).rect(5, 6, 1, 1, blue).rect(5, 8, 1, 1, blue);
+        }
         cv.outline();
         cv
     })

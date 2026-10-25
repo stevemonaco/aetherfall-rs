@@ -81,8 +81,8 @@
     },
     {
       "type": "rift",
-      "x": 21.0,
-      "y": 27.0,
+      "x": 15.0,
+      "y": 22.0,
       "count": 8,
       "id": "run_ww_hollow",
       "alive": 3,

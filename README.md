@@ -29,7 +29,11 @@ Since the port, the combat systems have been reworked here (the C# game stays at
 - 34 new foes and nine new enemy attacks (mortars, hooks, whirls, healers and warders among them).
 - Support gems socket into each mode's attack, ranged and special groups; they come from golden rifts: themed arenas
   holding one great breach of escalating waves, rolled hardships and a Rift Champion.
-- Rifts are breaches: come near and a fixed swarm pours out; beat it and the rift seals itself.
+- Rifts are breaches: come near and a fixed swarm pours out; beat it, stand in the rift to seal it, and watch the town
+  piece come back in a short cutscene.
+- Gemcutter's Prisms hone support gems through Cut and Flawless tiers.
+- Dungeons have signature puzzle mechanics (wind, water, conduction, past and present), plus element crystals and toggle
+  switches; the map screen charts the current area.
 - A guardian spirit fights beside the hero and learns beast forms (Hound, Hawk, Lantern Wisp, Ember Sprite), each with
   an auto-attack and an exploration perk; charms change every form.
 - Guarding wears down and lets damage through unless it is timed; bolts can surge into stronger tiers.

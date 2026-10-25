@@ -17,6 +17,8 @@ use crate::core::palette;
 use crate::gameplay::game_state::{GameState, SLOT_COUNT};
 use crate::scene_any;
 
+/// Height of one slot in the list: its name and a summary line.
+const ROW: i32 = 25;
 const PROMPT_BOX: IRect = IRect::new(40, SCREEN_HEIGHT - 62, SCREEN_WIDTH - 80, 50);
 
 /// The overwrite question, drawn like a dialogue box. There is no world beneath the title for a DialogueScene.
@@ -189,13 +191,13 @@ impl Scene for SlotScene {
     fn draw(&self, _below: &[Box<dyn Scene>], batch: &mut Batch) {
         batch.begin_screen();
         batch.fill(IRect::new(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), Rgba::BLACK.mul(0.55));
-        let rect = IRect::new(SCREEN_WIDTH / 2 - 140, 70, 280, 30 + self.slots.len() as i32 * 28);
+        let rect = IRect::new(SCREEN_WIDTH / 2 - 140, 18, 280, 28 + self.slots.len() as i32 * ROW);
         batch.draw_window(rect);
         let heading = if self.new_game { "Start a new journey in..." } else { "Continue which journey?" };
         let heading_pos = Vec2::new((rect.x + 10) as f32, (rect.y + 6) as f32);
         font::draw(batch, heading, heading_pos, palette::HIGHLIGHT, Some(palette::TEXT_SHADOW));
         for (i, (state, summary)) in self.slots.iter().enumerate() {
-            let y = (rect.y + 24 + i as i32 * 28) as f32;
+            let y = (rect.y + 22 + i as i32 * ROW) as f32;
             let x = (rect.x + 24) as f32;
             let color = if i == self.row { palette::HIGHLIGHT } else { palette::TEXT };
             font::draw(batch, &format!("Slot {}", i + 1), Vec2::new(x, y), color, Some(palette::TEXT_SHADOW));

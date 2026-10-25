@@ -127,10 +127,6 @@ impl TileObstacle {
 impl Entity for TileObstacle {
     entity_base!();
 
-    fn can_interact(&self, _world: &World) -> bool {
-        self.kind != ObstacleKind::Secret
-    }
-
     fn faction(&self) -> Option<Faction> {
         Some(Faction::Neutral)
     }
@@ -244,6 +240,11 @@ impl Entity for TileObstacle {
     }
 
     fn take_hit(&mut self, world: &mut World, hit: &mut Hit) -> bool {
+        // Only charged shots and skills clear a way; swords and plain bolts glance off.
+        let charged = matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill);
+        if !charged && self.kind != ObstacleKind::Secret && hit.kind != HitKind::Environment {
+            return self.resist();
+        }
         match self.kind {
             ObstacleKind::Thicket => {
                 if matches!(hit.element, Element::Fire | Element::Aether) {
@@ -255,11 +256,7 @@ impl Entity for TileObstacle {
             }
             ObstacleKind::IceWall => {
                 if matches!(hit.element, Element::Fire | Element::Aether) {
-                    self.melt += if matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher) {
-                        1.0
-                    } else {
-                        0.34
-                    };
+                    self.melt += 1.0;
                     self.shake = 0.1;
                     world.add(SteamCloud::new(self.area().center() + Vec2::new(0.0, 8.0), false));
                     if self.melt >= 1.0 {
@@ -287,8 +284,7 @@ impl Entity for TileObstacle {
             }
             ObstacleKind::ShockLock => {
                 if matches!(hit.element, Element::Thunder | Element::Aether) {
-                    self.charge +=
-                        if matches!(hit.kind, HitKind::Melee | HitKind::Bolt | HitKind::Tether) { 0.34 } else { 1.0 };
+                    self.charge += 1.0;
                     self.shake = 0.15;
                     Particle::burst(world, self.area().center(), Element::Thunder.glow(), 6, 40.0, 0.3, true);
                     if self.charge >= 1.0 {
@@ -299,12 +295,8 @@ impl Entity for TileObstacle {
                 self.resist()
             }
             ObstacleKind::Rock => {
-                let strong = matches!(
-                    hit.kind,
-                    HitKind::ChargedBolt | HitKind::Skill | HitKind::Finisher | HitKind::Environment
-                );
                 let windy = matches!(hit.element, Element::Wind | Element::Aether);
-                if (windy && strong) || (hit.kind == HitKind::Environment && hit.power >= 1.0) {
+                if (windy && charged) || (hit.kind == HitKind::Environment && hit.power >= 1.0) {
                     self.clear(world, Sound::Break, Rgba::rgb(170, 130, 90));
                     return true;
                 }
@@ -319,22 +311,6 @@ impl Entity for TileObstacle {
                 true
             }
         }
-    }
-
-    fn interact(&mut self, world: &mut World) {
-        let text = match self.kind {
-            ObstacleKind::Thicket => "Dry, thorny brush. It looks like it would go up in flames.",
-            ObstacleKind::IceWall => "A wall of thick blue ice. Heat would melt it.",
-            ObstacleKind::FlameWall => "Unnatural fire roars across the way. Water might quench it.",
-            ObstacleKind::ShockLock => {
-                "A sealed metal door with a lightning sigil. Its lock wants a jolt of electricity."
-            }
-            ObstacleKind::Rock => {
-                "The rock is riddled with cracks. A strong gust, or something heavy, might shatter it."
-            }
-            ObstacleKind::Secret => return,
-        };
-        world.show_message(text);
     }
 
     fn draw(&self, world: &World, batch: &mut Batch) {
@@ -425,7 +401,9 @@ impl Entity for Turbine {
     }
 
     fn take_hit(&mut self, world: &mut World, hit: &mut Hit) -> bool {
-        if !matches!(hit.element, Element::Wind | Element::Aether) {
+        // Only a charged blast of wind turns it; a sword swing or a plain bolt just glances off.
+        let strong = matches!(hit.kind, HitKind::ChargedBolt | HitKind::Skill);
+        if !strong || !matches!(hit.element, Element::Wind | Element::Aether) {
             audio::play(Sound::Clink, 0.5, 0.0);
             return true;
         }

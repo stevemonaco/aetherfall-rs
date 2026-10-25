@@ -237,7 +237,7 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
         Notable,
         "elite_hunter",
         "Elite Hunter",
-        "Deal 20% more damage to elites and bosses.",
+        "Deal 8% more damage to elites and bosses.",
         "passive:elite_hunter",
     ),
     (2, -8, Notable, "keen_edge", "Keen Edge", "FOC +8%: more critical hits.", "foc:0.08"),

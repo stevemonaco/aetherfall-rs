@@ -92,13 +92,6 @@
       "y": 9.0,
       "flag": "bastion_vault"
     },
-    
-    {
-      "type": "sign",
-      "x": 27.0,
-      "y": 13.0,
-      "text": "The vault lever stands beyond the maintenance gap. A line might reach it."
-    },
     {
       "type": "chest",
       "x": 1.0,
@@ -106,6 +99,12 @@
       "style": 3,
       "item": "aether_mote",
       "count": 2
+    },
+    {
+      "type": "gate",
+      "x": 3.0,
+      "y": 12.0,
+      "open": "bastion_2_lamp"
     },
     {
       "type": "enemy",

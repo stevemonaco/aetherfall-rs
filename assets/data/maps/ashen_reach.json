@@ -27,11 +27,11 @@
     "##,,,,wwww,,,,,,,,#######,,,:,,ssssss,,,,,mmmm    ,,,,,,,,,,,,##",
     "::::::::::::::::::::::##,,,,:ss~~~~~~s,,,,,,,,,,,,,,##,,,,,,,,##",
     "::::::::::::::::::::::,,,,,s~~~~~~~~~~s,,,,,,,,,######,,,,,,,,##",
-    "##,,,wwwwwww,,,,,,,,::,,,,,s~~~~~~~~~~~s,,,,,,,,######,,,,,,,,##",
+    "##,,,wwwwwww,,,,,,,,::,,,,,s~~~~~,~~~~~sssssssss~~,###,,,,,,,,##",
     "##,,,wwwwww,,,,,,,,,::,,,,,s~~~~~~~~~~~~s,,,,,,,#######,,,,,,,##",
-    "##,,,wwwww,,,,,,,,,,::::::::::::::::::::::,,,,,,#######,,,,,,,##",
-    "##,,,,,www,sssss,,,,::::::::::::::::::::::,,,,,,########,,,,,,##",
-    "##,,,,,,w,s~~~~~s,,,,,,,,,,,s~~~~~~~~~s,::,,,,,,########,,,,,,##",
+    "##,,,wwwww,,,,,,,,,,::::::::::::::::::::::,,,,,,##,,,##,,,,,,,##",
+    "##,,,,,www,sssss,,,,::::::::::::::::::::::,,,,,,,,,,,###,,,,,,##",
+    "##,,,,,,w,s~~~~~s,,,,,,,,,,,s~~~~~~~~~s,::,,,,,,##,,,###,,,,,,##",
     "##,,,,,,,s~~~~~~~s,,,,,,,,,,mssss~~~~s,,::,,,,,,########,,,,,,##",
     "##,,,,,,,,s~~~~~~s,,,,,,mmmmmmmm,ssss,,,::,,,,,########,,,,,,,##",
     "##,,,,,,,,s~~~~~~s,,,,,mmmmmmmmmm,,,,,,,::,,,,,,######,,,,,,,,##",
@@ -103,12 +103,6 @@
       "tx": 1
     },
     {
-      "type": "sign",
-      "x": 5.0,
-      "y": 18.0,
-      "text": "The Ashen Reach. Where the first sky-city fell. Ashford Camp lies south-east."
-    },
-    {
       "type": "post",
       "x": 44.0,
       "y": 10.0
@@ -117,12 +111,6 @@
       "type": "post",
       "x": 51.0,
       "y": 10.0
-    },
-    {
-      "type": "sign",
-      "x": 42.0,
-      "y": 12.0,
-      "text": "A Concord anchor post stands at the chasm's edge. Another waits on the far side."
     },
     {
       "type": "turbine",
@@ -140,7 +128,8 @@
       "type": "chest",
       "x": 28.0,
       "y": 2.0,
-      "item": "glass_mail"
+      "item": "glass_mail",
+      "style": 2
     },
     {
       "type": "save",
@@ -208,9 +197,13 @@
       "y": 41.0,
       "restores": "a living ember",
       "elite": "cinderdevil",
-      "id": "ash_ember",
-      "soul": "ember"
+      "id": "ash_ember"
     },
+    {"type": "chest", "x": 54.0, "y": 39.0, "item": "soul_ember", "if": "rift:ash_ember", "style": 3},
+    {"type": "gate", "x": 48.0, "y": 25.0, "open": "reach_conduit,reach_sluice"},
+    {"type": "chest", "x": 52.0, "y": 25.0, "item": "gemcutter_prism"},
+    {"type": "shocklock", "x": 50.0, "y": 22.0, "flag": "reach_conduit"},
+    {"type": "lever", "x": 33.0, "y": 22.0, "flag": "reach_sluice"},
     {
       "type": "enemy",
       "x": 14.0,

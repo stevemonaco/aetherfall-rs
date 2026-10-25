@@ -32,9 +32,9 @@
     "TTT......~~.........TTTTTTTTTTTTTTTTTTTTTTTT",
     "TTT......~~..........TTTTTTTTTTTTTTTTTTTTTTT",
     "TT.....TT~~T........TTTTTTTTTTTTTTTTTTTTTTTT",
-    "TTTTT..TT~~TTTTT....TTTTTTTTTTTTTTTTTTTTTTTT",
-    "TTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
-    "TTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTT..TT~~TT~TT....TTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTT~~TT~TT.TTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTT~~TT.~~....TTTTTTTTTTTTTTTTTTTTTTTT",
     "TTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
   ],
@@ -102,8 +102,8 @@
     },
     {
       "type": "rift",
-      "x": 18.0,
-      "y": 26.0,
+      "x": 14.0,
+      "y": 21.0,
       "id": "ww_ring",
       "restores": "a footbridge over the brook",
       "alive": 3,
@@ -112,8 +112,8 @@
     },
     {
       "type": "rift",
-      "x": 26.0,
-      "y": 6.0,
+      "x": 21.0,
+      "y": 7.0,
       "id": "ww_glade",
       "restores": "a lost glade",
       "alive": 3,
@@ -155,7 +155,8 @@
       "type": "chest",
       "x": 37.0,
       "y": 5.0,
-      "item": "life_shard"
+      "item": "life_shard",
+      "style": 3
     },
     {"type": "dig", "x": 24.0, "y": 8.0, "gold": 180},
     {
@@ -163,12 +164,6 @@
       "x": 6.0,
       "y": 27.0,
       "gold": 220
-    },
-    {
-      "type": "sign",
-      "x": 38.0,
-      "y": 13.0,
-      "text": "The trail ends at a deep brook. A hawk's eye might spot the old stepping stones."
     },
     {
       "type": "enemy",
@@ -217,6 +212,10 @@
       "x": 11.0,
       "y": 24.0,
       "kind": "wisp"
-    }
+    },
+    {"type": "toggle", "x": 13.0, "y": 29.0, "flag": "ww_orb"},
+    {"type": "gate", "x": 16.0, "y": 28.0, "open": "!ww_orb"},
+    {"type": "gate", "x": 18.0, "y": 29.0, "open": "ww_orb"},
+    {"type": "chest", "x": 19.0, "y": 29.0, "item": "gemcutter_prism"}
   ]
 }

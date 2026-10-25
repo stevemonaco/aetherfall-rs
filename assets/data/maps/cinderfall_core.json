@@ -83,7 +83,7 @@
       "type": "chest",
       "x": 12.0,
       "y": 3.0,
-      "style": 3,
+      "style": 2,
       "item": "phoenix_plume",
       "if": "boss_wyrm"
     }

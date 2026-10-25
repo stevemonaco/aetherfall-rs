@@ -56,8 +56,8 @@
     },
     {
       "type": "rift",
-      "x": 30.0,
-      "y": 7.0,
+      "x": 26.0,
+      "y": 10.0,
       "count": 12,
       "id": "run_hollow_18",
       "alive": 3,
@@ -91,7 +91,8 @@
       "type": "chest",
       "x": 42.0,
       "y": 11.0,
-      "item": "blight_core"
+      "item": "blight_core",
+      "style": 0
     },
     {
       "type": "enemy",

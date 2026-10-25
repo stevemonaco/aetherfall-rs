@@ -71,7 +71,8 @@
       "x": 10.0,
       "y": 4.0,
       "item": "fire_sigil",
-      "if": "boss_warlock"
+      "if": "boss_warlock",
+      "style": 3
     },
     {
       "type": "decor",

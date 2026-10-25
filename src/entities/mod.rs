@@ -8,6 +8,7 @@ pub mod dummy;
 pub mod effects;
 pub mod enemy;
 pub mod entity;
+pub mod entrance;
 pub mod golden_breach;
 pub mod golem;
 pub mod hazards;

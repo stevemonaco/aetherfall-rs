@@ -51,12 +51,6 @@
       "art": "stairs_up"
     },
     {
-      "type": "sign",
-      "x": 17.0,
-      "y": 3.0,
-      "text": "The spire hangs upside down from a black sky. The rods below strike on a beat."
-    },
-    {
       "type": "storm",
       "x": 8.0,
       "y": 7.0,

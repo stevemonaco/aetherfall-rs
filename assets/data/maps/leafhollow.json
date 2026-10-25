@@ -36,6 +36,7 @@
     "TTTTTTTTTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTT"
   ],
   "entities": [
+    {"type": "npc", "x": 24.0, "y": 16.0, "name": "Wayfarer", "sprite": "oldman2", "dialogue": "wayfarer", "facing": "down"},
     {
       "type": "save",
       "x": 22.0,
@@ -139,12 +140,6 @@
     },
     {
       "type": "sign",
-      "x": 21.0,
-      "y": 18.0,
-      "text": "Leafhollow. North: the Sleeper's Vault. South: Windward Fields. West: the old bridge (washed out)."
-    },
-    {
-      "type": "sign",
       "x": 30.0,
       "y": 9.0,
       "text": "Brindle's Goods: herbs, armor and shields."
@@ -154,13 +149,6 @@
       "x": 26.0,
       "y": 22.0,
       "text": "The Sleepy Stag Inn."
-    },
-    {
-      "type": "sign",
-      "x": 10.0,
-      "y": 20.0,
-      "text": "Torva's Smithy. (The building flickers like a memory.)",
-      "unless": "rift:leaf_smith"
     },
     {
       "type": "sign",
@@ -330,7 +318,8 @@
       "type": "chest",
       "x": 34.0,
       "y": 5.0,
-      "item": "iron_shield"
+      "item": "iron_shield",
+      "style": 2
     },
     {
       "type": "dig",

@@ -6,6 +6,7 @@ pub mod map_scene;
 pub mod menu;
 pub mod options;
 pub mod pact;
+pub mod restore;
 pub mod scene;
 pub mod shop;
 pub mod slot;

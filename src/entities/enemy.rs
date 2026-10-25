@@ -966,7 +966,7 @@ impl Enemy {
         let mut mods = if self.phase == Phase::Broken { 2.0 } else { 1.0 }
             * if self.aura { 0.3 } else { 1.0 }
             * if self.marked > 0.0 { 1.25 } else { 1.0 }
-            * if self.hunted(world, hit) { 1.2 } else { 1.0 }
+            * if self.hunted(world, hit) { 1.08 } else { 1.0 }
             * if self.phase == Phase::Broken || self.frozen() { hit.execute } else { 1.0 };
         let mut shatter = false;
         if self.frozen() && hit.power >= 0.5 && self.status.shatter() {

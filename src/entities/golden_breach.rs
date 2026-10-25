@@ -1,6 +1,7 @@
 //! The golden rift at the heart of a Trial: stepping near it opens one great breach that pours out escalating waves,
 //! the last led by a Rift Champion. The breach holds the hero in: outside its edge their life drains, and if they
-//! stay out too long it collapses and every wave must be fought again. Clearing it sets `golden:id`.
+//! stay out too long it collapses and every wave must be fought again. Clearing it sets `golden:id` and pays three
+//! Gemcutter's Prisms; afterwards it can be rekindled once at Heat (more mods, tougher foes) for three more.
 
 use std::f32::consts::TAU;
 
@@ -12,15 +13,18 @@ use super::entity::{Entity, EntityBase, EntityId};
 use crate::art::combat as art_combat;
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
+use crate::core::font;
 use crate::core::geom::{IRect, snap};
 use crate::core::gfx::{self, Batch};
+use crate::core::palette;
 use crate::entity_base;
 use crate::gameplay::game_data::data;
-use crate::gameplay::trial_mods::TrialMod;
+use crate::gameplay::trial_mods::{self, TrialMod};
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, tile_center};
 
 const GOLD: Rgba = Rgba::rgb(255, 214, 110);
+const WARNING: Rgba = Rgba::rgb(255, 100, 80);
 /// How far the breach reaches; leaving it starts the drain.
 pub const RADIUS: f32 = 150.0;
 const SPAWN_GAP: f32 = 0.1;
@@ -67,6 +71,8 @@ pub struct GoldenBreach {
     outside: f32,
     drain: f32,
     time: f32,
+    /// Rekindled after the first clear: more trial mods and tougher waves.
+    heat: bool,
 }
 
 impl GoldenBreach {
@@ -91,11 +97,25 @@ impl GoldenBreach {
             outside: 0.0,
             drain: 0.0,
             time: 0.0,
+            heat: false,
         }
     }
 
     pub fn flag(&self) -> String {
         format!("golden:{}", self.id)
+    }
+
+    fn heat_flag(&self) -> String {
+        format!("golden_heat:{}", self.id)
+    }
+
+    fn rekindle_flag(&self) -> String {
+        format!("rekindle:{}", self.id)
+    }
+
+    /// Whether the cleared breach can still be rekindled at Heat.
+    fn can_rekindle(&self, world: &World) -> bool {
+        self.state == State::Done && !world.state.flags.contains(&self.heat_flag())
     }
 
     /// The wave counter for the HUD: (wave, waves, foes left), while the breach is open.
@@ -134,9 +154,10 @@ impl GoldenBreach {
         self.outside = 0.0;
         self.fill_wave(world);
         audio::play(Sound::BossRoar, 0.8, 0.2);
+        audio::play_music(Some("Boss-PerilousPrince"));
         world.camera.shake(0.5, 2.0);
         world.add(FloatingText::new(self.base.pos - Vec2::new(0.0, 44.0), "The golden breach opens!", GOLD));
-        world.toast("Stay inside the breach until every wave falls.");
+        world.toast("Stay inside the gold ring: outside it you lose life, and after 6 seconds the waves start over.");
     }
 
     fn spawn_next(&mut self, world: &mut World) {
@@ -145,7 +166,7 @@ impl GoldenBreach {
         let angle = world.rng.next_f32() * TAU;
         let reach = if champion { 0.0 } else { RADIUS * (0.35 + world.rng.next_f32() * 0.5) };
         let at = world.nearest_open(self.base.pos + Vec2::new(angle.cos() * reach, angle.sin() * reach * 0.7));
-        let level = Some(self.level + self.wave as i32);
+        let level = Some(self.level + self.wave as i32 + if self.heat { 8 } else { 0 });
         let enemy = if champion {
             Enemy::champion(def, at, level, world, format!("champion:{}", self.id))
         } else if elite {
@@ -166,7 +187,11 @@ impl GoldenBreach {
             return;
         }
         if self.outside == 0.0 {
-            world.add(FloatingText::new(world.hero.pos - Vec2::new(0.0, 24.0), "The breach pulls at you!", GOLD));
+            world.add(FloatingText::new(
+                world.hero.pos - Vec2::new(0.0, 24.0),
+                "Outside the breach: losing life!",
+                WARNING,
+            ));
         }
         self.outside += dt;
         self.drain += world.state.max_hp() as f32 * DRAIN * dt;
@@ -190,11 +215,13 @@ impl GoldenBreach {
         audio::play(Sound::Break, 0.9, -0.3);
         world.camera.shake(0.4, 2.0);
         world.toast("The breach collapses. Step back in to face it again.");
+        world.resume_music();
     }
 
     fn finish(&mut self, world: &mut World) {
         self.state = State::Done;
-        world.state.flags.insert(self.flag());
+        world.state.flags.insert(if self.heat { self.heat_flag() } else { self.flag() });
+        world.resume_music();
         world.flash(GOLD, 0.5);
         world.camera.shake(0.5, 2.0);
         world.hit_stop(0.15);
@@ -212,13 +239,33 @@ impl Entity for GoldenBreach {
     }
 
     fn added(&mut self, world: &mut World) {
+        world.state.flags.remove(&self.rekindle_flag());
         if world.state.flags.contains(&self.flag()) {
             self.state = State::Done;
         }
     }
 
+    fn can_interact(&self, world: &World) -> bool {
+        self.can_rekindle(world)
+    }
+
+    fn interact(&mut self, world: &mut World) {
+        let question = "Rekindle the breach at Heat? Two more trial mods, much tougher waves and meagre spoils, for the last gem it guards.";
+        world.confirm(question.to_string(), vec![format!("flag:{}", self.rekindle_flag())]);
+    }
+
     fn update(&mut self, world: &mut World, dt: f32) {
         self.time += dt;
+        if self.can_rekindle(world) && world.state.flags.remove(&self.rekindle_flag()) {
+            self.heat = true;
+            let count = world.trial_mods.len() + 2;
+            world.trial_mods = trial_mods::roll(&world.rng, count);
+            world.trial_mods.push(TrialMod::Meagre);
+            let names: Vec<&str> = world.trial_mods.iter().map(|m| m.label()).collect();
+            world.toast(format!("Heat! Trial mods: {}", names.join(", ")));
+            self.open(world);
+            return;
+        }
         match self.state {
             State::Dormant if world.hero.pos.distance(self.base.pos) < RADIUS * 0.6 => self.open(world),
             State::Active => {
@@ -259,7 +306,12 @@ impl Entity for GoldenBreach {
         }
     }
 
-    fn draw(&self, _world: &World, batch: &mut Batch) {
+    fn draw(&self, world: &World, batch: &mut Batch) {
+        if let Some(left) = self.collapse_in() {
+            let text = format!("Losing life outside the breach! Waves reset in {:.0}", left.max(0.0).ceil());
+            let at = snap(world.hero.pos - Vec2::new(0.0, 34.0));
+            font::draw_centered(batch, &text, at, WARNING, Some(palette::TEXT_SHADOW));
+        }
         if self.state == State::Active {
             let disc = art_combat::disc();
             let (dw, _) = gfx::size(disc);
@@ -277,13 +329,17 @@ impl Entity for GoldenBreach {
             );
             let ring = art_combat::ring();
             let (rw, _) = gfx::size(ring);
-            let pulse = 0.6 + (self.time * 4.0).sin() * 0.25;
+            let color = if self.outside > 0.0 {
+                WARNING.mul((self.time * 10.0).sin().abs() * 0.5 + 0.5)
+            } else {
+                GOLD.mul(0.6 + (self.time * 4.0).sin() * 0.25)
+            };
             let ring_scale = scale * dw as f32 / rw as f32;
             batch.draw_ex(
                 ring,
                 self.base.pos,
                 None,
-                GOLD.mul(pulse),
+                color,
                 0.0,
                 Vec2::splat(rw as f32 / 2.0),
                 ring_scale,
@@ -291,7 +347,7 @@ impl Entity for GoldenBreach {
                 false,
             );
         }
-        if self.state == State::Done {
+        if self.state == State::Done && !self.can_rekindle(world) {
             return;
         }
         let center = self.base.pos - Vec2::new(0.0, 16.0);

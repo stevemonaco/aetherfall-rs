@@ -56,6 +56,86 @@ impl SupportDef {
     }
 }
 
+/// The highest Gemcutter tier a gem can reach.
+pub const MAX_TIER: i32 = 4;
+
+/// A gem's name with its Gemcutter tier, e.g. "Flawless Multishot Gem".
+pub fn tier_name(gem: &SupportDef, tier: i32) -> String {
+    match tier.clamp(0, MAX_TIER) {
+        1 => format!("Cut {}", gem.name),
+        2 => format!("Polished {}", gem.name),
+        3 => format!("Flawless {}", gem.name),
+        4 => format!("Perfect {}", gem.name),
+        _ => gem.name.to_string(),
+    }
+}
+
+/// Prisms it takes to hone a gem from `tier` to the next: one more for every tier already cut.
+pub fn prisms_for(tier: i32) -> i32 {
+    tier + 1
+}
+
+/// Gems whose upside is a new behaviour; tiers make them hit harder instead of scaling a number.
+const HONED: [&str; 11] = [
+    "momentum_gem",
+    "multishot_gem",
+    "pierce_gem",
+    "linger_gem",
+    "echo_gem",
+    "efficiency_gem",
+    "lunge_gem",
+    "sweep_gem",
+    "whirlwind_gem",
+    "deflect_gem",
+    "seeking_gem",
+];
+
+/// A gem's description with its Gemcutter tier folded into the numbers: the upside (before ", but") grows by a
+/// tenth per tier and the drawback after it shrinks by a sixth.
+pub fn describe(gem: &SupportDef, tier: i32) -> String {
+    let t = tier.clamp(0, MAX_TIER) as f32;
+    if t == 0.0 {
+        return gem.description.to_string();
+    }
+    let honed = HONED.contains(&gem.id);
+    let (up, down) = gem.description.split_once(", but ").unwrap_or((gem.description, ""));
+    let up = if honed { up.to_string() } else { scale_percents(up, 1.0 + 0.1 * t) };
+    let mut text = if down.is_empty() { up } else { format!("{up}, but {}", scale_percents(down, 1.0 - t / 6.0)) };
+    if honed {
+        text.push_str(&format!(" Honed: {}% more damage.", (4.0 * t) as i32));
+    }
+    text
+}
+
+fn scale_percents(text: &str, factor: f32) -> String {
+    let mut out = String::new();
+    let mut digits = String::new();
+    for c in text.chars() {
+        if c.is_ascii_digit() {
+            digits.push(c);
+            continue;
+        }
+        if !digits.is_empty() {
+            let n: f32 = digits.parse().unwrap_or(0.0);
+            if c == '%' {
+                let v = n * factor;
+                let shown = if v < 10.0 {
+                    format!("{:.1}", v).trim_end_matches(".0").to_string()
+                } else {
+                    format!("{}", v.round() as i32)
+                };
+                out.push_str(&shown);
+            } else {
+                out.push_str(&digits);
+            }
+            digits.clear();
+        }
+        out.push(c);
+    }
+    out.push_str(&digits);
+    out
+}
+
 const fn gem(id: &'static str, name: &'static str, fits: Option<Group>, description: &'static str) -> SupportDef {
     SupportDef { id, name, fits, prism: false, description }
 }
@@ -156,7 +236,8 @@ pub struct SupportMods {
     pub sp_gain: f32,
     pub leech: f32,
     pub charge_speed: f32,
-    pub cleave: bool,
+    /// How much farther melee swings reach (1.0 without the Cleave gem).
+    pub cleave: f32,
     pub momentum: bool,
     pub multishot: bool,
     pub pierce: bool,
@@ -187,7 +268,7 @@ impl Default for SupportMods {
             sp_gain: 1.0,
             leech: 0.0,
             charge_speed: 1.0,
-            cleave: false,
+            cleave: 1.0,
             momentum: false,
             multishot: false,
             pierce: false,
@@ -208,88 +289,103 @@ impl Default for SupportMods {
 }
 
 impl SupportMods {
-    pub fn from_gems<'a>(gems: impl Iterator<Item = &'a SupportDef>) -> SupportMods {
+    /// Folds socketed gems, each with its Gemcutter tier (0 to `MAX_TIER`), into one set of modifiers. Every tier
+    /// grows a gem's upside by a tenth and trims a sixth off its drawback; gems whose upside is a new behaviour hit a
+    /// little harder instead.
+    pub fn from_gems<'a>(gems: impl Iterator<Item = (&'a SupportDef, i32)>) -> SupportMods {
         let mut m = SupportMods::default();
-        for gem in gems {
+        for (gem, tier) in gems {
+            let t = tier.clamp(0, MAX_TIER) as f32;
+            let up = |v: f32| 1.0 + (v - 1.0) * (1.0 + 0.1 * t);
+            let down = |v: f32| 1.0 - (1.0 - v) * (1.0 - t / 6.0);
+            let honed = 1.0 + 0.04 * t;
             match gem.id {
                 "cleave_gem" => {
-                    m.cleave = true;
-                    m.damage *= 0.85;
+                    m.cleave = up(1.3);
+                    m.damage *= down(0.85);
                 }
-                "momentum_gem" => m.momentum = true,
+                "momentum_gem" => {
+                    m.momentum = true;
+                    m.damage *= honed;
+                }
                 "multishot_gem" => {
                     m.multishot = true;
-                    m.damage *= 0.6;
+                    m.damage *= down(0.6) * honed;
                 }
                 "pierce_gem" => {
                     m.pierce = true;
-                    m.damage *= 0.8;
+                    m.damage *= down(0.8) * honed;
                 }
                 "linger_gem" => {
                     m.linger = true;
-                    m.charge_speed *= 0.8;
+                    m.charge_speed *= down(0.8);
+                    m.damage *= honed;
                 }
                 "echo_gem" => {
                     m.echo = true;
-                    m.aether *= 0.7;
+                    m.aether *= down(0.7);
+                    m.damage *= honed;
                 }
                 "efficiency_gem" => {
                     m.efficiency = true;
-                    m.damage *= 0.85;
+                    m.damage *= down(0.85) * honed;
                 }
                 "haste_gem" => {
-                    m.charge_speed *= 1.4;
-                    m.damage *= 0.9;
+                    m.charge_speed *= up(1.4);
+                    m.damage *= down(0.9);
                 }
                 "brutal_gem" => {
-                    m.poise *= 1.5;
-                    m.status *= 0.7;
+                    m.poise *= up(1.5);
+                    m.status *= down(0.7);
                 }
                 "infusion_gem" => {
-                    m.status *= 1.4;
-                    m.damage *= 0.85;
+                    m.status *= up(1.4);
+                    m.damage *= down(0.85);
                 }
                 "leech_gem" => {
-                    m.leech += 0.02;
-                    m.sp_gain *= 0.75;
+                    m.leech += 0.02 * (1.0 + 0.1 * t);
+                    m.sp_gain *= down(0.75);
                 }
                 "overdrive_gem" => {
-                    m.damage *= 1.25;
-                    m.aether *= 0.6;
+                    m.damage *= up(1.25);
+                    m.aether *= down(0.6);
                 }
                 "lunge_gem" => {
                     m.lunge = true;
-                    m.damage *= 0.9;
+                    m.damage *= down(0.9) * honed;
                 }
                 "sweep_gem" => {
                     m.sweep = true;
-                    m.damage *= 0.85;
+                    m.damage *= down(0.85) * honed;
                 }
-                "whirlwind_gem" => m.whirlwind = true,
+                "whirlwind_gem" => {
+                    m.whirlwind = true;
+                    m.damage *= honed;
+                }
                 "deflect_gem" => {
                     m.deflect = true;
-                    m.swing_speed *= 0.9;
+                    m.swing_speed *= down(0.9);
+                    m.damage *= honed;
                 }
                 "sunder_gem" => {
                     m.sunder = true;
-                    m.poise *= 1.5;
-                    m.damage *= 0.9;
+                    m.poise *= up(1.5);
+                    m.damage *= down(0.9);
                 }
-                "surge_gem" => m.surge += 0.25,
+                "surge_gem" => m.surge += 0.25 * (1.0 + 0.1 * t),
                 "seeking_gem" => {
                     m.seeking = true;
-                    m.damage *= 0.85;
+                    m.damage *= down(0.85) * honed;
                 }
                 "executioner_gem" => {
-                    m.execute *= 1.5;
-                    m.damage *= 0.9;
+                    m.execute *= up(1.5);
+                    m.damage *= down(0.9);
                 }
                 _ => {}
             }
         }
         m
     }
-
     /// The damage multiplier for a hit of this kind, including Momentum's finisher bonus.
     pub fn damage_for(&self, kind: HitKind) -> f32 {
         let momentum = match (self.momentum, kind) {

@@ -94,7 +94,7 @@
       "x": 18.0,
       "y": 6.0,
       "item": "concord_core",
-      "style": 3,
+      "style": 2,
       "if": "run:concord"
     },
     {

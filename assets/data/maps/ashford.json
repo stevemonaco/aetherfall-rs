@@ -37,6 +37,7 @@
     "########################################"
   ],
   "entities": [
+    {"type": "npc", "x": 24.0, "y": 19.0, "name": "Wayfarer", "sprite": "oldman2", "dialogue": "wayfarer", "facing": "down"},
     {
       "type": "spawn",
       "x": 3.0,

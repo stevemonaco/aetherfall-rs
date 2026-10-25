@@ -41,6 +41,10 @@ pub struct AccessoryStats {
     pub fire_taken: f32,
     pub life_on_kill: f32,
     pub safe_falls: bool,
+    /// Bog and shallows don't slow walking or dashing.
+    pub sure_footed: bool,
+    /// Jumps taken from bog carry as far as any other.
+    pub light_jumps: bool,
     pub dodge_charges: i32,
     pub perfect_window: f32,
     pub auto_revive: bool,
@@ -66,6 +70,8 @@ impl AccessoryStats {
         fire_taken: 1.0,
         life_on_kill: 0.0,
         safe_falls: false,
+        sure_footed: false,
+        light_jumps: false,
         dodge_charges: 0,
         perfect_window: 0.0,
         auto_revive: false,
@@ -90,6 +96,8 @@ impl AccessoryStats {
             fire_taken: a.fire_taken * b.fire_taken,
             life_on_kill: a.life_on_kill + b.life_on_kill,
             safe_falls: a.safe_falls || b.safe_falls,
+            sure_footed: a.sure_footed || b.sure_footed,
+            light_jumps: a.light_jumps || b.light_jumps,
             dodge_charges: a.dodge_charges + b.dodge_charges,
             perfect_window: a.perfect_window + b.perfect_window,
             auto_revive: a.auto_revive || b.auto_revive,
@@ -157,11 +165,11 @@ use ItemKind::*;
 
 static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
     vec![
-        item("herb", "Medical Herb", Consumable, 15, 30, "Restores 30% of your life."),
-        item("potion", "Healing Draught", Consumable, 60, 60, "Restores 60% of your life."),
-        item("spirit_tonic", "Spirit Tonic", Consumable, 80, 2, "Restores two SP pips."),
-        item("elixir", "Elixir", Consumable, 300, 100, "Fully restores life and SP and cures ailments."),
-        item("cooling_salve", "Cooling Salve", Consumable, 25, 0, "Cures burn, chill and shock."),
+        item("herb", "Medical Herb", Consumable, 150, 30, "Restores 30% of your life."),
+        item("potion", "Healing Draught", Consumable, 450, 60, "Restores 60% of your life."),
+        item("spirit_tonic", "Spirit Tonic", Consumable, 400, 2, "Restores two SP pips."),
+        item("elixir", "Elixir", Consumable, 2000, 100, "Fully restores life and SP and cures ailments."),
+        item("cooling_salve", "Cooling Salve", Consumable, 120, 0, "Cures burn, chill and shock."),
         item("tanned_hide", "Tanned Hide", Armor, 60, 4, "Light armor. DEF +4.").with_hp(10),
         item("chain_mail", "Chain Mail", Armor, 260, 9, "Sturdy armor. DEF +9, life +20.").with_hp(20),
         item("scale_armor", "Scale Armor", Armor, 900, 16, "Armor of serpent scales. DEF +16, life +35.").with_hp(35),
@@ -185,8 +193,8 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             hp: 1.1,
             ..N
         }),
-        item("swift_anklet", "Swift Anklet", Accessory, 0, 0, "Move 20% faster.")
-            .with_acc(AccessoryStats { speed: 1.2, ..N }),
+        item("swift_anklet", "Swift Anklet", Accessory, 0, 0, "Move 20% faster, and bog and shallows don't slow you.")
+            .with_acc(AccessoryStats { speed: 1.2, sure_footed: true, ..N }),
         item("focus_band", "Focus Band", Accessory, 0, 0, "FOC +25%: more critical hits and stronger ailments.")
             .with_acc(AccessoryStats { foc: 1.25, ..N }),
         item("fortune_coin", "Fortune Coin", Accessory, 1500, 0, "Enemies drop 50% more gold.")
@@ -201,8 +209,15 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { sp_gain: 1.4, ..N }),
         item("vampire_fang", "Vampire Fang", Accessory, 0, 0, "Recover 3% life per defeated foe.")
             .with_acc(AccessoryStats { life_on_kill: 0.03, ..N }),
-        item("feather_charm", "Feather Charm", Accessory, 0, 0, "Jump 40% longer. Falls cause no harm.")
-            .with_acc(AccessoryStats { jump_time: 1.4, safe_falls: true, ..N }),
+        item(
+            "feather_charm",
+            "Feather Charm",
+            Accessory,
+            0,
+            0,
+            "Jump 15% longer, even out of bog. Falls cause no harm.",
+        )
+        .with_acc(AccessoryStats { jump_time: 1.15, safe_falls: true, light_jumps: true, ..N }),
         item("salamander_scale", "Salamander Scale", Accessory, 0, 0, "Fire damage halved. ATK +5%.")
             .with_acc(AccessoryStats { fire_taken: 0.5, atk: 1.05, ..N }),
         item("cool_stone", "Resonant Stone", Accessory, 500, 0, "The Aether meter fills 35% faster.")
@@ -318,6 +333,14 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
         item("ember_crystal", "Ember Crystal", Key, 0, 0, "One of the four great crystals, warm as a hearth."),
         item("tide_crystal", "Tide Crystal", Key, 0, 0, "One of the four great crystals. It sounds like the sea."),
         item("storm_crystal", "Storm Crystal", Key, 0, 0, "One of the four great crystals. It hums with thunder."),
+        item(
+            "gemcutter_prism",
+            "Gemcutter's Prism",
+            Material,
+            3000,
+            0,
+            "Hones a support gem one tier: a fifth more upside, a third less drawback. Use it from Items.",
+        ),
         item("slime_gel", "Slime Gel", Material, 4, 0, "Wobbly. Smiths use it to temper blades."),
         item("beast_fang", "Beast Fang", Material, 8, 0, "A sharp fang. Good for edges."),
         item("ember_shard", "Ember Shard", Material, 20, 0, "Still warm. Burns with a steady light."),

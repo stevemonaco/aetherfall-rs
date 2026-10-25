@@ -124,11 +124,16 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
 
 - Healing comes only from towns: shops, and two early gifts (the Elder's herbs and the Brinewatch mayor's elixir).
   No chest, dig spot or foe outside a town holds a remedy. Stacks are small: three herbs, two draughts, two spirit
-  tonics, one elixir. A remedy that doesn't fit is used on the spot instead of being lost.
+  tonics, one elixir. A remedy that doesn't fit is used on the spot instead of being lost. Remedies are dear:
+  herbs 150 G, draughts 450 G, spirit tonics 400 G, cooling salves 120 G and elixirs 2000 G.
 - The Scholar's Lens grants 20% more EXP and the Fortune Coin 50% more gold. Both are sold in Highcrag (act 3) for
   2400 G and 1500 G; the Lens is also at Ashford's tinker.
 
 ## Progression
+
+- Gold is scarcer: kills drop 1.1 + 0.9 per level (down from 2 + 1.6), and most maps keep at most one chest of plain
+  gold or materials (puzzle rewards excepted). Chests show what they hold: plain wood for gold and materials, red for
+  equipment and gems, purple-gold for key items and permanent upgrades.
 - Monsters have 25% more life and 12% more attack. The hero's base life is 25% lower (82 + 10.5 per level).
 - Kills give half the EXP they did. Fighting above your level gives up to 25% more (5% per level); fighting below it
   costs 15% per level, so falling behind matters and farming easy areas does not pay.
@@ -143,13 +148,17 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
   (bursts a moment after death), Noxious (trails poison clouds), Thorned (plain bolts glance off), Rallying (calls up
   to four lesser kin), Aura-bound (the old elemental aura that only its opposite strips) and Hulking (40% more life,
   never flinches).
-- An elite kill gives three times the EXP, four times the gold and a guaranteed heart.
+- An elite kill gives three times the EXP and gold and a guaranteed heart.
 - Roaming packs: entering a combat map (not towns, boss rooms or Blighted expeditions) has a 30% chance (60%
   under the Swarm pact) to hold an elite of one of the map's kinds with two to four of its foes, somewhere reachable
   but well away from the entrance and the exits.
 - Rifts are breaches: walking near one tears it open, a purple circle spreads, and its whole quota swarms out of the
   edge within a couple of seconds. Elite rifts send the elite first, then escorts (3 by default). Once every foe it
-  sent has fallen the breach seals itself and restores what it held; there's nothing to strike.
+  sent has fallen the breach stills; stand in the rift for a second to seal it. Leaving the breach for 4 seconds
+  while it is open collapses it: its foes are drawn back in and it resets.
+- Sealing a rift that restores part of a town cuts to that town: the camera settles on what came back, it
+  shimmers into being (a house turns solid, a townsperson appears, planks span a gap), then the scene returns to
+  where you stood.
 
 ## Bestiary
 
@@ -212,7 +221,8 @@ water). At its heart is a golden rift.
   4.5 seconds it alternates a ring of telegraphed blasts around you with a nova of shots from itself.
 - Every visit rolls two trial mods (three in the Trial of the Prism), shown at the top of the screen with the wave
   counter: Haste, Volatile, Eruptions, Ironhide, Elite Tide and Bloodthirst. Each adds 25% EXP and gold.
-- Clearing the last wave opens the gem chests around the rift.
+- Clearing the last wave opens two of the gem chests around the rift (three in the Trial of Cinders). A cleared golden
+  rift can be rekindled once at Heat (interact with it) for the last and strongest gem.
 | Trial | Host | Gems |
 |---|---|---|
 | Trial of Thorns | Whisperwood | Cleave, Brutal, Lunging |
@@ -223,8 +233,28 @@ water). At its heart is a golden rift.
 | Trial of Cinders | Ashen Reach | Echo, Overdrive, Deflecting, Whirlwind |
 | Trial of the Prism (after the blade awakens) | Cinderfall | Prism Lens, Everlight, Executioner |
 
-## The guardian spirit
+## Gemcutter's Prisms
 
+- At its top tier a gem's upside is 40% larger and its drawback two-thirds smaller; gems whose upside is a new
+  behaviour (Multishot, Sweeping, Whirlwind...) hit 4% harder per tier instead. Use a Prism from the Items tab.
+- A Prism hones a gem one tier (Cut, Polished, Flawless, Perfect); each step costs as many Prisms as the tier it
+  reaches, ten for a Perfect gem. Prisms come from puzzle and exploration chests across every act, elites (5%, unless the hero is more than 10 levels above
+  them; never cut off near the level cap) and Ashford's tinker (3000 G).
+- Heat adds two trial mods and Meagre (half EXP, gold and drops), and its foes are eight levels higher.
+
+## Puzzles
+
+- New pieces: element crystals (open only to one element's hit, optionally on a timer; bolts count, so bank shots off
+  walls reach hidden ones) and toggle switches (each hit flips a flag; gates opened by the flag and by its opposite
+  take turns).
+- Each act dungeon has a signature mechanic: the Grotto wind, the Temple water, the Spire conduction, the Bastion
+  past and present, the Citadel all of them together. Fields and side areas hide small optional puzzles in front of
+  purple chests.
+- The map screen's area view (Confirm to switch; dungeons open on it) charts the current map with the hero, exits,
+  rifts, locked doors and unopened chests.
+- A Wayfarer by every town's save crystal points at the next step on the road.
+
+## The guardian spirit
 - The hero wakes with a guardian spirit that fights beside them by itself: it zaps the nearest foe every couple of
   seconds. Spirit hits scale with the hero's stats and don't trigger support gems.
 - Freeing a beast from a rift teaches the spirit its form, each with its own auto-attack and exploration perk:

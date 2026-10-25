@@ -7,12 +7,12 @@
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
-    "TTTTTTTTTTTTTT;;;;;;;;;TTTTTTTT;;;;;;;;TTTTT,,,,,,,TTTTTTTTT",
-    "TTTT.....;;;;;;;;;;;;;;~~~~~~~~;;;sss;;~~~~,,,,,,,,,,,TTTTTT",
-    "TTTT.....;;~~~~~~~~~~~~~~~~;.ww.;~sss~~~~~;,,,,,,,,,,,TTTTTT",
-    "TTTT......;~~~~~~~~~~~~~~~~;....;~~~~~~~==;,,,,,,,,,,.TTTTTT",
-    "TTTT......;~~~~~;;;;;;;;~~ss....~~~~~~~~~~~,,,,,,,,,,.TTTTTT",
-    "TTTT......;~~~~...........ss~~~~~~~~~~~~~~~~~~==~;;.......TT",
+    "TTTTTTTTTTTTTT;;;;;;;;;TTTTTTTT;;;;;;TTTTTTT,,,,,,,TTTTTTTTT",
+    "TTTT.....;;;;;;;;;;;;;;~~~~~~~~;;;sss~~~~~~,,,,,,,,,,,TTTTTT",
+    "TTTT.....;;~~~~~~~~~~~~~~~~~~~w.;~sss~~~~~;,,,,,,,,,,,TTTTTT",
+    "TTTT......;~~~~~~~~~~~~~~~~~~~..;~~~~~~~==;,,,,,,,,,,.TTTTTT",
+    "TTTT......;~~~~~;;;;;;;;~~~~~~..~~~~~~~~~~~,,,,,,,,,,.TTTTTT",
+    "TTTT......;~~~~...........~~~~~,~~~~~~~~~~~~~~==~;;.......TT",
     "TT..wwww..;s~;....wwww...;;~~~~~~~~~~~~~~~~~~~==~;;...www.TT",
     "TT..wwww..;s~;....wwww...;;~~~~~~~~~~~~~~~~~~~==~;;...www.TT",
     "TT..wwww..;s~;;..........;;~~##_###~~~~~~~~~~~==s;;...www.TT",
@@ -38,6 +38,7 @@
   "entities": [
     {"type": "gate", "x": 59.0, "y": 14.0, "open": "rift:causeway_toll", "look": "thorns"},
     {"type": "gate", "x": 59.0, "y": 15.0, "open": "rift:causeway_toll", "look": "thorns"},
+    {"type": "thicket", "x": 31.0, "y": 11.0},
     {
       "type": "warp",
       "x": 0.0,
@@ -60,20 +61,14 @@
     },
     {
       "type": "sign",
-      "x": 3.0,
-      "y": 13.0,
-      "text": "The Drowned Causeway. Brinewatch lies east across the water."
-    },
-    {
-      "type": "sign",
       "x": 30.0,
       "y": 13.0,
       "text": "The old toll house. A carved board still reads: 'One copper to cross. Two to cross dry.'"
     },
     {
       "type": "rift",
-      "x": 31.0,
-      "y": 16.0,
+      "x": 35.0,
+      "y": 18.0,
       "id": "causeway_toll",
       "alive": 3,
       "count": 6,
@@ -90,8 +85,8 @@
     },
     {
       "type": "rift",
-      "x": 16.0,
-      "y": 22.0,
+      "x": 10.0,
+      "y": 16.0,
       "kinds": "toad,coil,leech,croaker,mudeel,thrall",
       "count": 4,
       "id": "causeway_elite",
@@ -102,20 +97,15 @@
       "type": "chest",
       "x": 30.0,
       "y": 6.0,
-      "item": "insight_tome"
+      "item": "insight_tome",
+      "style": 3
     },
-    {"type": "chest", "x": 3.0, "y": 10.0, "gold": 300},
     {
       "type": "chest",
       "x": 32.0,
       "y": 12.0,
-      "gold": 400
-    },
-    {
-      "type": "chest",
-      "x": 50.0,
-      "y": 4.0,
-      "item": "tide_pearl"
+      "gold": 400,
+      "style": 0
     },
     {
       "type": "dig",

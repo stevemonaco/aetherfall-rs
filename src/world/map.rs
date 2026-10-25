@@ -118,6 +118,9 @@ pub struct MapData {
     pub weather: Option<String>,
     /// A dark map becomes lit once this condition holds (e.g. a lighthouse restored).
     pub light_if: Option<String>,
+    /// Told on arrival while a `light_if` map is still dark, and the first time it arrives lit.
+    pub dark_note: Option<String>,
+    pub lit_note: Option<String>,
     /// The same place in another era, for the Memory Lens (maps share coordinates).
     pub pair: Option<String>,
     pub era: Option<String>,
@@ -147,6 +150,8 @@ impl Default for MapData {
             ambient: None,
             weather: None,
             light_if: None,
+            dark_note: None,
+            lit_note: None,
             pair: None,
             era: None,
             heat: 0.0,

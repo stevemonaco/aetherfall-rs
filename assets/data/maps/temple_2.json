@@ -5,6 +5,8 @@
   "level": 16,
   "dark": true,
   "lightIf": "rift:brine_lighthouse",
+  "darkNote": "Pitch dark. Brinewatch's lighthouse once lit these halls through the water.",
+  "litNote": "Light from the Brinewatch lighthouse filters down through the water.",
   "rows": [
     "########################################",
     "##############____________##############",
@@ -19,7 +21,7 @@
     "#_________    _________________ ____####",
     "#__#          _________________ ____####",
     "####          ______________________####",
-    "####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~####",
+    "##############~~~~~~~~~~~~~~~~~~~~~~####",
     "####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~####",
     "####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~####",
     "####________________________________#__#",
@@ -29,17 +31,28 @@
     "####_______ ________________ _______####",
     "####________________________________####",
     "###################__###################",
-    "###################__###################",
-    "###############__________###############",
-    "###############__________###############",
-    "###############__________###############",
-    "###############__________###############",
-    "###############__________###############",
-    "###################__###################",
-    "###################__###################",
+    "###########_#######__######__   _____###",
+    "##       ##_###__________####   _____###",
+    "##       ##_###__________####   _____###",
+    "##  ##___##_###__________#___   #____###",
+    "##_ ##_______________________   _______#",
+    "######________#__________#___   #____###",
+    "#############_#####__###################",
+    "#############_#####__###################",
     "########################################"
   ],
   "entities": [
+    {"type": "crystal", "x": 11.0, "y": 23.0, "element": "fire", "flag": "temple_2_cfire"},
+    {"type": "flamewall", "x": 11.0, "y": 26.0},
+    {"type": "crystal", "x": 2.0, "y": 27.0, "element": "water", "flag": "temple_2_cwater"},
+    {"type": "gate", "x": 13.0, "y": 29.0, "open": "temple_2_cfire,temple_2_cwater"},
+    {"type": "chest", "x": 13.0, "y": 30.0, "item": "gemcutter_prism"},
+    {"type": "post", "x": 27.0, "y": 27.0},
+    {"type": "flamewall", "x": 32.0, "y": 27.0},
+    {"type": "post", "x": 34.0, "y": 27.0},
+    {"type": "lever", "x": 27.0, "y": 23.0, "flag": "temple_2_vlever"},
+    {"type": "gate", "x": 37.0, "y": 27.0, "open": "temple_2_vlever"},
+    {"type": "chest", "x": 38.0, "y": 27.0, "item": "gemcutter_prism"},
     {
       "type": "warp",
       "x": 19.0,
@@ -52,12 +65,7 @@
       "art": "stairs_up",
       "tx": 19
     },
-    {
-      "type": "barrier",
-      "x": 36.0,
-      "y": 17.0,
-      "element": "water"
-    },
+    {"type": "gate", "x": 36.0, "y": 17.0, "open": "rift:brine_guardian", "look": "thorns"},
     {
       "type": "chest",
       "x": 38.0,
@@ -79,7 +87,8 @@
       "type": "chest",
       "x": 6.0,
       "y": 9.0,
-      "item": "temple_key"
+      "item": "temple_key",
+      "style": 3
     },
     {
       "type": "barrier",
@@ -91,15 +100,10 @@
       "type": "chest",
       "x": 1.0,
       "y": 10.0,
-      "item": "feather_charm"
+      "item": "feather_charm",
+      "style": 2
     },
-    {"type": "chest", "x": 33.0, "y": 10.0, "item": "tide_pearl", "count": 2},
-    {
-      "type": "sign",
-      "x": 17.0,
-      "y": 11.0,
-      "text": "Anchor posts of Concord metal stand on either side of the pit. A line could cross it."
-    },
+    {"type": "chest", "x": 33.0, "y": 10.0, "item": "tide_pearl", "count": 2, "style": 0},
     {
       "type": "door",
       "x": 19.0,
@@ -140,10 +144,10 @@
       "x": 30.0,
       "y": 19.0,
       "id": "brine_guardian",
-      "soul": "guardian",
       "elite": "inkling",
-      "restores": "a guardian spirit"
+      "restores": "the way to the Aether Tether"
     },
+    {"type": "chest", "x": 30.0, "y": 17.0, "item": "guardian_charm", "if": "rift:brine_guardian", "style": 3},
     {
       "type": "enemy",
       "x": 8.0,

@@ -8,8 +8,8 @@
     "TTTTTTTT....TTTTTTTTTTTTT..::.....######################",
     "TTTTTTTTT.......TTTTTT.....::.....######################",
     "TTTTTTTTTT.................::.....######################",
-    "TTTTTTTTT.wwwwww...........::.....######################",
-    "TTTTTT...Twwwwwww...\".\"\"...::.......####################",
+    "TT.~~....Twwwwww...........::.....######################",
+    "TT.TTTTTTTwwwwwww...\".\"\"...::.......####################",
     "TT....TTTTwwwwwwww.\"\"\"\"\"...::.........########:#########",
     "TT.TTTTTTTwwwwww...\"\"\"\"\"\"..::.................:..#####TT",
     "TT.TTTTTTTTTTTw............::.................:..######T",
@@ -72,12 +72,6 @@
     },
     {
       "type": "sign",
-      "x": 30.0,
-      "y": 3.0,
-      "text": "Windward Fields. North: Leafhollow. North-east: Thornback Hills and the Mossy Grotto beyond."
-    },
-    {
-      "type": "sign",
       "x": 44.0,
       "y": 12.0,
       "text": "The shepherds' tunnel to Thornback Hills and the Mossy Grotto. A rockfall sealed it after the fires began."
@@ -126,12 +120,6 @@
       "flag": "thorns_east_road"
     },
     {
-      "type": "sign",
-      "x": 44.0,
-      "y": 25.0,
-      "text": "East: Mistmoor Marsh and the lake town of Brinewatch. (Thorns have choked the road for years.)"
-    },
-    {
       "type": "warp",
       "x": 55.0,
       "y": 26.0,
@@ -144,15 +132,10 @@
       "type": "chest",
       "x": 10.0,
       "y": 38.0,
-      "item": "chain_mail"
+      "item": "chain_mail",
+      "style": 2
     },
-    {"type": "chest", "x": 41.0, "y": 30.0, "gold": 80},
-    {
-      "type": "chest",
-      "x": 5.0,
-      "y": 13.0,
-      "gold": 60
-    },
+    {"type": "chest", "x": 41.0, "y": 30.0, "gold": 80, "style": 0},
     {
       "type": "dig",
       "x": 48.0,
@@ -177,8 +160,8 @@
     },
     {
       "type": "rift",
-      "x": 41.0,
-      "y": 16.0,
+      "x": 35.0,
+      "y": 10.0,
       "count": 8,
       "restores": "the Weave shrine in Leafhollow",
       "alive": 3,
@@ -188,15 +171,15 @@
     },
     {
       "type": "rift",
-      "x": 8.0,
-      "y": 37.0,
+      "x": 5.0,
+      "y": 31.0,
       "count": 5,
       "restores": "a hunter's hound",
-      "soul": "hound",
       "alive": 3,
       "id": "leaf_hound",
       "kinds": "snail,slime,fieldrat,sandcrab"
     },
+    {"type": "chest", "x": 5.0, "y": 29.0, "item": "soul_hound", "if": "rift:leaf_hound", "style": 3},
     {
       "type": "decor",
       "x": 33.0,
@@ -259,12 +242,6 @@
     },
     {
       "type": "decor",
-      "x": 39.0,
-      "y": 32.0,
-      "kind": "tree"
-    },
-    {
-      "type": "decor",
       "x": 18.0,
       "y": 13.0,
       "kind": "boulder"
@@ -315,12 +292,6 @@
       "type": "decor",
       "x": 34.0,
       "y": 12.0,
-      "kind": "bush"
-    },
-    {
-      "type": "decor",
-      "x": 15.0,
-      "y": 34.0,
       "kind": "bush"
     },
     {
@@ -436,6 +407,10 @@
       "x": 37.0,
       "y": 37.0,
       "kind": "plant"
-    }
+    },
+    {"type": "stoneblock", "x": 5.0, "y": 4.0, "id": "fields_gust"},
+    {"type": "plate", "x": 8.0, "y": 4.0, "flag": "fields_gust_plate", "heavy": true},
+    {"type": "gate", "x": 4.0, "y": 6.0, "open": "fields_gust_plate"},
+    {"type": "chest", "x": 5.0, "y": 6.0, "item": "gemcutter_prism"}
   ]
 }

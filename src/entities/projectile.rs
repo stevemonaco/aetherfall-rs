@@ -212,6 +212,25 @@ impl Projectile {
         }
     }
 
+    /// Strikes everything the shot overlaps; returns whether the shot is spent.
+    fn strike_overlapping(&mut self, world: &mut World) -> bool {
+        let damage_box = self.damage_box();
+        for (id, faction, hurtbox) in world.damageables() {
+            if !self.can_hit(id, faction) || !hurtbox.intersects(&damage_box) {
+                continue;
+            }
+            self.mark_hit(id);
+            if self.strike(world, id, faction) && !self.piercing {
+                self.expire(world);
+                return true;
+            }
+            if self.base.removed {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Bends the flight toward the nearest foe ahead, a few radians a second at most.
     fn steer(&mut self, world: &World, dt: f32) {
         let here = self.base.pos - Vec2::new(0.0, self.z);
@@ -236,6 +255,13 @@ impl Projectile {
             self.base.pos = next;
             return true;
         }
+        // Whatever stands in the blocked tile (a thicket, a flame wall, a turbine) takes the shot before it bounces.
+        let here = self.base.pos;
+        self.base.pos = next;
+        if self.strike_overlapping(world) {
+            return false;
+        }
+        self.base.pos = here;
         if self.bounces <= 0 {
             self.base.pos = next;
             self.expire(world);
@@ -359,20 +385,7 @@ impl Entity for Projectile {
             ));
         }
 
-        let damage_box = self.damage_box();
-        for (id, faction, hurtbox) in world.damageables() {
-            if !self.can_hit(id, faction) || !hurtbox.intersects(&damage_box) {
-                continue;
-            }
-            self.mark_hit(id);
-            if self.strike(world, id, faction) && !self.piercing {
-                self.expire(world);
-                return;
-            }
-            if self.base.removed {
-                return;
-            }
-        }
+        self.strike_overlapping(world);
     }
 
     fn draw(&self, _world: &World, batch: &mut Batch) {

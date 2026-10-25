@@ -36,10 +36,12 @@
     "##############################################"
   ],
   "entities": [
+    
+    
     {"type": "trial", "x": 23.0, "y": 26.0, "name": "Trial of Mire", "exit": true, "to": "marsh", "tx": 28, "ty": 20},
     {"type": "golden", "x": 23.0, "y": 13.0, "id": "trial_marsh", "kinds": "mirecap,coil,toad,leech,croaker,fenplant", "level": 17, "champion": "thrall"},
     {"type": "chest", "x": 19.0, "y": 10.0, "item": "momentum_gem", "if": "golden:trial_marsh", "style": 3},
     {"type": "chest", "x": 22.0, "y": 10.0, "item": "infusion_gem", "if": "golden:trial_marsh", "style": 3},
-    {"type": "chest", "x": 25.0, "y": 10.0, "item": "sweep_gem", "if": "golden:trial_marsh", "style": 3}
+    {"type": "chest", "x": 25.0, "y": 10.0, "item": "sweep_gem", "if": "golden_heat:trial_marsh", "style": 3}
   ]
 }

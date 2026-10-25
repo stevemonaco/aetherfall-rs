@@ -60,7 +60,6 @@ pub const ALL: [SoulDef; 4] = [
 ];
 
 /// Charms set into the spirit, and the freed souls that leave each one behind.
-pub const CHARMS: [(&str, &str); 2] = [("guardian", "guardian_charm"), ("stormling", "storm_charm")];
 pub const CHARM_SLOTS: usize = 2;
 
 /// A form by id; "spirit" (or nothing) is the spirit's own shape.
@@ -71,7 +70,3 @@ pub fn get(id: &str) -> Option<&'static SoulDef> {
     ALL.iter().find(|s| s.id == id)
 }
 
-/// The charm a freed soul leaves instead of a form, if it is one of those.
-pub fn charm_for(soul: &str) -> Option<&'static str> {
-    CHARMS.iter().find(|(s, _)| *s == soul).map(|(_, charm)| *charm)
-}

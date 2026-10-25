@@ -174,13 +174,21 @@ pub fn enemy_foc(level: i32) -> f32 {
 }
 
 pub fn enemy_exp(level: i32) -> f32 {
-    4.0 * (level as f32).powf(1.5)
+    1.6 * (level as f32).powf(1.5)
 }
 
 /// Over-levelled players earn much less and under-levelled ones a little more, so farming weak areas fades quickly.
 pub fn exp_gap_factor(enemy_level: i32, player_level: i32) -> f32 {
     let gap = (enemy_level - player_level) as f32;
-    if gap >= 0.0 { (1.0 + 0.05 * gap).min(1.25) } else { (1.0 + 0.15 * gap).max(0.1) }
+    if gap >= 0.0 { (1.0 + 0.05 * gap).min(1.25) } else { (1.0 + 0.2 * gap).max(0.05) }
+}
+
+/// Gold from a kill fades evenly to nothing once the hero is 10 levels above the foe, except near the level cap.
+pub fn gold_gap_factor(enemy_level: i32, player_level: i32) -> f32 {
+    if enemy_level >= MAX_LEVEL - 10 {
+        return 1.0;
+    }
+    (1.0 - (player_level - enemy_level).max(0) as f32 / 10.0).max(0.0)
 }
 
 pub fn crit_chance(foc: f32) -> f32 {

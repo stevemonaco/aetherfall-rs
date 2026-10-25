@@ -18,10 +18,10 @@ use super::weave::{self, WeaveMods, WeaveNode};
 use crate::core::direction::Direction;
 use crate::core::storage;
 
-pub const SAVE_VERSION: i32 = 7;
+pub const SAVE_VERSION: i32 = 8;
 /// The oldest save version that can still be migrated.
 const OLDEST_SAVE: i32 = 3;
-pub const SLOT_COUNT: i32 = 3;
+pub const SLOT_COUNT: i32 = 8;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default, rename_all = "PascalCase")]
@@ -60,6 +60,8 @@ pub struct GameState {
     /// The guardian spirit's current form, or None for its own shape.
     pub soul: Option<String>,
     pub spirit_charms: [Option<String>; souls::CHARM_SLOTS],
+    /// Gemcutter tiers by gem id.
+    pub gem_tiers: BTreeMap<String, i32>,
     pub tracked_quest: Option<String>,
     pub pacts: BTreeSet<String>,
     pub kills: BTreeMap<String, i32>,
@@ -102,6 +104,7 @@ impl Default for GameState {
             souls_owned: Vec::new(),
             soul: None,
             spirit_charms: [None, None],
+            gem_tiers: BTreeMap::new(),
             tracked_quest: None,
             pacts: BTreeSet::new(),
             kills: BTreeMap::new(),
@@ -361,10 +364,16 @@ impl GameState {
 
     /// Brings a save from before the Weave and the Aether rework up to date: renamed items, rings turned into orbs,
     /// the neutral mode and its skills gone, and skills matched to mastery. The Weave changed in versions 4 to 7, so
-    /// older saves get every point back.
+    /// older saves get every point back; version 8 doubled Gemcutter tiers.
     fn migrate(&mut self) {
         if self.version < 7 {
             self.reset_weave();
+        }
+        // Gemcutter tiers went from two steps to four of half the size; doubling keeps every honed gem as strong.
+        if self.version < 8 {
+            for tier in self.gem_tiers.values_mut() {
+                *tier = (*tier * 2).min(supports::MAX_TIER);
+            }
         }
         self.version = SAVE_VERSION;
         for (old, new) in [
@@ -565,6 +574,30 @@ impl GameState {
     }
 
     /// Unpicks the whole Weave, refunding every point.
+    /// Whether a woven node can be unpicked without cutting any other woven node off from the hub.
+    pub fn can_drop(&self, node: &WeaveNode) -> bool {
+        if !self.weave_nodes.contains(&node.id) {
+            return false;
+        }
+        let hub = weave::by_id(weave::HUB).expect("the Weave has a hub");
+        let mut reached = std::collections::HashSet::from([hub.id.as_str()]);
+        let mut queue = vec![hub];
+        while let Some(at) = queue.pop() {
+            for next in weave::neighbours(at) {
+                if next.id != node.id && self.weave_nodes.contains(&next.id) && reached.insert(next.id.as_str()) {
+                    queue.push(next);
+                }
+            }
+        }
+        self.weave_nodes.iter().all(|id| id == &node.id || reached.contains(id.as_str()))
+    }
+
+    pub fn drop_node(&mut self, node_id: &str) {
+        if self.weave_nodes.remove(node_id) {
+            *self.mods.borrow_mut() = None;
+        }
+    }
+
     pub fn reset_weave(&mut self) {
         self.weave_nodes.clear();
         *self.mods.borrow_mut() = None;
@@ -592,7 +625,24 @@ impl GameState {
     }
 
     pub fn support_mods(&self, mode: Element, group: Group) -> SupportMods {
-        SupportMods::from_gems(self.socketed(mode, group).into_iter())
+        SupportMods::from_gems(self.socketed(mode, group).into_iter().map(|g| (g, self.gem_tier(g.id))))
+    }
+
+    pub fn gem_tier(&self, id: &str) -> i32 {
+        self.gem_tiers.get(id).copied().unwrap_or(0)
+    }
+
+    /// A gem's name with its Gemcutter tier.
+    /// An item's description; a support gem's numbers include its Gemcutter tier.
+    pub fn item_description(&self, id: &str) -> String {
+        match supports::get(id) {
+            Some(gem) => supports::describe(gem, self.gem_tier(id)),
+            None => items::get(id).map_or(String::new(), |i| i.description.to_string()),
+        }
+    }
+
+    pub fn gem_label(&self, id: &str) -> String {
+        supports::get(id).map_or_else(|| items::name_of(id), |g| supports::tier_name(g, self.gem_tier(id)))
     }
 
     /// Puts a gem in a socket (taking it out of any other first), or empties the socket.

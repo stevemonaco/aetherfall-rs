@@ -31,11 +31,12 @@
     "#TTTTT:**********::*********TTTTTTT#",
     "#TTTTTT**********::**********TTTTT##",
     "#TTTTTT**********::***********TT**##",
-    "##*TT************::***************##",
+    "###TT************::***************##",
     "#################::#################",
     "#################::#################"
   ],
   "entities": [
+    {"type": "npc", "x": 20.0, "y": 13.0, "name": "Wayfarer", "sprite": "oldman2", "dialogue": "wayfarer", "facing": "down"},
     {
       "type": "save",
       "x": 18.0,
@@ -67,12 +68,6 @@
       "blocked": "Watchman Brann: The east pass runs down into the crater where the first sky-city fell. Nobody goes there while the Spire still storms.",
       "h": 2,
       "facing": "right"
-    },
-    {
-      "type": "sign",
-      "x": 31.0,
-      "y": 12.0,
-      "text": "East: the Ashen Reach."
     },
     {
       "type": "building",
@@ -124,12 +119,6 @@
       "to": "ridge"
     },
     {
-      "type": "sign",
-      "x": 31.0,
-      "y": 6.0,
-      "text": "North: Stormbreak Ridge and the Storm Spire."
-    },
-    {
       "type": "warp",
       "x": 7.0,
       "y": 0.0,
@@ -140,12 +129,6 @@
       "to": "cloudstep",
       "if": "crystals:3",
       "blocked": "Altar Keeper: The cloud stair only holds for one who carries fire, tide and storm."
-    },
-    {
-      "type": "sign",
-      "x": 11.0,
-      "y": 5.0,
-      "text": "North: Cloudstep Ascent, the old Concord stair to the Sky Altar."
     },
     {
       "type": "decor",

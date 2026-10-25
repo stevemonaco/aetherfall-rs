@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use crate::art::{bosses, combat, props};
+use crate::art::{bosses, combat, entrances, props};
 use crate::core::color::Rgba;
 use crate::core::gfx::TexId;
 use crate::gameplay::element::Element;
@@ -83,6 +83,12 @@ pub fn all() -> Vec<(String, TexId)> {
         s("heart_pickup", props::heart_pickup()),
         s("puff", props::puff()),
         s("house", props::house(4, 3, 1, "green")),
+        s("entrance_grotto", entrances::grotto()),
+        s("entrance_temple", entrances::temple()),
+        s("entrance_spire", entrances::spire()),
+        s("entrance_bastion", entrances::bastion()),
+        s("entrance_altar", entrances::sky_altar()),
+        s("entrance_altar_crystal", entrances::altar_crystal()),
     ]);
     sprites
 }

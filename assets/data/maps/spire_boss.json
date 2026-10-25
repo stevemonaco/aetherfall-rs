@@ -71,7 +71,8 @@
       "x": 3.0,
       "y": 9.0,
       "item": "gale_bracer",
-      "if": "boss_golem"
+      "if": "boss_golem",
+      "style": 3
     },
     {
       "type": "decor",

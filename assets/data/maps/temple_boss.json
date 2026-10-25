@@ -71,7 +71,8 @@
       "x": 3.0,
       "y": 9.0,
       "if": "boss_serpent",
-      "item": "vampire_fang"
+      "item": "vampire_fang",
+      "style": 2
     },
     {
       "type": "decor",

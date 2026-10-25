@@ -63,11 +63,6 @@ impl Entity for TrialGate {
         Some((if self.finished(world) { 24.0 } else { 56.0 }, GOLD))
     }
 
-    fn added(&mut self, world: &mut World) {
-        let (tx, ty) = self.base.tile_pos();
-        world.map.block(tx, ty, true);
-    }
-
     fn update(&mut self, world: &mut World, dt: f32) {
         self.time += dt;
         if !self.finished(world) && world.rng.next_f32() < 0.25 {

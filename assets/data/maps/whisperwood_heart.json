@@ -47,17 +47,9 @@
       "y": 9.0,
       "id": "ww_hawk",
       "elite": "eye",
-      "restores": "a hawk, circling free",
-      "soul": "hawk"
+      "restores": "a hawk, circling free"
     },
-    {
-      "type": "chest",
-      "x": 14.0,
-      "y": 5.0,
-      "style": 2,
-      "item": "weave_knot",
-      "if": "rift:ww_hawk"
-    },
+    {"type": "chest", "x": 14.0, "y": 7.0, "item": "soul_hawk", "if": "rift:ww_hawk", "style": 3},
     {
       "type": "sign",
       "x": 11.0,

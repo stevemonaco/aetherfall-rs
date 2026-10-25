@@ -1,5 +1,5 @@
 //! The world map: every region the player has seen, how they connect, towns' restoration and how many chests and
-//! rifts each region still hides.
+//! rifts each region still hides. A second view charts the current area tile by tile with what is left to find there.
 
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
@@ -20,7 +20,8 @@ use crate::core::{noise, palette};
 use crate::gameplay::game_data::{WorldNode, data};
 use crate::gameplay::game_state::GameState;
 use crate::scene_any;
-use crate::world::map::MapData;
+use crate::scenes::world::World;
+use crate::world::map::{MapData, Terrain};
 
 type Counts = (Vec<String>, Vec<String>);
 
@@ -77,11 +78,13 @@ pub struct MapScene {
     here: Option<&'static WorldNode>,
     cursor: Option<&'static WorldNode>,
     time: f32,
+    /// Showing the current area rather than the world.
+    area: bool,
 }
 
 impl MapScene {
     pub fn new() -> MapScene {
-        MapScene { nodes: Vec::new(), here: None, cursor: None, time: 0.0 }
+        MapScene { nodes: Vec::new(), here: None, cursor: None, time: 0.0, area: false }
     }
 
     fn draw_details(batch: &mut Batch, state: &GameState, node: &WorldNode) {
@@ -156,6 +159,7 @@ impl Scene for MapScene {
             self.here = self.nodes.iter().copied().find(|n| n.maps.iter().any(|m| m == map_id));
         }
         self.cursor = self.here.or_else(|| self.nodes.first().copied());
+        self.area = self.here.is_some_and(|n| matches!(n.kind.as_str(), "dungeon" | "side"));
         audio::sfx(Sound::MenuSelect);
     }
 
@@ -168,6 +172,13 @@ impl Scene for MapScene {
             audio::sfx(Sound::MenuCancel);
             ctx.pop();
             input::consume();
+            return;
+        }
+        if input::pressed(GameAction::Confirm) {
+            self.area = !self.area;
+            audio::sfx(Sound::MenuMove);
+        }
+        if self.area {
             return;
         }
         let axis = |plus: GameAction, minus: GameAction| {
@@ -204,6 +215,16 @@ impl Scene for MapScene {
         let Some(world) = world_below(below) else { return };
         batch.begin_screen();
         batch.draw(gfx::cached("map_parchment", build_parchment), Vec2::ZERO, Rgba::WHITE);
+        let hint = format!(
+            "{}: close   {}: world / area",
+            input::glyph(GameAction::Cancel),
+            input::glyph(GameAction::Confirm)
+        );
+        font::draw(batch, &hint, Vec2::new(14.0, (SCREEN_HEIGHT - 14) as f32), Rgba::rgb(110, 80, 50), None);
+        if self.area {
+            draw_area(batch, world, self.time);
+            return;
+        }
         font::draw(batch, "World Map", Vec2::new(14.0, 10.0), Rgba::rgb(80, 50, 30), None);
 
         let at = |n: &WorldNode| Vec2::new(n.x as f32, n.y as f32);
@@ -242,7 +263,82 @@ impl Scene for MapScene {
         if let Some(cursor) = self.cursor {
             MapScene::draw_details(batch, &world.state, cursor);
         }
-        let hint = format!("{}: close", input::glyph(GameAction::Cancel));
-        font::draw(batch, &hint, Vec2::new(14.0, (SCREEN_HEIGHT - 14) as f32), Rgba::rgb(110, 80, 50), None);
+    }
+}
+
+/// The current area, a few pixels per tile, with the hero, exits, rifts, locked doors and unopened chests marked.
+fn draw_area(batch: &mut Batch, world: &World, time: f32) {
+    let map = &world.map;
+    font::draw(batch, world.map_name(), Vec2::new(14.0, 10.0), Rgba::rgb(80, 50, 30), None);
+    let scale = (440 / map.width.max(1)).min(220 / map.height.max(1)).clamp(1, 6);
+    let origin =
+        Vec2::new(((SCREEN_WIDTH - map.width * scale) / 2) as f32, (26 + (220 - map.height * scale) / 2) as f32);
+    let s = scale as f32;
+    let tile = |x: i32, y: i32| origin + Vec2::new(x as f32 * s, y as f32 * s);
+    for y in 0..map.height {
+        for x in 0..map.width {
+            let color = match map.at(x, y) {
+                Terrain::Water | Terrain::Shallows => Rgba::rgb(120, 150, 170),
+                Terrain::Pit => Rgba::rgb(60, 45, 35),
+                Terrain::Forest => Rgba::rgb(110, 125, 80),
+                t if t.blocks_walking() => Rgba::rgb(120, 95, 70),
+                _ => Rgba::rgb(222, 204, 160),
+            };
+            let at = tile(x, y);
+            batch.fill_rect(at.x, at.y, s, s, color);
+        }
+    }
+    let dot = |batch: &mut Batch, x: f32, y: f32, color: Rgba| {
+        let at = origin + Vec2::new(x * s, y * s) + Vec2::splat(s / 2.0);
+        batch.fill_rect(at.x - 2.0, at.y - 2.0, 5.0, 5.0, Rgba::rgb(50, 30, 20));
+        batch.fill_rect(at.x - 1.0, at.y - 1.0, 3.0, 3.0, color);
+    };
+    let flags = &world.state.flags;
+    for e in &world.data.entities {
+        let (x, y) = (e.x, e.y);
+        match e.kind.as_str() {
+            "warp" if world.should_exist(e) => dot(batch, x, y, Rgba::rgb(250, 250, 240)),
+            "rift" => {
+                let id = e.str("id").map(str::to_string).unwrap_or_else(|| format!("{}_{}", e.x, e.y));
+                let sealed = flags.contains(&format!("rift:{id}"));
+                dot(batch, x, y, if sealed { Rgba::rgb(150, 140, 150) } else { Rgba::rgb(190, 90, 240) });
+            }
+            "chest" => {
+                let id = e
+                    .str("flag")
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("chest:{}:{}_{}", world.map_id(), e.x, e.y));
+                if !flags.contains(&id) && world.should_exist(e) {
+                    dot(batch, x, y, Rgba::rgb(250, 210, 80));
+                }
+            }
+            "door" => {
+                let id = e
+                    .str("flag")
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("door:{}:{}_{}", world.map_id(), e.x, e.y));
+                if !flags.contains(&id) {
+                    dot(batch, x, y, Rgba::rgb(170, 110, 60));
+                }
+            }
+            _ => {}
+        }
+    }
+    if (time * 3.0) as i32 % 2 == 0 {
+        let hero = world.hero.pos / crate::world::map::TILE as f32;
+        dot(batch, hero.x - 0.5, hero.y - 1.0, Rgba::rgb(230, 60, 50));
+    }
+    let legend = [
+        ("You", Rgba::rgb(230, 60, 50)),
+        ("Rift", Rgba::rgb(190, 90, 240)),
+        ("Chest", Rgba::rgb(250, 210, 80)),
+        ("Door", Rgba::rgb(170, 110, 60)),
+        ("Exit", Rgba::rgb(250, 250, 240)),
+    ];
+    let mut x = (SCREEN_WIDTH - 230) as f32;
+    for (name, color) in legend {
+        batch.fill_rect(x, 13.0, 4.0, 4.0, color);
+        font::draw(batch, name, Vec2::new(x + 6.0, 10.0), Rgba::rgb(90, 60, 40), None);
+        x += 46.0;
     }
 }

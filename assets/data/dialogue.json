@@ -25,13 +25,9 @@
       "do": [ "give:wind_sigil", "quest:silent_village", "flag:met_elder" ] },
     { "if": "rift:leaf_herbalist,rift:leaf_smith,!silent_village_done", "speaker": "Elder Orin", "lines": [
         "Hazel's apothecary, standing again. Torva hammering at her anvil. I'd begun to forget the sound.",
-        "It's as I hoped: what the rifts take, they can be made to give back. Take this. The Concord left it in the vault with you."
+        "It's as I hoped: what the rifts take, they can be made to give back. Keep at it, child."
       ],
-      "do": [ "flag:silent_village_done", "give:weave_knot" ] },
-    { "if": "restored:leafhollow:40,!leaf_reward_40", "speaker": "Elder Orin", "lines": [ "The village grows louder by the day. Here: we found this in the rubble of the old well. It's yours by right." ],
-      "do": [ "flag:leaf_reward_40", "give:life_shard" ] },
-    { "if": "restored:leafhollow:80,!leaf_reward_80", "speaker": "Elder Orin", "lines": [ "Nearly whole again. My grandmother's charm, light as a breath. It will keep you quick on your feet." ],
-      "do": [ "flag:leaf_reward_80", "give:wind_feather" ] },
+      "do": [ "flag:silent_village_done" ] },
     { "if": "restored:leafhollow:100,!leaf_reward_100", "speaker": "Elder Orin", "lines": [ "Every house lit, every face home. The Concord's shrine gem belongs with the one who did this." ],
       "do": [ "flag:leaf_reward_100", "give:spirit_pip" ] },
     { "if": "game_clear", "speaker": "Elder Orin", "lines": [
@@ -43,7 +39,7 @@
         "Something up there is feeding the rifts. Keep the crystal. Carry it, and find the others.",
         "The old east road through the fields is choked with thorns. Burn them. Beyond lie Mistmoor Marsh and the lake town of Brinewatch, where the Tide Crystal was kept."
       ],
-      "do": [ "flag:elder_ember", "give:herb*2" ] },
+      "do": [ "flag:elder_ember" ] },
     { "if": "has:storm_crystal", "speaker": "Elder Orin", "lines": [
         "Three crystals... I can hardly believe it. They say the Concord's forge still burns somewhere in the crater to the east.",
         "Go, sleeper. End this, and come home."
@@ -197,7 +193,20 @@
 
   // ---- Act 2: Mistmoor and Brinewatch ----------------------------------------------------------------------------
 
-  "witch": [
+  // A travelling sage in every town who points at the next step on the road.
+  "wayfarer": [
+    { "if": "!has:wind_sigil", "speaker": "Wayfarer", "lines": [ "Elder Orin's house is the blue-roofed one in Leafhollow. Speak with him before you go wandering." ] },
+    { "if": "!has:fire_sigil", "speaker": "Wayfarer", "lines": [ "The Ember Warlock lairs in the Mossy Grotto. Take the shepherds' tunnel in the north-east of the Windward Fields to Thornback Hills; the cave is at the top. Rifts on the way have grown thorns over the paths; seal them and the thorns burn away." ] },
+    { "if": "!has:rabbit_boots", "speaker": "Wayfarer", "lines": [ "East of the Fields lies Mistmoor Marsh. The witch Morwen keeps a hut in its north; she has a gift for travellers who are polite about the smell." ] },
+    { "if": "!has:water_sigil", "speaker": "Wayfarer", "lines": [ "Brinewatch is past the Drowned Causeway. A skiff waits at the end of its pier, past two narrow gaps, and carries you out to Gullwing Shoals. The Sunken Temple lies at the far end of the islands." ] },
+    { "if": "!has:tide_crystal", "speaker": "Wayfarer", "lines": [ "Something old coils in the Sunken Temple's deepest pool. The Tide Crystal is down there with it." ] },
+    { "if": "!has:thunder_sigil", "speaker": "Wayfarer", "lines": [ "North of Brinewatch, Rimewater Gorge climbs to Frostpeak and the mountain town of Highcrag. The Storm Spire stands at the end of Stormbreak Ridge, past Highcrag's north gate." ] },
+    { "if": "!has:storm_crystal", "speaker": "Wayfarer", "lines": [ "The Storm Crystal sits at the very top of the Spire, guarded by the golem that drinks its lightning." ] },
+    { "if": "!aether_awakened", "speaker": "Wayfarer", "lines": [ "The Ashen Reach opens east of Highcrag, and past it Ashford Camp. Quartermaster Ines knows a forgemaster who can wake your blade, if his forge can be made whole." ] },
+    { "if": "!seen:citadel_1", "speaker": "Wayfarer", "lines": [ "Carry fire, tide and storm to the cloud stair in Highcrag's north-west corner. Cloudstep Ascent leads up to the Sky Altar and the city above it." ] },
+    { "if": "!game_clear", "speaker": "Wayfarer", "lines": [ "The Sky Citadel, and Sovereign Vael at its heart. Whatever you have left to do, do it before you climb." ] },
+    { "speaker": "Wayfarer", "lines": [ "They say a stair has opened beneath the Sleeper's Vault, down into the Hollow. I would not go. You will, of course." ] }
+  ],  "witch": [
     { "if": "!has:rabbit_boots", "speaker": "Morwen", "lines": [
         "Hm. A sleeper from the Concord vaults, carrying a crystal. I wondered when you would come squelching through my marsh.",
         "You will not get far in this country on foot alone. Take these boots; they belonged to a courier who could clear a ditch in one bound.",
@@ -272,9 +281,9 @@
   "mayor": [
     { "if": "!mayor_gift", "speaker": "Mayor Hollis", "lines": [
         "You mean to face the lake serpent? Then you're braver than every one of my guards.",
-        "Take this elixir, and come back alive. Brinewatch would be in your debt."
+        "Come back alive. Brinewatch would be in your debt."
       ],
-      "do": [ "flag:mayor_gift", "give:elixir" ] },
+      "do": [ "flag:mayor_gift" ] },
     { "if": "!quest:drowned_light", "speaker": "Mayor Hollis", "lines": [
         "One more thing. The temple's lower halls were lit by our lighthouse, through the water. The rifts swallowed it.",
         "If you find what took it down there, close it. You'll want the light."

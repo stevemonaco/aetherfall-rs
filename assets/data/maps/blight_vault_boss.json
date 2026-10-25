@@ -75,7 +75,7 @@
       "x": 7.0,
       "y": 4.0,
       "item": "ember_crown",
-      "style": 3,
+      "style": 2,
       "if": "run:echo_warlock"
     },
     {

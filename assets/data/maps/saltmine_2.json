@@ -62,7 +62,7 @@
       "type": "chest",
       "x": 36.0,
       "y": 3.0,
-      "style": 2,
+      "style": 3,
       "item": "life_shard"
     },
     {
@@ -79,7 +79,6 @@
     },
     {"type": "plate", "x": 16.0, "y": 6.0, "flag": "mine_vault", "latch": true, "heavy": true},
     {"type": "stoneblock", "x": 28.0, "y": 9.0, "id": "ore_cart"},
-    {"type": "sign", "x": 19.0, "y": 10.0, "text": "Ore scale. Only a loaded cart trips it. The scale sits in the far corner; shove the cart until it rolls there."},
     {
       "type": "enemy",
       "x": 22.0,

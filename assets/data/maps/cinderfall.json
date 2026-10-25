@@ -110,7 +110,8 @@
       "type": "chest",
       "x": 14.0,
       "y": 30.0,
-      "item": "flame_orb"
+      "item": "flame_orb",
+      "style": 3
     },
     {
       "type": "dig",

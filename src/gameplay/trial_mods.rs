@@ -17,6 +17,8 @@ pub enum TrialMod {
     EliteTide,
     /// Foes heal when they hit the hero.
     Bloodthirst,
+    /// Foes yield half the EXP, gold and drops. Only Heat adds it; it is never rolled.
+    Meagre,
 }
 
 const ALL: [TrialMod; 6] = [
@@ -31,6 +33,13 @@ const ALL: [TrialMod; 6] = [
 /// Extra EXP and gold each active mod adds.
 pub const REWARD_PER_MOD: f32 = 0.25;
 
+/// The reward multiplier a set of mods gives: every challenge mod adds a quarter, and Meagre halves the total.
+pub fn reward_multiplier(mods: &[TrialMod]) -> f32 {
+    let challenges = mods.iter().filter(|&&m| m != TrialMod::Meagre).count() as f32;
+    let meagre = if mods.contains(&TrialMod::Meagre) { 0.5 } else { 1.0 };
+    (1.0 + REWARD_PER_MOD * challenges) * meagre
+}
+
 impl TrialMod {
     pub fn label(self) -> &'static str {
         match self {
@@ -40,6 +49,7 @@ impl TrialMod {
             TrialMod::Ironhide => "Ironhide",
             TrialMod::EliteTide => "Elite Tide",
             TrialMod::Bloodthirst => "Bloodthirst",
+            TrialMod::Meagre => "Meagre",
         }
     }
 }

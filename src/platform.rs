@@ -33,6 +33,7 @@ use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::game_data::{IMAGE_FILES, data};
 use crate::gameplay::game_state::{self, GameState};
 use crate::gameplay::{mastery, skills, supports, weave};
+use crate::scenes::restore::RestoreScene;
 use crate::scenes::scene::SceneManager;
 use crate::scenes::title::TitleScene;
 use crate::scenes::world::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -68,6 +69,8 @@ pub struct LaunchOptions {
     pub mute: bool,
     pub boss_hp: f32,
     pub dump: bool,
+    /// Plays a town's restoration cutscene at once: `town,flag`.
+    pub restore: Option<(String, String)>,
 }
 
 impl LaunchOptions {
@@ -100,6 +103,8 @@ impl LaunchOptions {
             options.mute = args.iter().any(|a| a == "--mute");
             options.boss_hp = value("--boss-hp").and_then(|v| v.parse().ok()).unwrap_or(1.0);
             options.dump = args.iter().any(|a| a == "--dump");
+            options.restore =
+                value("--restore").and_then(|v| v.split_once(',').map(|(t, f)| (t.to_string(), f.to_string())));
         }
         options
     }
@@ -410,7 +415,12 @@ fn finish_loading(world: &mut bevy::prelude::World) {
             }
         }
         state.sp = state.max_sp();
+        let restore =
+            options.restore.clone().map(|(town, flag)| RestoreScene::new(state.clone(), &town, &flag, "(test)"));
         scenes.push(Box::new(WorldScene::new(state, false)));
+        if let Some(scene) = restore {
+            scenes.push(Box::new(scene));
+        }
     } else {
         scenes.push(Box::new(TitleScene::new()));
     }

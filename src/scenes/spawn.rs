@@ -7,11 +7,14 @@ use crate::entities::companion::DigSpot;
 use crate::entities::dummy::TrainingDummy;
 use crate::entities::enemy::Enemy;
 use crate::entities::entity::Entity;
+use crate::entities::entrance::Entrance;
 use crate::entities::golden_breach::GoldenBreach;
 use crate::entities::hazards::GasVent;
 use crate::entities::obstacles::{Brazier, Crate, ObstacleKind, TileObstacle, Turbine};
 use crate::entities::props::{Building, Chest, Decor, Npc, Sign, Warp};
-use crate::entities::puzzles::{FloorSwitch, Gate, HiddenPath, LockedDoor, SaveCrystal, SpanBridge, Trigger};
+use crate::entities::puzzles::{
+    CrystalSwitch, FloorSwitch, Gate, HiddenPath, LockedDoor, SaveCrystal, SpanBridge, ToggleSwitch, Trigger,
+};
 use crate::entities::rift::Rift;
 use crate::entities::tide::Tide;
 use crate::entities::trial::TrialGate;
@@ -28,6 +31,7 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
         "chest" => Box::new(Chest::new(entry, &map_id)),
         "warp" => Box::new(Warp::new(entry)),
         "decor" => Box::new(Decor::new(entry)),
+        "entrance" => Box::new(Entrance::new(entry)),
         "barrier" => Box::new(legacy_barrier(entry, &map_id)),
         "thicket" => Box::new(TileObstacle::new(entry, &map_id, ObstacleKind::Thicket)),
         "icewall" => Box::new(TileObstacle::new(entry, &map_id, ObstacleKind::IceWall)),
@@ -39,6 +43,8 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
         "dig" => Box::new(DigSpot::new(entry, &map_id)),
         "span" => Box::new(SpanBridge::new(entry)),
         "veil" => Box::new(HiddenPath::new(entry)),
+        "crystal" => Box::new(CrystalSwitch::new(entry)),
+        "toggle" => Box::new(ToggleSwitch::new(entry)),
         "turbine" => Box::new(Turbine::new(entry)),
         "tide" => Box::new(Tide::new(entry)),
         "storm" => Box::new(StormGrid::new(entry)),

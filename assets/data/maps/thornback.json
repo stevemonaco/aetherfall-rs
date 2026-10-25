@@ -17,7 +17,7 @@
     "TTTTTTTTTT###############..#################::....TTTTTT",
     "TTTT.ww..T#+_+_+_+########TTTTTTTTTTTT######::.....TTTTT",
     "TTTT.w...T#_______######TTTTTTTTTTTTTTTT####::......TTTT",
-    "TTTT.....ww_+++++_#####TTTTTTTTTTTTTTTTT####::..TTTTTTTT",
+    "TTTT.....  _+++++_#####TTTTTTTTTTTTTTTTT####::..TTTTTTTT",
     "TTTT.ww..T#_______######TTTTTTTTTTTTTTT#####::#TTTTTTTTT",
     "TTTTTTTTTT#+_+_+_+##########TTTTTT##########::##TTTTTTTT",
     "TTTTTTTTTT####::####..####TT######TTT#####T.::..TTTTTTTT",
@@ -30,7 +30,7 @@
     "TTTT~~~~==,,,,,,,,,,,,,,,,,########,,,,,::,,,,~~~~~~~TTT",
     "TTTT~~~~==~~~~~~~~~,,,,,,,,,~~~~~~~~~~~,==,,,,~~~~~~~TTT",
     "TTTT~~~~==~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~==~~~~~~~~~~~TTT",
-    "TTTT~~~~==,,,,,,,,~~~~~~~~~~~,,,,,,,,,~~==~~~~~~~~~~~TTT",
+    "TTTT~~~~==,,,,,,,,~~~~~~~~~~,,,,,,,,,,~~==~~~~~~~~~~~TTT",
     "TTTT,~~,::,,,,,,,,,,################TTTT::,,,,,,,TTTTTTT",
     "TTTT,,,,::,,........##TTTTTT########TTTT::TTTTTTTTTTTTTT",
     "TTTTww..::+#+#+.....##TTTTTT########TTTT::TTTTTTTTTTTTTT",
@@ -50,7 +50,7 @@
     "TTTTTTTTTTTTTTTTTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTT"
   ],
   "entities": [
-    {"type": "gate", "x": 28.0, "y": 3.0, "open": "rift:thornback_den", "look": "thorns"},
+    {"type": "entrance", "x": 28.0, "y": 3.0, "look": "grotto"},
     {
       "type": "warp",
       "x": 27.0,
@@ -60,12 +60,6 @@
       "tx": 46,
       "to": "fields",
       "facing": "down"
-    },
-    {
-      "type": "decor",
-      "x": 28.0,
-      "y": 3.0,
-      "kind": "cave"
     },
     {
       "type": "warp",
@@ -89,15 +83,9 @@
       "text": "The Mossy Grotto. Smoke has drifted from it since the fires began."
     },
     {
-      "type": "sign",
-      "x": 25.0,
-      "y": 40.0,
-      "text": "Thornback Hills. The Mossy Grotto lies at the top of the shepherds' trail."
-    },
-    {
       "type": "rift",
-      "x": 6.0,
-      "y": 31.0,
+      "x": 11.0,
+      "y": 30.0,
       "alive": 3,
       "id": "thornback_den",
       "count": 6,
@@ -105,8 +93,8 @@
     },
     {
       "type": "rift",
-      "x": 14.0,
-      "y": 14.0,
+      "x": 16.0,
+      "y": 18.0,
       "alive": 3,
       "id": "thornback_barrow",
       "count": 6,
@@ -114,8 +102,8 @@
     },
     {
       "type": "rift",
-      "x": 50.0,
-      "y": 37.0,
+      "x": 44.0,
+      "y": 31.0,
       "kinds": "spider,eye,stumpling,tender,goblin,beetle,fieldrat",
       "elite": "skeleton",
       "count": 4,
@@ -126,21 +114,15 @@
       "type": "chest",
       "x": 5.0,
       "y": 13.0,
-      "item": "insight_tome"
+      "item": "insight_tome",
+      "style": 3
     },
-    {"type": "chest", "x": 26.0, "y": 33.0, "gold": 150},
     {
       "type": "chest",
       "x": 50.0,
       "y": 11.0,
-      "gold": 180
-    },
-    {
-      "type": "chest",
-      "x": 52.0,
-      "y": 36.0,
-      "item": "slime_gel",
-      "count": 2
+      "gold": 180,
+      "style": 0
     },
     {
       "type": "dig",
@@ -351,6 +333,9 @@
       "x": 7.0,
       "y": 11.0,
       "kind": "bush"
-    }
+    },
+    {"type": "stoneblock", "x": 13.0, "y": 13.0},
+    {"type": "veil", "x": 28.0, "y": 24.0, "w": 1, "h": 2},
+    {"type": "chest", "x": 33.0, "y": 26.0, "item": "gemcutter_prism"}
   ]
 }

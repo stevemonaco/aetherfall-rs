@@ -11,6 +11,7 @@ use crate::core::direction::Direction;
 use crate::core::geom::{Box2, IRect, snap};
 use crate::core::gfx::{self, Batch, TexId};
 use crate::entity_base;
+use crate::gameplay::game_data::data;
 use crate::gameplay::items;
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, TILE, tile_center, tile_feet};
@@ -27,7 +28,31 @@ pub struct Npc {
     move_dir: Vec2,
     timer: f32,
     walk_time: f32,
+    /// Some(true) for a quest or gift waiting, Some(false) for news; None when they've nothing new.
+    marker: Option<bool>,
     pub name: String,
+}
+
+/// Whether talking now would change anything, judged from the dialogue entry that would play: a flag not yet set,
+/// a quest not yet started, or a gift. Returns whether it holds a gift or quest, or is only news.
+fn marker(world: &World, dialogue: &str) -> Option<bool> {
+    let entry = data().dialogue.get(dialogue)?.iter().find(|e| world.state.check(e.condition.as_deref()))?;
+    let actions = entry.actions.iter().chain(&entry.yes);
+    let (mut new, mut gift, mut guarded) = (false, false, false);
+    for action in actions {
+        let (kind, arg) = action.split_once(':').unwrap_or((action, ""));
+        match kind {
+            "flag" | "quest" => {
+                guarded = true;
+                new |= !world.state.check(Some(&format!("{}{arg}", if kind == "quest" { "quest:" } else { "" })));
+                gift |= kind == "quest";
+            }
+            "give" | "skill" => gift = true,
+            "gold" => gift |= !arg.starts_with('-'),
+            _ => {}
+        }
+    }
+    (new || (gift && !guarded)).then_some(gift)
 }
 
 impl Npc {
@@ -43,6 +68,7 @@ impl Npc {
             move_dir: Vec2::ZERO,
             timer: 0.0,
             walk_time: 0.0,
+            marker: None,
             name: data.str_or("name", "").to_string(),
         }
     }
@@ -56,6 +82,7 @@ impl Entity for Npc {
     }
 
     fn update(&mut self, world: &mut World, dt: f32) {
+        self.marker = marker(world, &self.dialogue);
         if self.wander <= 0.0 || world.input_locked() {
             return;
         }
@@ -92,6 +119,10 @@ impl Entity for Npc {
             (HeroPose::Idle, (world.time * 1.4 + self.base.pos.x as f64) as i32 % 2)
         };
         PersonSprite::draw(batch, &self.look, self.base.pos, self.facing, pose, frame, Rgba::WHITE, false, 1.0, 0.0);
+        if let Some(gift) = self.marker {
+            let bob = ((world.time * 3.0).sin() * 1.5) as f32;
+            batch.draw(art::npc_marker(gift), snap(self.base.pos + Vec2::new(-5.0, -40.0 + bob)), Rgba::WHITE);
+        }
     }
 }
 
@@ -311,14 +342,19 @@ pub struct Building {
     tiles: IRect,
     restore: Option<String>,
     solid: bool,
+    /// How far a restored building has rebuilt itself, tile by tile from the ground up (0 to 1).
     appear: f32,
+    /// Tiles already set in place, so each new one can puff as it lands.
+    built: usize,
     pub door_tile: (i32, i32),
+    has_door: bool,
 }
 
 impl Building {
     pub fn new(data: &EntityData) -> Building {
         let (w, h) = (data.int("w", 3), data.int("h", 3));
-        let door = data.int("door", w / 2);
+        // Only buildings that lead somewhere get a door; the rest are solid all the way along.
+        let door = if data.str("to").is_some() { data.int("door", w / 2) } else { -1 };
         let tiles = IRect::new(data.x as i32, data.y as i32, w, h);
         let center_x = tiles.x + tiles.w / 2;
         Building {
@@ -333,7 +369,9 @@ impl Building {
             restore: data.str("restore").map(str::to_string),
             solid: false,
             appear: 1.0,
-            door_tile: (tiles.x + door, tiles.bottom() - 1),
+            built: usize::MAX,
+            door_tile: (tiles.x + door.max(0), tiles.bottom() - 1),
+            has_door: door >= 0,
         }
     }
 
@@ -342,11 +380,23 @@ impl Building {
         self.restore.as_deref().is_none_or(|r| world.state.check(Some(r)))
     }
 
+    /// The texture's 16px cells, in the order they rebuild: bottom row first, left to right.
+    fn cells(&self) -> Vec<(i32, i32)> {
+        let (tw, th) = gfx::size(self.texture);
+        let (cols, rows) = (tw / TILE, th / TILE);
+        (0..rows).rev().flat_map(|r| (0..cols).map(move |c| (c, r))).collect()
+    }
+
+    fn origin(&self) -> Vec2 {
+        let (_, th) = gfx::size(self.texture);
+        Vec2::new((self.tiles.x * TILE) as f32, (self.tiles.y * TILE - (th - self.tiles.h * TILE)) as f32)
+    }
+
     fn solidify(&mut self, world: &mut World) {
         self.solid = true;
         for y in self.tiles.y..self.tiles.bottom() {
             for x in self.tiles.x..self.tiles.right() {
-                if (x, y) != self.door_tile {
+                if !self.has_door || (x, y) != self.door_tile {
                     world.map.block(x, y, true);
                 }
             }
@@ -362,12 +412,24 @@ impl Entity for Building {
             self.solidify(world);
         } else {
             self.appear = 0.0;
+            self.built = 0;
         }
     }
 
     fn update(&mut self, world: &mut World, dt: f32) {
         if self.solid {
-            self.appear = (self.appear + dt).min(1.0);
+            self.appear = (self.appear + dt / 1.6).min(1.0);
+            let cells = self.cells();
+            let now = (self.appear * cells.len() as f32) as usize;
+            while self.built < now.min(cells.len()) {
+                let (c, r) = cells[self.built];
+                let at = self.origin() + Vec2::new((c * TILE) as f32 + 8.0, (r * TILE) as f32 + 8.0);
+                Particle::burst(world, at, Rgba::rgb(240, 225, 200), 4, 30.0, 0.35, false);
+                self.built += 1;
+                if self.built.is_multiple_of(3) {
+                    crate::core::audio::play(crate::core::audio::Sound::Clink, 0.35, 0.3);
+                }
+            }
             return;
         }
         let t = self.tiles;
@@ -375,19 +437,28 @@ impl Entity for Building {
         if self.restored(world) && !area.intersects(&world.hero.hitbox) {
             self.solidify(world);
             crate::core::audio::play(crate::core::audio::Sound::ChargeLevel, 0.8, -0.2);
-            Particle::burst(world, area.center(), Rgba::rgb(255, 240, 200), 30, 90.0, 0.8, true);
         }
     }
 
     fn draw(&self, world: &World, batch: &mut Batch) {
-        let (_, th) = gfx::size(self.texture);
-        let at = Vec2::new((self.tiles.x * TILE) as f32, (self.tiles.y * TILE - (th - self.tiles.h * TILE)) as f32);
-        if self.solid {
-            batch.draw(self.texture, at, Rgba::WHITE.mul(0.4 + 0.6 * self.appear));
+        let at = self.origin();
+        let shimmer = 0.18 + 0.06 * (world.time as f32 * 2.0 + self.tiles.x as f32).sin();
+        let ghost = Rgba::rgb(200, 180, 255).mul(shimmer);
+        if !self.solid {
+            batch.draw(self.texture, at, ghost);
             return;
         }
-        let shimmer = 0.18 + 0.06 * (world.time as f32 * 2.0 + self.tiles.x as f32).sin();
-        batch.draw(self.texture, at, Rgba::rgb(200, 180, 255).mul(shimmer));
+        if self.appear >= 1.0 {
+            batch.draw(self.texture, at, Rgba::WHITE);
+            return;
+        }
+        let cells = self.cells();
+        let built = (self.appear * cells.len() as f32) as usize;
+        for (i, &(c, r)) in cells.iter().enumerate() {
+            let src = IRect::new(c * TILE, r * TILE, TILE, TILE);
+            let pos = at + Vec2::new((c * TILE) as f32, (r * TILE) as f32);
+            batch.draw_src(self.texture, pos, Some(src), if i < built { Rgba::WHITE } else { ghost });
+        }
     }
 }
 

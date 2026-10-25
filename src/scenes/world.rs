@@ -68,6 +68,12 @@ pub enum WorldRequest {
     Map,
     GameOver(Box<GameState>),
     Ending,
+    /// Cut to a town to watch what a sealed rift restored there.
+    Restoration {
+        town: String,
+        flag: String,
+        label: String,
+    },
 }
 
 /// Builds an overlay scene once it is its turn to show.
@@ -105,6 +111,7 @@ pub struct World {
     pub toasts: Vec<(String, f32)>,
     /// The hardships rolled for the Trial Rift the hero is in.
     pub trial_mods: Vec<TrialMod>,
+
     trial_tick: f32,
     pub requests: Vec<WorldRequest>,
     pub auto_save: bool,
@@ -234,6 +241,30 @@ impl World {
     pub fn enemy_time_scale(&self) -> f32 {
         let haste = if self.trial_mod(TrialMod::Haste) { 1.15 } else { 1.0 };
         haste * if self.enemy_slow > 0.0 { 0.25 } else { 1.0 }
+    }
+
+    /// The level this area's foes are tuned to, before any area mods raise it.
+    pub fn area_level(&self) -> i32 {
+        self.data.level
+    }
+
+    /// Whether this map belongs to a field, side area or dungeon (not a town or an interior), where the entry banner
+    /// shows the area level.
+    fn shows_area_level(&self) -> bool {
+        let id = self.map_id();
+        data().world.iter().find(|n| n.maps.iter().any(|m| m == id)).is_some_and(|n| n.kind != "town")
+    }
+
+    /// Takes the hero and their spirit out of the world, for scenes that only show a place.
+    pub fn hide_hero(&mut self) {
+        self.player = None;
+        if let Some(id) = self.companion.take() {
+            self.with_entity(id, |e, _| e.base_mut().removed = true);
+        }
+    }
+
+    pub fn resume_music(&self) {
+        audio::play_music(self.data.music.as_deref());
     }
 
     pub fn trial_mod(&self, m: TrialMod) -> bool {
@@ -405,6 +436,18 @@ impl World {
         self.ambience = Ambience::new(self.data.weather.as_deref(), &self.data.theme);
         let lit = self.data.light_if.as_deref().is_some_and(|c| self.state.check(Some(c)));
         self.ambient = lighting::ambient_for(&self.data.theme, self.data.dark && !lit, self.data.ambient.as_deref());
+        if self.data.dark && self.data.light_if.is_some() {
+            let note = if !lit {
+                self.data.dark_note.clone()
+            } else if self.state.flags.insert(format!("lit:{id}")) {
+                self.data.lit_note.clone()
+            } else {
+                None
+            };
+            if let Some(note) = note {
+                self.toast(note);
+            }
+        }
         self.entities.clear();
         self.pending.clear();
         self.dormant.clear();
@@ -997,31 +1040,6 @@ impl World {
         self.companion = Some(id);
     }
 
-    /// A beast freed from a rift: it teaches the spirit its form, or leaves a charm behind.
-    pub fn free_soul(&mut self, id: &str) {
-        audio::sfx(Sound::LevelUp);
-        if let Some(charm) = souls::charm_for(id) {
-            self.state.give(charm, 1);
-            let item = items::get(charm).map_or(String::new(), |i| format!("{}\n{}", i.name, i.description));
-            self.show_message(&format!(
-                "A spirit is freed, and leaves a charm for your guardian.\n{item}\nSet it from the Spirit tab."
-            ));
-            return;
-        }
-        let Some(form) = souls::get(id) else { return };
-        if self.state.souls_owned.iter().any(|s| s == form.id) {
-            return;
-        }
-        self.state.give(&format!("soul_{}", form.id), 1);
-        self.show_message(&format!(
-            "The {} is freed, and your guardian spirit learns its form!\n{}\n{}\nCycle forms with {}.",
-            form.name,
-            form.attack,
-            form.perk,
-            input::glyph(GameAction::Soul)
-        ));
-        self.spawn_companion();
-    }
     pub fn toast(&mut self, text: impl Into<String>) {
         self.toasts.insert(0, (text.into(), 2.6));
     }
@@ -1232,6 +1250,19 @@ impl World {
     }
 
     pub fn give_item(&mut self, id: &str, count: i32) {
+        if let Some(form) = id.strip_prefix("soul_").and_then(souls::get) {
+            self.state.give(id, 1);
+            audio::sfx(Sound::LevelUp);
+            self.show_message(&format!(
+                "Your guardian spirit learns the {}'s form!\n{}\n{}\nCycle forms with {}.",
+                form.name,
+                form.attack,
+                form.perk,
+                input::glyph(GameAction::Soul)
+            ));
+            self.spawn_companion();
+            return;
+        }
         let got = self.receive(id, count);
         audio::sfx(Sound::Pickup);
         let name = items::name_of(id);
@@ -1243,6 +1274,9 @@ impl World {
             }
             text.push('\n');
             text.push_str(item.description);
+            if item.kind == ItemKind::Charm {
+                text.push_str("\nSet it on your guardian from the Spirit tab.");
+            }
         } else if let Some(sigil) = items::sigil(id) {
             text = format!("The {} settles into the Aether Blade's hilt.", sigil.name);
             text.push_str(&format!(
@@ -1351,7 +1385,7 @@ impl World {
         let mut multiplier = self.rank.multiplier();
         *self.state.kills.entry(kill.def.id.clone()).or_default() += 1;
         multiplier *= pacts::reward_multiplier(&self.state);
-        multiplier *= 1.0 + trial_mods::REWARD_PER_MOD * self.trial_mods.len() as f32;
+        multiplier *= trial_mods::reward_multiplier(&self.trial_mods);
         let elite = if kill.elite { 3.0 } else { 1.0 };
         let exp = (combat::enemy_exp(kill.level)
             * kill.def.exp
@@ -1377,11 +1411,13 @@ impl World {
             Particle::burst(self, self.hero.pos - Vec2::new(0.0, 8.0), palette::HIGHLIGHT, 24, 70.0, 0.8, true);
             self.toast(format!("Reached level {}!", self.state.level));
         }
-        let gold = (2.0 + 1.6 * kill.level as f32)
+        let gold = (1.1 + 0.9 * kill.level as f32)
             * kill.def.gold
             * self.state.acc().gold
             * (0.8 + self.rng.next_f32() * 0.4)
-            * if kill.elite { 4.0 } else { 1.0 };
+            * if kill.elite { 3.0 } else { 1.0 }
+            * if self.trial_mod(TrialMod::Meagre) { 0.5 } else { 1.0 }
+            * combat::gold_gap_factor(kill.level, self.state.level);
         if gold >= 1.0 {
             self.add(Pickup::gold(kill.pos, gold.round() as i32));
         }
@@ -1395,6 +1431,11 @@ impl World {
             self.add(Pickup::item(kill.pos + Vec2::new(-4.0, 0.0), "blight_core"));
         }
 
+        // Prisms stop dropping from elites far below the hero, except in the endgame zones near the level cap.
+        let near_cap = kill.level >= combat::MAX_LEVEL - 10;
+        if kill.elite && (near_cap || self.state.level - kill.level <= 10) && self.rng.next_f32() < 0.05 * multiplier {
+            self.add(Pickup::item(kill.pos + Vec2::new(-6.0, 4.0), "gemcutter_prism"));
+        }
         if (kill.elite || self.rng.next_f32() < 0.1) && !kill.boss {
             let amount = (self.state.max_hp() / 10).max(4);
             self.add(Pickup::heart(kill.pos + Vec2::new(4.0, 0.0), amount));
@@ -1487,8 +1528,9 @@ impl World {
         self.ambience.draw_emissive(batch);
         if self.banner_time > 0.0 && self.boss.is_none() {
             let alpha = (self.banner_time / 0.5).min(1.0) * ((2.2 - self.banner_time) / 0.3).min(1.0);
-            let width = font::measure(&self.data.name) + 20;
-            let rect = IRect::new((SCREEN_WIDTH - width) / 2, 30, width, 17);
+            let level = self.shows_area_level().then(|| format!("Area Level {}", self.area_level()));
+            let width = font::measure(&self.data.name).max(level.as_deref().map_or(0, font::measure)) + 20;
+            let rect = IRect::new((SCREEN_WIDTH - width) / 2, 30, width, if level.is_some() { 28 } else { 17 });
             batch.fill(rect, palette::WINDOW_FILL.mul(0.85 * alpha));
             batch.fill(IRect::new(rect.x, rect.bottom() - 1, rect.w, 1), palette::HIGHLIGHT.mul(alpha));
             font::draw_centered(
@@ -1498,6 +1540,15 @@ impl World {
                 palette::TEXT.mul(alpha),
                 Some(palette::TEXT_SHADOW.mul(alpha)),
             );
+            if let Some(level) = level {
+                font::draw_centered(
+                    batch,
+                    &level,
+                    Vec2::new(SCREEN_WIDTH as f32 / 2.0, 45.0),
+                    palette::TEXT_DIM.mul(alpha),
+                    Some(palette::TEXT_SHADOW.mul(alpha)),
+                );
+            }
         }
         crate::ui::hud::draw(batch, self);
         if self.saved_flash > 0.0 {

@@ -6,8 +6,8 @@
   "rows": [
     "TTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~",
     "TTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~",
-    "TT.TTTTT....::...........................,.,~~~~",
-    "TT.TTTTT....::....................,,,,,,,~,,~~~~",
+    "TTTTTTTT....::...........................,.,~~~~",
+    "TTTTTTTT....::....................,,,,,,,~,,~~~~",
     "TTTTTTTTT...::.................,,,~~~~~~~~~~~~~~",
     "TT..TTT.....::................,~~~~~~~~~~~~~~~~~",
     "TT..........::...............,~~~~~~~~~~~~~~~~~~",
@@ -40,6 +40,9 @@
     "TTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~~"
   ],
   "entities": [
+    {"type": "npc", "x": 14.0, "y": 15.0, "name": "Wayfarer", "sprite": "oldman2", "dialogue": "wayfarer", "facing": "down"},
+    {"type": "span", "x": 31.0, "y": 17.0, "w": 1, "h": 2, "if": "rift:brine_shipwright"},
+    {"type": "span", "x": 35.0, "y": 17.0, "w": 1, "h": 2, "if": "rift:brine_shipwright"},
     {
       "type": "save",
       "x": 12.0,
@@ -120,13 +123,6 @@
       "h": 3,
       "w": 4,
       "restore": "rift:brine_fisher"
-    },
-    {
-      "type": "sign",
-      "x": 13.0,
-      "y": 27.0,
-      "text": "Old Tam's net shed. (It shimmers, half there.)",
-      "unless": "rift:brine_fisher"
     },
     {
       "type": "npc",
@@ -272,12 +268,6 @@
       "type": "decor",
       "x": 21.0,
       "y": 21.0,
-      "kind": "tree"
-    },
-    {
-      "type": "decor",
-      "x": 8.0,
-      "y": 4.0,
       "kind": "tree"
     },
     {

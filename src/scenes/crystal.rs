@@ -16,6 +16,7 @@ use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::gameplay::game_data::data;
+use crate::gameplay::items;
 use crate::scene_any;
 use crate::world::map::MapData;
 
@@ -84,13 +85,23 @@ impl Scene for CrystalScene {
             }
             let Some(name) = map_scene::map_name(parts[1]) else { continue };
             let mut xy = parts[2].split('_').map(|v| v.parse::<i32>().unwrap_or(0));
-            let (x, y) = (xy.next().unwrap_or(0), xy.next().unwrap_or(0));
+            let (mut x, mut y) = (xy.next().unwrap_or(0), xy.next().unwrap_or(0));
+            let map = MapData::load(parts[1]);
+            let saves: Vec<(i32, i32)> =
+                map.entities.iter().filter(|e| e.kind == "save").map(|e| (e.x as i32, e.y as i32)).collect();
+            // A crystal that has since been moved still takes you to the map's crystal, not where it used to stand.
+            if !saves.is_empty() && !saves.contains(&(x, y)) && !items::TOWNS.iter().any(|t| t.0 == parts[1]) {
+                (x, y) = saves[0];
+            }
+            if places.iter().any(|(_, r)| r.map == parts[1] && r.tile == (x, y + 1)) {
+                continue;
+            }
             let kind = region_kind(parts[1]);
             let row = Row {
                 label: name,
                 map: parts[1].to_string(),
                 tile: (x, y + 1),
-                level: MapData::load(parts[1]).level,
+                level: map.level,
                 color: kind_color(kind),
             };
             places.push((kind == "town", row));

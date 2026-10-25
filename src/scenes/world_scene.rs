@@ -2,6 +2,7 @@
 
 use super::game_over::GameOverScene;
 use super::menu::MenuScene;
+use super::restore::RestoreScene;
 use super::scene::{Scene, SceneCtx};
 use super::story::{ENDING, StoryScene};
 use super::title::TitleScene;
@@ -39,6 +40,9 @@ impl Scene for WorldScene {
                 WorldRequest::Map => ctx.push(super::map_scene::MapScene::new()),
                 WorldRequest::GameOver(state) => ctx.push(GameOverScene::new(*state)),
                 WorldRequest::Ending => ctx.replace(StoryScene::new(ENDING, Some(Box::new(TitleScene::new())))),
+                WorldRequest::Restoration { town, flag, label } => {
+                    ctx.push(RestoreScene::new(self.world.state.clone(), &town, &flag, &label))
+                }
             }
         }
     }

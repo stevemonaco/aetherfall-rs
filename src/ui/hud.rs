@@ -345,7 +345,7 @@ fn draw_trial_mods(batch: &mut Batch, world: &World) {
         font::draw(batch, &line, centered(&line, 14.0), palette::TEXT, Some(palette::TEXT_SHADOW));
     }
     if let Some(seconds) = breach.collapse_in() {
-        let line = format!("Return to the breach! It collapses in {:.1}s", seconds.max(0.0));
+        let line = format!("Outside the breach: losing life. Waves reset in {:.1}s", seconds.max(0.0));
         font::draw(batch, &line, centered(&line, 24.0), Rgba::rgb(255, 110, 90), Some(palette::TEXT_SHADOW));
     }
 }

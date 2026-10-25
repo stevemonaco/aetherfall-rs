@@ -430,3 +430,195 @@ impl Entity for HiddenPath {
         }
     }
 }
+
+/// A crystal on a pedestal that answers only to a bolt or skill of one element (any element when it has none), never a
+/// sword swing. Its flag stays set, or
+/// for `timer` seconds when it has one, so a timed crystal sends the hero racing to whatever it opened.
+pub struct CrystalSwitch {
+    base: EntityBase,
+    flag: String,
+    element: crate::gameplay::element::Element,
+    timer: f32,
+    left: f32,
+    time: f32,
+}
+
+impl CrystalSwitch {
+    pub fn new(data: &EntityData) -> CrystalSwitch {
+        CrystalSwitch {
+            base: EntityBase {
+                pos: tile_feet(data.x as i32, data.y as i32),
+                solid: true,
+                width: 10.0,
+                height: 6.0,
+                ..EntityBase::default()
+            },
+            flag: data.str_or("flag", "crystal").to_string(),
+            element: crate::gameplay::element::Element::parse(data.str("element")),
+            timer: data.float("timer", 0.0),
+            left: 0.0,
+            time: 0.0,
+        }
+    }
+
+    fn lit(&self, world: &World) -> bool {
+        world.state.flags.contains(&self.flag)
+    }
+
+    fn color(&self) -> Rgba {
+        if self.element == crate::gameplay::element::Element::None {
+            Rgba::rgb(230, 230, 245)
+        } else {
+            self.element.glow()
+        }
+    }
+}
+
+impl Entity for CrystalSwitch {
+    entity_base!();
+
+    fn faction(&self) -> Option<crate::gameplay::combat::Faction> {
+        Some(crate::gameplay::combat::Faction::Neutral)
+    }
+
+    fn hurtbox(&self) -> crate::core::geom::Box2 {
+        crate::core::geom::Box2::new(self.base.pos.x - 6.0, self.base.pos.y - 20.0, 12.0, 20.0)
+    }
+
+    fn light(&self, world: &World) -> Option<(f32, Rgba)> {
+        Some((if self.lit(world) { 44.0 } else { 20.0 }, self.color()))
+    }
+
+    fn added(&mut self, world: &mut World) {
+        let (tx, ty) = self.base.tile_pos();
+        world.map.block(tx, ty, true);
+        if self.timer > 0.0 {
+            world.state.flags.remove(&self.flag);
+        }
+    }
+
+    fn update(&mut self, world: &mut World, dt: f32) {
+        self.time += dt;
+        if self.left > 0.0 {
+            self.left -= dt;
+            if self.left <= 0.0 {
+                world.state.flags.remove(&self.flag);
+                audio::play(Sound::MenuCancel, 0.6, -0.3);
+            }
+        }
+    }
+
+    fn take_hit(&mut self, world: &mut World, hit: &mut crate::gameplay::combat::Hit) -> bool {
+        use crate::gameplay::element::Element;
+        if hit.source != crate::gameplay::combat::Faction::Player {
+            return false;
+        }
+        let fits = self.element == Element::None
+            || hit.element == self.element
+            || (hit.aether && hit.element != Element::None);
+        let ranged = matches!(
+            hit.kind,
+            crate::gameplay::combat::HitKind::Bolt
+                | crate::gameplay::combat::HitKind::ChargedBolt
+                | crate::gameplay::combat::HitKind::Skill
+        );
+        if !fits || !ranged {
+            audio::play(Sound::Clink, 0.6, -0.2);
+            return true;
+        }
+        if self.timer > 0.0 {
+            self.left = self.timer;
+        }
+        if world.state.flags.insert(self.flag.clone()) {
+            audio::sfx(Sound::Door);
+            world.camera.shake(0.15, 1.0);
+            Particle::burst(world, self.base.pos - Vec2::new(0.0, 12.0), self.color(), 14, 50.0, 0.4, true);
+        }
+        true
+    }
+
+    fn draw(&self, world: &World, batch: &mut Batch) {
+        let lit = self.lit(world);
+        let bob = if lit { (self.time * 3.0).sin().round() } else { 0.0 };
+        batch.draw(art::shadow(10), snap(self.base.pos - Vec2::new(5.0, 2.0)), Rgba::WHITE);
+        let tint = if lit { self.color().lerp(Rgba::WHITE, 0.3) } else { self.color().mul(0.45) };
+        batch.draw(art::crystal_switch(), snap(self.base.pos - Vec2::new(6.0, 22.0 + bob)), tint);
+        if self.left > 0.0 && (self.left * 6.0) as i32 % 2 == 0 && self.left < 2.0 {
+            batch.draw(art::crystal_switch(), snap(self.base.pos - Vec2::new(6.0, 22.0 + bob)), Rgba::WHITE.mul(0.4));
+        }
+    }
+}
+
+/// An orb that flips its flag each time it is struck. Gates opened by `flag` and by `!flag` take turns, so one strike
+/// lowers one set of bars and raises the other.
+pub struct ToggleSwitch {
+    base: EntityBase,
+    flag: String,
+    cooldown: f32,
+}
+
+impl ToggleSwitch {
+    pub fn new(data: &EntityData) -> ToggleSwitch {
+        ToggleSwitch {
+            base: EntityBase {
+                pos: tile_feet(data.x as i32, data.y as i32),
+                solid: true,
+                width: 10.0,
+                height: 6.0,
+                ..EntityBase::default()
+            },
+            flag: data.str_or("flag", "toggle").to_string(),
+            cooldown: 0.0,
+        }
+    }
+
+    fn on(&self, world: &World) -> bool {
+        world.state.flags.contains(&self.flag)
+    }
+}
+
+impl Entity for ToggleSwitch {
+    entity_base!();
+
+    fn faction(&self) -> Option<crate::gameplay::combat::Faction> {
+        Some(crate::gameplay::combat::Faction::Neutral)
+    }
+
+    fn hurtbox(&self) -> crate::core::geom::Box2 {
+        crate::core::geom::Box2::new(self.base.pos.x - 6.0, self.base.pos.y - 16.0, 12.0, 16.0)
+    }
+
+    fn light(&self, world: &World) -> Option<(f32, Rgba)> {
+        Some((28.0, if self.on(world) { Rgba::rgb(120, 160, 255) } else { Rgba::rgb(255, 110, 100) }))
+    }
+
+    fn added(&mut self, world: &mut World) {
+        let (tx, ty) = self.base.tile_pos();
+        world.map.block(tx, ty, true);
+    }
+
+    fn update(&mut self, _world: &mut World, dt: f32) {
+        self.cooldown = (self.cooldown - dt).max(0.0);
+    }
+
+    fn take_hit(&mut self, world: &mut World, hit: &mut crate::gameplay::combat::Hit) -> bool {
+        if hit.source != crate::gameplay::combat::Faction::Player || self.cooldown > 0.0 {
+            return hit.source == crate::gameplay::combat::Faction::Player;
+        }
+        self.cooldown = 0.5;
+        if !world.state.flags.remove(&self.flag) {
+            world.state.flags.insert(self.flag.clone());
+        }
+        audio::play(Sound::Clink, 0.9, 0.4);
+        let color = if self.on(world) { Rgba::rgb(120, 160, 255) } else { Rgba::rgb(255, 110, 100) };
+        Particle::burst(world, self.base.pos - Vec2::new(0.0, 10.0), color, 10, 40.0, 0.3, true);
+        true
+    }
+
+    fn draw(&self, world: &World, batch: &mut Batch) {
+        let color = if self.on(world) { Rgba::rgb(120, 160, 255) } else { Rgba::rgb(255, 110, 100) };
+        batch.draw(art::shadow(10), snap(self.base.pos - Vec2::new(5.0, 2.0)), Rgba::WHITE);
+        batch.draw(art::toggle_post(), snap(self.base.pos - Vec2::new(6.0, 16.0)), Rgba::WHITE);
+        batch.draw(art::orb(), snap(self.base.pos - Vec2::new(4.0, 19.0)), color);
+    }
+}

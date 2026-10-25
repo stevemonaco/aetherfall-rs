@@ -115,8 +115,8 @@
     },
     {
       "type": "rift",
-      "x": 22.0,
-      "y": 4.0,
+      "x": 21.0,
+      "y": 6.0,
       "count": 8,
       "id": "run_bt_lookout",
       "alive": 3,

@@ -36,10 +36,12 @@
     "##############################################"
   ],
   "entities": [
+    
+    
     {"type": "trial", "x": 23.0, "y": 26.0, "name": "Trial of the Prism", "exit": true, "to": "cinderfall", "tx": 23, "ty": 18},
     {"type": "golden", "x": 23.0, "y": 13.0, "id": "trial_prism", "kinds": "aetherwisp,sentry,drone,skimmer,cyclone,voideye,voidmote,fiend", "level": 42, "champion": "paladin"},
     {"type": "chest", "x": 19.0, "y": 10.0, "item": "prism_lens", "if": "golden:trial_prism", "style": 3},
     {"type": "chest", "x": 22.0, "y": 10.0, "item": "everlight", "if": "golden:trial_prism", "style": 3},
-    {"type": "chest", "x": 25.0, "y": 10.0, "item": "executioner_gem", "if": "golden:trial_prism", "style": 3}
+    {"type": "chest", "x": 25.0, "y": 10.0, "item": "executioner_gem", "if": "golden_heat:trial_prism", "style": 3}
   ]
 }

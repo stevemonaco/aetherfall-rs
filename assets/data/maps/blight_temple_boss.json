@@ -75,7 +75,7 @@
       "x": 3.0,
       "y": 3.0,
       "item": "tide_locket",
-      "style": 3,
+      "style": 2,
       "if": "run:echo_serpent"
     },
     {

@@ -28,7 +28,7 @@ use crate::gameplay::game_data::{self, EnemyDef, QuestDef, data};
 use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::mastery;
-use crate::gameplay::supports::Group;
+use crate::gameplay::supports::{self, Group};
 use crate::gameplay::{pacts, souls};
 use crate::scene_any;
 
@@ -112,6 +112,8 @@ pub struct MenuScene {
     pick_choices: Vec<(String, String)>,
     pick_row: usize,
     pick_scroll: usize,
+    /// The blade page open on the Skills tab: one per owned mode, then Aether.
+    page: usize,
     time: f32,
     to_title: Rc<Cell<bool>>,
 }
@@ -127,6 +129,7 @@ impl MenuScene {
             pick_choices: Vec::new(),
             pick_row: 0,
             pick_scroll: 0,
+            page: 0,
             time: 0.0,
             to_title: Rc::new(Cell::new(false)),
         }
@@ -136,11 +139,32 @@ impl MenuScene {
         TABS[self.tab]
     }
 
+    fn page_mode(&self, state: &GameState) -> Element {
+        let pages = state.blade_pages();
+        pages.get(self.page.min(pages.len().saturating_sub(1))).copied().unwrap_or(Element::Wind)
+    }
+
+    /// L and R (or left and right) turn the Skills tab's pages.
+    fn turn_page(&mut self, state: &GameState) {
+        let step = if input::pressed(GameAction::PrevMode) || input::pressed(GameAction::Left) {
+            -1
+        } else if input::pressed(GameAction::NextMode) || input::pressed(GameAction::Right) {
+            1
+        } else {
+            return;
+        };
+        let count = state.blade_pages().len().max(1) as i32;
+        self.page = (self.page.min(count as usize - 1) as i32 + step).rem_euclid(count) as usize;
+        self.row = 0;
+        self.scroll = 0;
+        audio::sfx(Sound::MenuMove);
+    }
+
     fn rows(&self, state: &GameState) -> Vec<Row> {
         match self.tab_name() {
             "Items" => item_rows(state),
             "Gear" => gear_rows(state),
-            "Skills" => skill_rows(state),
+            "Skills" => skill_rows(state, self.page_mode(state)),
             "Spirit" => spirit_rows(state),
             "Weave" => vec![Row::new("weave", "Open the Weave", format!("{} pts", state.weave_points()))],
             "Quests" => quest_rows(state),
@@ -159,6 +183,23 @@ impl MenuScene {
     fn activate(&mut self, world: &mut World, row: &Row) -> Option<Box<dyn Scene>> {
         let state = &mut world.state;
         match self.tab_name() {
+            "Items" if row.id == "gemcutter_prism" => {
+                let gems =
+                    state.gems_owned().into_iter().filter(|g| !g.prism && state.gem_tier(g.id) < supports::MAX_TIER);
+                self.pick_choices = std::iter::once(("".to_string(), "(cancel)".to_string()))
+                    .chain(gems.map(|g| {
+                        let cost = supports::prisms_for(state.gem_tier(g.id));
+                        (
+                            g.id.to_string(),
+                            format!("{} ({cost} Prism{})", state.gem_label(g.id), if cost > 1 { "s" } else { "" }),
+                        )
+                    }))
+                    .collect();
+                self.pick_slot = Some("prism".into());
+                self.pick_row = 0;
+                self.pick_scroll = 0;
+                audio::sfx(Sound::MenuSelect);
+            }
             "Items" => use_item(world, &row.id, &mut self.in_list),
             "Gear" => {
                 let kind = match row.id.as_str() {
@@ -252,6 +293,21 @@ impl MenuScene {
             return;
         }
         let id = if self.pick_row == 0 { None } else { Some(self.pick_choices[self.pick_row].0.clone()) };
+        if self.pick_slot.as_deref() == Some("prism") {
+            self.pick_slot = None;
+            let Some(gem) = id else {
+                audio::sfx(Sound::MenuCancel);
+                return;
+            };
+            let cost = supports::prisms_for(state.gem_tier(&gem));
+            if state.count("gemcutter_prism") >= cost && state.take("gemcutter_prism", cost) {
+                *state.gem_tiers.entry(gem).or_default() += 1;
+                audio::sfx(Sound::LevelUp);
+            } else {
+                audio::sfx(Sound::MenuCancel);
+            }
+            return;
+        }
         if let Some(slot) = self.pick_slot.as_deref().and_then(|s| s.strip_prefix("charm:")) {
             let slot: usize = slot.parse().unwrap_or(0);
             for (i, charm) in state.spirit_charms.iter_mut().enumerate() {
@@ -291,7 +347,7 @@ impl MenuScene {
             return if item.kind == ItemKind::Powerup {
                 format!("Permanent. {}", item.description)
             } else {
-                item.description.to_string()
+                state.item_description(&row.id)
             };
         }
         match self.tab_name() {
@@ -327,7 +383,7 @@ impl MenuScene {
             "Weave" => "Spend Weave points on stats and passives.".into(),
             "Skills" if row.socket.is_some() => match state.sockets.get(row.id.trim_start_matches("socket|")) {
                 Some(id) if !row.locked => {
-                    items::get(id).map(|i| format!("{} Confirm to change.", i.description)).unwrap_or_default()
+                    format!("{} Confirm to change.", state.item_description(id))
                 }
                 _ if row.locked => {
                     format!("This socket opens at mastery {} in this mode.", mastery::ADEPT)
@@ -369,17 +425,81 @@ impl MenuScene {
         }
     }
 
+    /// The Skills tab's header: a strip of page emblems with L/R hints, the page's name and its mastery.
+    fn draw_skill_page(&self, batch: &mut Batch, state: &GameState) {
+        let pages = state.blade_pages();
+        let mode = self.page_mode(state);
+        let (cx, cy) = (CONTENT_BOX.x as f32, CONTENT_BOX.y as f32);
+        let shadow = Some(palette::TEXT_SHADOW);
+        let spacing = 26.0;
+        let start = cx + (CONTENT_BOX.w as f32 - pages.len() as f32 * spacing) / 2.0;
+        for (i, &page) in pages.iter().enumerate() {
+            let x = start + i as f32 * spacing;
+            let frame = IRect::new(x as i32, cy as i32 + 6, 22, 22);
+            let (fill, border, tint) = if page == mode {
+                (page.dark(), page.glow(), Rgba::WHITE)
+            } else {
+                (palette::WINDOW_FILL_LIGHT.mul(0.5), palette::WINDOW_BORDER.mul(0.5), Rgba::WHITE.mul(0.45))
+            };
+            batch.fill(frame, fill);
+            batch.draw_rect(frame, border);
+            batch.draw(combat_art::emblem(page), Vec2::new(x + 2.0, cy + 8.0), tint);
+        }
+        if pages.len() > 1 {
+            let prev = input::glyph(GameAction::PrevMode);
+            let next = input::glyph(GameAction::NextMode);
+            font::draw(
+                batch,
+                &prev,
+                Vec2::new(start - 8.0 - font::measure(&prev) as f32, cy + 13.0),
+                palette::TEXT_DIM,
+                None,
+            );
+            font::draw(
+                batch,
+                &next,
+                Vec2::new(start + pages.len() as f32 * spacing + 4.0, cy + 13.0),
+                palette::TEXT_DIM,
+                None,
+            );
+        }
+        let title = if mode == Element::Aether {
+            format!("Aether - level {}", state.aether_level())
+        } else {
+            format!("{} mode", mode.mode_label())
+        };
+        font::draw(batch, &title, Vec2::new(cx + 12.0, cy + 36.0), mode.glow(), shadow);
+        if mode != Element::Aether {
+            let xp = state.mastery_xp(mode);
+            let level = mastery::level(xp);
+            let bar = IRect::new(CONTENT_BOX.right() - 132, cy as i32 + 38, 120, 5);
+            let text = if level >= mastery::MAX_MASTERY { "Mastered".to_string() } else { format!("Mastery {level}") };
+            let tx = (bar.x - 6 - font::measure(&text)) as f32;
+            font::draw(batch, &text, Vec2::new(tx, cy + 36.0), palette::TEXT, shadow);
+            let progress = if level >= mastery::MAX_MASTERY { 1.0 } else { mastery::progress(xp) };
+            batch.fill(bar, palette::WINDOW_FILL_LIGHT.mul(0.6));
+            batch.fill(IRect::new(bar.x, bar.y, (bar.w as f32 * progress) as i32, bar.h), mode.glow());
+            batch.draw_rect(IRect::new(bar.x - 1, bar.y - 1, bar.w + 2, bar.h + 2), palette::WINDOW_BORDER.mul(0.6));
+        }
+        batch.fill(
+            IRect::new(CONTENT_BOX.x + 6, cy as i32 + 50, CONTENT_BOX.w - 12, 1),
+            palette::WINDOW_BORDER.mul(0.4),
+        );
+    }
+
     fn draw_list(&self, batch: &mut Batch, state: &GameState) {
         let rows = self.rows(state);
         let content = CONTENT_BOX;
         let (cx, cy) = (content.x as f32, content.y as f32);
+        let skills = self.tab_name() == "Skills";
+        let (top, spacing) = if skills { (60.0, 21.0) } else { (10.0, 14.0) };
         let shadow = Some(palette::TEXT_SHADOW);
         if rows.is_empty() {
             font::draw(batch, "Nothing here yet.", Vec2::new(cx + 12.0, cy + 10.0), palette::TEXT_DIM, None);
             return;
         }
         for (i, row) in rows.iter().enumerate().skip(self.scroll).take(VISIBLE_ROWS) {
-            let y = cy + 10.0 + (i - self.scroll) as f32 * 14.0;
+            let y = cy + top + (i - self.scroll) as f32 * spacing;
             if row.header {
                 if let Some(icon) = row.icon {
                     let pos = Vec2::new(cx + 10.0, y - 3.0);
@@ -389,14 +509,32 @@ impl MenuScene {
                 font::draw(batch, &row.label, Vec2::new(x, y), palette::TEXT_DIM, shadow);
                 continue;
             }
+            if skills {
+                // Each socket is a small frame holding its gem; locked ones stay dark.
+                let frame = IRect::new(cx as i32 + 18, y as i32 - 5, 18, 18);
+                let mode = self.page_mode(state);
+                let border = if row.locked { palette::WINDOW_BORDER.mul(0.3) } else { mode.glow().mul(0.7) };
+                batch.fill(frame, if row.locked { Rgba::BLACK.mul(0.35) } else { palette::WINDOW_FILL_LIGHT.mul(0.4) });
+                batch.draw_rect(frame, border);
+                if row.locked {
+                    font::draw(batch, "x", Vec2::new(cx + 25.0, y), palette::TEXT_DIM, None);
+                }
+            }
             if let Some(icon) = row.icon {
-                batch.draw(icon, Vec2::new(cx + 20.0, y - 2.0), Rgba::WHITE);
+                let at = if skills { Vec2::new(cx + 19.0, y - 4.0) } else { Vec2::new(cx + 20.0, y - 2.0) };
+                let scale = if skills && row.mode.is_some() { 16.0 / 18.0 } else { 1.0 };
+                batch.draw_ex(icon, at, None, Rgba::WHITE, 0.0, Vec2::ZERO, Vec2::splat(scale), false, false);
             }
             let color = if row.marked { palette::HIGHLIGHT } else { palette::TEXT };
-            font::draw(batch, &row.label, Vec2::new(cx + 36.0, y), color, shadow);
+            let label_x = if skills { cx + 44.0 } else { cx + 36.0 };
+            font::draw(batch, &row.label, Vec2::new(label_x, y), color, shadow);
             if !row.detail.is_empty() {
                 let pos = Vec2::new((content.right() - 12 - font::measure(&row.detail)) as f32, y);
-                let color = if self.tab_name() == "Items" { palette::TEXT_DIM } else { palette::HIGHLIGHT };
+                let color = if self.tab_name() == "Items" || row.locked || row.detail == "empty" {
+                    palette::TEXT_DIM
+                } else {
+                    palette::HIGHLIGHT
+                };
                 font::draw(batch, &row.detail, pos, color, None);
             }
             if self.in_list && i == self.row {
@@ -423,7 +561,7 @@ impl MenuScene {
         }
     }
 
-    fn draw_choices(&self, batch: &mut Batch) {
+    fn draw_choices(&self, state: &GameState, batch: &mut Batch) {
         let shown = self.pick_choices.len().min(VISIBLE_CHOICES);
         let rect = IRect::new(CONTENT_BOX.x + 40, CONTENT_BOX.y + 70, 280, 24 + shown as i32 * 13);
         batch.draw_window(rect);
@@ -446,10 +584,9 @@ impl MenuScene {
         if self.pick_scroll + shown < self.pick_choices.len() {
             font::draw(batch, "v", Vec2::new(arrow_x, (rect.bottom() - 14) as f32), palette::TEXT_DIM, None);
         }
-        if self.pick_row > 0
-            && let Some(item) = items::get(&self.pick_choices[self.pick_row].0)
-        {
-            for (i, line) in font::wrap(item.description, rect.w - 16).iter().enumerate() {
+        if self.pick_row > 0 && items::get(&self.pick_choices[self.pick_row].0).is_some() {
+            let text = state.item_description(&self.pick_choices[self.pick_row].0);
+            for (i, line) in font::wrap(&text, rect.w - 16).iter().enumerate() {
                 let pos = Vec2::new(x + 8.0, (rect.bottom() + 4 + i as i32 * 11) as f32);
                 font::draw(batch, line, pos, palette::TEXT_DIM, Some(palette::TEXT_SHADOW));
             }
@@ -545,51 +682,39 @@ fn gear_rows(state: &GameState) -> Vec<Row> {
     ]
 }
 
-fn skill_rows(state: &GameState) -> Vec<Row> {
-    let mut rows = Vec::new();
-    for mode in state.blade_pages() {
-        let shift = mode == Element::Aether;
-        let heading = if shift {
-            format!("Aether - level {}", state.aether_level())
-        } else {
-            let xp = state.mastery_xp(mode);
-            let level = mastery::level(xp);
-            if level >= mastery::MAX_MASTERY {
-                format!("{} mode - mastered", mode.mode_label())
-            } else {
-                format!("{} mode - mastery {level} ({}%)", mode.mode_label(), (mastery::progress(xp) * 100.0) as i32)
-            }
-        };
-        rows.push(Row { icon: Some(combat_art::emblem(mode)), ..Row::header(heading) });
-        let detail = match state.equipped_skill(mode) {
-            Some(skill) => format!("{}  Lv {}", skill.name, state.skill_level(mode)),
-            None => "-".into(),
-        };
-        let label = if shift { "Form" } else { "Skill" };
-        rows.push(Row { mode: Some(mode), ..Row::new(format!("skill|{}", mode.key()), label, detail) });
-        let open = state.socket_count(mode);
-        let sockets = if shift { 1 } else { 2 };
-        for &group in GameState::socket_groups(mode) {
-            for index in 0..sockets {
-                let key = GameState::socket_key(mode, group, index);
-                let locked = index >= open;
-                let gem = state.sockets.get(&key).filter(|_| !locked);
-                let detail = match gem {
-                    Some(id) => items::name_of(id),
-                    None if locked => format!("(mastery {})", mastery::ADEPT),
-                    None => "-".into(),
-                };
-                rows.push(Row {
-                    icon: gem.map(|id| props::icon(id)),
-                    socket: Some((mode, group, index)),
-                    locked,
-                    ..Row::new(
-                        format!("socket|{key}"),
-                        if shift { "Prism gem".to_string() } else { format!("{} gem", group.label()) },
-                        detail,
-                    )
-                });
-            }
+/// One blade page: its skill (or Aether form), then its gem sockets group by group.
+fn skill_rows(state: &GameState, mode: Element) -> Vec<Row> {
+    let shift = mode == Element::Aether;
+    let detail = match state.equipped_skill(mode) {
+        Some(skill) => format!("{}  Lv {}", skill.name, state.skill_level(mode)),
+        None => "-".into(),
+    };
+    let label = if shift { "Form" } else { "Skill" };
+    let mut rows = vec![Row {
+        mode: Some(mode),
+        icon: Some(combat_art::emblem(mode)),
+        ..Row::new(format!("skill|{}", mode.key()), label, detail)
+    }];
+    let open = state.socket_count(mode);
+    let sockets = if shift { 1 } else { 2 };
+    for &group in GameState::socket_groups(mode) {
+        for index in 0..sockets {
+            let key = GameState::socket_key(mode, group, index);
+            let locked = index >= open;
+            let gem = state.sockets.get(&key).filter(|_| !locked);
+            let detail = match gem {
+                Some(id) => state.gem_label(id),
+                None if locked => format!("opens at mastery {}", mastery::ADEPT),
+                None => "empty".into(),
+            };
+            let label =
+                if shift { "Prism".to_string() } else { format!("{} {}", group.label(), ["I", "II"][index as usize]) };
+            rows.push(Row {
+                icon: gem.map(|id| props::icon(id)),
+                socket: Some((mode, group, index)),
+                locked,
+                ..Row::new(format!("socket|{key}"), label, detail)
+            });
         }
     }
     rows
@@ -605,8 +730,8 @@ fn gem_choices(state: &GameState, mode: Element, group: Group) -> Vec<(String, S
         .map(|g| {
             let place = state.sockets.iter().find(|(_, id)| *id == g.id).map(|(key, _)| socket_label(key));
             let label = match place {
-                Some(place) => format!("{} ({place})", g.name),
-                None => g.name.to_string(),
+                Some(place) => format!("{} ({place})", state.gem_label(g.id)),
+                None => state.gem_label(g.id),
             };
             (g.id.to_string(), label)
         })
@@ -719,6 +844,9 @@ impl Scene for MenuScene {
             return;
         }
 
+        if self.tab_name() == "Skills" {
+            self.turn_page(&world.state);
+        }
         if !self.in_list {
             if move_index(&mut self.tab, TABS.len()) {
                 self.row = 0;
@@ -791,10 +919,13 @@ impl Scene for MenuScene {
         if self.tab_name() == "Status" {
             self.draw_status(batch, state);
         } else {
+            if self.tab_name() == "Skills" {
+                self.draw_skill_page(batch, state);
+            }
             self.draw_list(batch, state);
         }
         if self.pick_slot.is_some() {
-            self.draw_choices(batch);
+            self.draw_choices(state, batch);
         }
     }
 }

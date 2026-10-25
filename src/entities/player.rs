@@ -77,6 +77,8 @@ pub struct Player {
     knock_time: f32,
     death_time: f32,
     jump_time: f32,
+    /// A jump out of bog keeps the bog's drag for its whole flight.
+    jump_drag: f32,
     fall_time: f32,
     knock_velocity: Vec2,
     last_safe: Vec2,
@@ -95,7 +97,9 @@ pub struct Player {
 
     swing_hit: Vec<EntityId>,
     /// Where a Lunging gem's swing is dashing to.
-    lunge_target: Option<Vec2>,
+    /// Where the Lunging gem is carrying the swing, and how far from that point to stop.
+    lunge_target: Option<(Vec2, f32)>,
+    lunged: bool,
     /// Seconds spent whirling, or negative when not (the Whirlwind gem).
     whirl_time: f32,
     whirl_beat: f32,
@@ -182,6 +186,7 @@ impl Player {
             knock_time: 0.0,
             death_time: 0.0,
             jump_time: -1.0,
+            jump_drag: 1.0,
             fall_time: -1.0,
             knock_velocity: Vec2::ZERO,
             last_safe: pos,
@@ -198,6 +203,7 @@ impl Player {
             aether: 0.0,
             swing_hit: Vec::new(),
             lunge_target: None,
+            lunged: false,
             whirl_time: -1.0,
             whirl_beat: 0.0,
             attack_time: -1.0,
@@ -379,19 +385,28 @@ impl Player {
         world.move_entity(&mut self.base, delta, flying, corner_assist, false)
     }
 
+    /// How much the ground underfoot slows walking and dashing: bog drags, shallows wade.
+    fn footing(&self, world: &World) -> f32 {
+        if self.jump_time >= 0.0 {
+            return self.jump_drag;
+        }
+        if self.airborne() || world.state.acc().sure_footed {
+            return 1.0;
+        }
+        match self.terrain_underfoot(world) {
+            Terrain::Bog => 0.55,
+            Terrain::Shallows => 0.8,
+            _ => 1.0,
+        }
+    }
+
     fn move_speed(&self, world: &World) -> f32 {
         let mut speed = BASE_SPEED
             * world.state.mods().speed
             * combat::mode_mods(Self::mode(world)).speed
             * world.state.acc().speed
             * self.status.speed_factor();
-        let under = self.terrain_underfoot(world);
-        if !self.airborne() && under == Terrain::Bog {
-            speed *= 0.55;
-        }
-        if !self.airborne() && under == Terrain::Shallows {
-            speed *= 0.8;
-        }
+        speed *= self.footing(world);
         if self.aiming() || self.charging_skill() {
             speed *= 0.55;
         }
@@ -452,6 +467,8 @@ impl Player {
 
         if input::pressed(GameAction::Jump) && world.state.can_jump() && !self.airborne() && self.can_act() {
             self.jump_time = 0.0;
+            let bogged = self.terrain_underfoot(world) == Terrain::Bog && !world.state.acc().light_jumps;
+            self.jump_drag = if bogged { 0.55 } else { 1.0 };
             audio::play(Sound::MenuMove, 0.7, -0.4);
         }
 
@@ -1050,7 +1067,7 @@ impl Player {
 
     /// How far a swing reaches, from the Weave and the Cleave gem.
     fn swing_radius(world: &World, finisher: bool) -> f32 {
-        let cleave = if Self::supports(world, Group::Attack).cleave { 1.3 } else { 1.0 };
+        let cleave = Self::supports(world, Group::Attack).cleave;
         let base = if finisher { 34.0 } else { 26.0 };
         base * cleave * (1.0 + world.state.mods().reach)
     }
@@ -1063,7 +1080,8 @@ impl Player {
         self.combo_reset = 0.0;
         let gems = Self::supports(world, Group::Attack);
         self.lunge_target = if gems.lunge { self.lunge_toward(world) } else { None };
-        if let Some(target) = self.lunge_target {
+        self.lunged = self.lunge_target.is_some();
+        if let Some((target, _)) = self.lunge_target {
             self.aim = safe_dir(target - self.center(), self.aim);
         }
         self.facing = Direction::from_vec(self.aim, self.facing);
@@ -1084,16 +1102,17 @@ impl Player {
         }
     }
 
-    /// The nearest foe ahead within a short dash, for the Lunging gem.
-    fn lunge_toward(&self, world: &World) -> Option<Vec2> {
+    /// The nearest foe ahead within a short dash, for the Lunging gem, and a stopping distance that leaves the swing's
+    /// reach between the hero and the foe's edge so the dash never ends in its body.
+    fn lunge_toward(&self, world: &World) -> Option<(Vec2, f32)> {
         let me = self.center();
         world
             .damageables()
             .into_iter()
             .filter(|&(_, faction, _)| faction == Faction::Enemy)
-            .map(|(_, _, b)| b.center())
-            .filter(|&c| c.distance(me) < 72.0 && (c - me).normalize_or_zero().dot(self.aim) > 0.4)
-            .min_by(|a, b| a.distance(me).total_cmp(&b.distance(me)))
+            .map(|(_, _, b)| (b.center(), b.w.max(b.h) / 2.0 + 14.0))
+            .filter(|&(c, _)| c.distance(me) < 72.0 && (c - me).normalize_or_zero().dot(self.aim) > 0.4)
+            .min_by(|a, b| a.0.distance(me).total_cmp(&b.0.distance(me)))
     }
 
     /// The Deflecting gem: enemy shots inside the swing are cut down, or sent back by a finisher.
@@ -1125,9 +1144,15 @@ impl Player {
         let finisher = self.combo_step == 2;
         let lunge_end = if finisher { 0.13 } else { 0.09 };
         if self.attack_time < lunge_end {
-            let mut speed = if finisher { 120.0 } else { 45.0 };
-            if let Some(target) = self.lunge_target {
-                if target.distance(self.center()) > 14.0 {
+            let mut speed = if self.lunged {
+                0.0
+            } else if finisher {
+                120.0
+            } else {
+                45.0
+            };
+            if let Some((target, stop)) = self.lunge_target {
+                if target.distance(self.center()) > stop {
                     speed = 300.0;
                 } else {
                     self.lunge_target = None;
@@ -1138,7 +1163,7 @@ impl Player {
         }
 
         let (active_start, active_end) = if finisher { (0.07, 0.2) } else { (0.04, 0.14) };
-        let reach = if gems.cleave { 1.3 } else { 1.0 };
+        let reach = gems.cleave;
         if self.attack_time >= active_start && self.attack_time <= active_end {
             let radius = Self::swing_radius(world, finisher);
             if gems.deflect {
@@ -1361,7 +1386,7 @@ impl Player {
         self.dodge_time += dt;
         self.dodge_invulnerable -= dt;
         let gale = world.state.has("gale_dash");
-        let delta = self.dodge_dir * self.dodge_speed * dt;
+        let delta = self.dodge_dir * self.dodge_speed * self.footing(world) * dt;
         self.move_by(world, delta, gale, true);
         if world.state.soul.as_deref() == Some("ember") {
             let (tx, ty) = self.tile_pos();

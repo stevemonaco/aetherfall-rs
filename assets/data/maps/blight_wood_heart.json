@@ -50,7 +50,6 @@
       "y": 9.0,
       "restores": "an Echo, remembering",
       "id": "run_ww_heart",
-      "soul": "echo",
       "do": [
         "grade:witherwood"
       ],
@@ -61,7 +60,7 @@
       "x": 13.0,
       "y": 5.0,
       "item": "night_eye",
-      "style": 3,
+      "style": 2,
       "if": "rift:run_ww_heart"
     },
     {

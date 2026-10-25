@@ -1,6 +1,6 @@
 //! The Weave screen: the lattice of passives, panned around a cursor that walks the threads one cell at a time. The
 //! mode keys jump between the keystones, the skill button zooms out to the whole Weave and Confirm takes the node under
-//! the cursor. At a save crystal the whole Weave can be unpicked for free.
+//! the cursor. At a save crystal any node nothing else hangs from, or the whole Weave, can be unpicked for free.
 
 use bevy::math::Vec2;
 
@@ -153,6 +153,9 @@ impl Scene for WeaveScene {
             if world.state.can_take(self.cursor) {
                 world.state.take_node(&self.cursor.id);
                 audio::sfx(Sound::LevelUp);
+            } else if self.at_crystal && world.state.can_drop(self.cursor) {
+                world.state.drop_node(&self.cursor.id);
+                audio::sfx(Sound::Heal);
             } else {
                 audio::sfx(Sound::MenuCancel);
             }
@@ -273,17 +276,23 @@ impl Scene for WeaveScene {
         for (i, line) in font::wrap(&node.description, PANEL.w - 16).iter().take(2).enumerate() {
             font::draw(batch, line, Vec2::new(px, py + 17.0 + i as f32 * 11.0), palette::TEXT, shadow);
         }
-        let status = node_status(state, node, self.reset_armed);
+        let status = node_status(state, node, self.reset_armed, self.at_crystal);
         let status_pos = Vec2::new((PANEL.right() - 8 - font::measure(&status)) as f32, py + 5.0);
         font::draw(batch, &status, status_pos, palette::TEXT_DIM, None);
     }
 }
 
-fn node_status(state: &GameState, node: &WeaveNode, reset_armed: bool) -> String {
+fn node_status(state: &GameState, node: &WeaveNode, reset_armed: bool, at_crystal: bool) -> String {
     if reset_armed {
         format!("Press {} again to refund every point", input::glyph(GameAction::Throw))
-    } else if state.weave_has(&node.id) {
+    } else if node.id == weave::HUB {
         "Woven".to_string()
+    } else if state.weave_has(&node.id) && !at_crystal {
+        "Woven (unpick at a save crystal)".to_string()
+    } else if state.weave_has(&node.id) && state.can_drop(node) {
+        "Confirm: unpick (refund)".to_string()
+    } else if state.weave_has(&node.id) {
+        "Woven (other threads hang from it)".to_string()
     } else if !weave::neighbours(node).any(|n| state.weave_has(&n.id)) {
         "Weave a neighbouring node first".to_string()
     } else if node.needs_knot() && state.knots_free() <= 0 {

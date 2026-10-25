@@ -36,11 +36,13 @@
     "##############################################"
   ],
   "entities": [
+    
+    
     {"type": "trial", "x": 23.0, "y": 26.0, "name": "Trial of Cinders", "exit": true, "to": "ashen_reach", "tx": 31, "ty": 29},
     {"type": "golden", "x": 23.0, "y": 13.0, "id": "trial_ash", "kinds": "ashhound,emberwraith,glasswhirl,salamander,lavabloat,cinderslime,magmaooze,slagbrute", "level": 37, "champion": "salamander"},
     {"type": "chest", "x": 19.0, "y": 10.0, "item": "echo_gem", "if": "golden:trial_ash", "style": 3},
     {"type": "chest", "x": 22.0, "y": 10.0, "item": "overdrive_gem", "if": "golden:trial_ash", "style": 3},
     {"type": "chest", "x": 25.0, "y": 10.0, "item": "deflect_gem", "if": "golden:trial_ash", "style": 3},
-    {"type": "chest", "x": 28.0, "y": 10.0, "item": "whirlwind_gem", "if": "golden:trial_ash", "style": 3}
+    {"type": "chest", "x": 28.0, "y": 10.0, "item": "whirlwind_gem", "if": "golden_heat:trial_ash", "style": 3}
   ]
 }
