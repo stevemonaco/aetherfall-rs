@@ -60,7 +60,7 @@
       "count": 9,
       "id": "run_hollow_9",
       "alive": 3,
-      "kinds": "voidmote,crawler,ashhound"
+      "kinds": "voidmote,crawler,ashhound,husk"
     },
     {
       "type": "gate",
@@ -102,7 +102,7 @@
       "type": "enemy",
       "x": 8.0,
       "y": 16.0,
-      "kind": "crawler"
+      "kind": "husk"
     },
     {
       "type": "enemy",

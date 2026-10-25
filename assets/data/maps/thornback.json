@@ -100,7 +100,7 @@
       "alive": 3,
       "id": "thornback_den",
       "count": 6,
-      "kinds": "spider,blueslime"
+      "kinds": "spider,blueslime,stumpling,tender,goblin,beetle,fieldrat"
     },
     {
       "type": "rift",
@@ -109,13 +109,13 @@
       "alive": 3,
       "id": "thornback_barrow",
       "count": 6,
-      "kinds": "skeleton,ghost"
+      "kinds": "skeleton,ghost,stumpling,tender,goblin,beetle,fieldrat"
     },
     {
       "type": "rift",
       "x": 50.0,
       "y": 37.0,
-      "kinds": "spider,eye",
+      "kinds": "spider,eye,stumpling,tender,goblin,beetle,fieldrat",
       "elite": "skeleton",
       "count": 4,
       "id": "thornback_elite",
@@ -138,7 +138,7 @@
       "type": "chest",
       "x": 50.0,
       "y": 11.0,
-      "gold": 250
+      "gold": 180
     },
     {
       "type": "chest",
@@ -157,13 +157,13 @@
       "type": "enemy",
       "x": 13.0,
       "y": 30.0,
-      "kind": "spider"
+      "kind": "goblin"
     },
     {
       "type": "enemy",
       "x": 16.0,
       "y": 31.0,
-      "kind": "mushroom"
+      "kind": "stumpling"
     },
     {
       "type": "enemy",
@@ -175,7 +175,7 @@
       "type": "enemy",
       "x": 12.0,
       "y": 22.0,
-      "kind": "blueslime"
+      "kind": "fieldrat"
     },
     {
       "type": "enemy",
@@ -193,13 +193,13 @@
       "type": "enemy",
       "x": 12.0,
       "y": 12.0,
-      "kind": "skeleton"
+      "kind": "tender"
     },
     {
       "type": "enemy",
       "x": 16.0,
       "y": 14.0,
-      "kind": "skeleton"
+      "kind": "beetle"
     },
     {
       "type": "enemy",

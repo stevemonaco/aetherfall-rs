@@ -10,7 +10,7 @@ use super::effects::Particle;
 use super::entity::{Entity, EntityId};
 use super::hazards::{Cyclone, FirePatch};
 use super::player::{Player, ignite_around};
-use super::projectile::{Projectile, ProjectileHook};
+use super::projectile::{Projectile, ProjectileHook, Volley};
 use crate::art::props;
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
@@ -227,6 +227,7 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
         Effect::GaleSlash => {
             world.add(SlashEffect::new(p.center(), p.aim, Element::Wind, 30.0, true, false));
             let angles: &[f32] = if level >= 3 { &[-0.35, 0.0, 0.35] } else { &[0.0] };
+            let volley = Volley::default();
             for &angle in angles {
                 let dir = rotate(p.aim, angle);
                 let mut shot = Projectile::new(
@@ -235,7 +236,11 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
                     p.pos() + dir * 10.0,
                     dir * 210.0,
                 );
-                shot.power = if level == 2 { 2.3 } else { 1.7 };
+                shot.power = match level {
+                    1 => 1.7,
+                    2 => 2.3,
+                    _ => 2.6,
+                };
                 shot.element = Element::Wind;
                 shot.kind = HitKind::Skill;
                 shot.poise = 3.0;
@@ -249,6 +254,7 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
                 shot.rotate_to_velocity = true;
                 shot.trail_color = Element::Wind.glow();
                 shot.paints_path = true;
+                shot.volley = Some(volley.clone());
                 p.scale_skill_shot(world, &mut shot);
                 world.add(shot);
             }
@@ -312,9 +318,10 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
         Effect::Lance => {
             let lances: &[(f32, f32, f32)] = match level {
                 1 => &[(0.0, 2.0, 1.6)],
-                2 => &[(-0.2, 1.8, 1.6), (0.0, 1.8, 1.6), (0.2, 1.8, 1.6)],
+                2 => &[(-0.2, 2.6, 1.6), (0.0, 2.6, 1.6), (0.2, 2.6, 1.6)],
                 _ => &[(0.0, 3.6, 2.8)],
             };
+            let volley = Volley::default();
             for &(angle, power, scale) in lances {
                 let dir = rotate(p.aim, angle);
                 let mut shot = Projectile::new(
@@ -338,6 +345,7 @@ fn run(effect: Effect, level: i32, p: &mut Player, world: &mut World) {
                 shot.texture = props::ice_shard();
                 shot.rotate_to_velocity = true;
                 shot.trail_color = Element::Water.glow();
+                shot.volley = Some(volley.clone());
                 p.scale_skill_shot(world, &mut shot);
                 world.add(shot);
             }

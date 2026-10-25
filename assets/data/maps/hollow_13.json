@@ -60,7 +60,7 @@
       "count": 10,
       "id": "run_hollow_13",
       "alive": 3,
-      "kinds": "fiend,magus,cleric"
+      "kinds": "fiend,magus,cleric,seer"
     },
     {
       "type": "gate",
@@ -90,7 +90,7 @@
       "type": "enemy",
       "x": 8.0,
       "y": 16.0,
-      "kind": "cleric"
+      "kind": "seer"
     },
     {
       "type": "enemy",

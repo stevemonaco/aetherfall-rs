@@ -50,6 +50,11 @@
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
   ],
   "entities": [
+    {"type": "enemy", "x": 36.0, "y": 28.0, "kind": "bee", "elite": true},
+    {"type": "enemy", "x": 34.0, "y": 27.0, "kind": "bee"},
+    {"type": "enemy", "x": 38.0, "y": 27.0, "kind": "bee"},
+    {"type": "enemy", "x": 35.0, "y": 29.0, "kind": "bee"},
+    {"type": "enemy", "x": 37.0, "y": 29.0, "kind": "bee"},
     {
       "type": "warp",
       "x": 27.0,
@@ -145,7 +150,7 @@
       "type": "chest",
       "x": 41.0,
       "y": 30.0,
-      "count": 3,
+      "count": 2,
       "item": "herb"
     },
     {
@@ -171,7 +176,7 @@
       "x": 15.0,
       "y": 6.0,
       "id": "leaf_herbalist",
-      "kinds": "slime,bee",
+      "kinds": "slime,bee,fieldrat,sandcrab",
       "alive": 3,
       "count": 6,
       "restores": "Hazel's Apothecary in Leafhollow"
@@ -185,7 +190,7 @@
       "alive": 3,
       "id": "leaf_shrine",
       "level": 4,
-      "kinds": "mushroom,bee,slime"
+      "kinds": "mushroom,bee,slime,fieldrat,sandcrab"
     },
     {
       "type": "rift",
@@ -196,7 +201,7 @@
       "soul": "hound",
       "alive": 3,
       "id": "leaf_hound",
-      "kinds": "snail,slime"
+      "kinds": "snail,slime,fieldrat,sandcrab"
     },
     {
       "type": "decor",
@@ -340,13 +345,13 @@
       "type": "enemy",
       "x": 20.0,
       "y": 7.0,
-      "kind": "slime"
+      "kind": "fieldrat"
     },
     {
       "type": "enemy",
       "x": 33.0,
       "y": 8.0,
-      "kind": "slime"
+      "kind": "fieldrat"
     },
     {
       "type": "enemy",
@@ -364,7 +369,7 @@
       "type": "enemy",
       "x": 31.0,
       "y": 13.0,
-      "kind": "snail"
+      "kind": "sandcrab"
     },
     {
       "type": "enemy",

@@ -209,11 +209,12 @@ impl Entity for IceBlock {
     }
 }
 
-/// A weighted plate that is pressed while the player, a block or a crate rests on it.
+/// A weighted plate that is pressed while the player, a block or a crate rests on it. A heavy plate ignores the player.
 pub struct PressurePlate {
     base: EntityBase,
     flag: String,
     latch: bool,
+    heavy: bool,
     down: bool,
 }
 
@@ -228,6 +229,7 @@ impl PressurePlate {
             },
             flag: data.str_or("flag", "plate").to_string(),
             latch: data.bool("latch", false),
+            heavy: data.bool("heavy", false),
             down: false,
         }
     }
@@ -252,7 +254,8 @@ impl Entity for PressurePlate {
                 any.is::<IceBlock>() || any.is::<Crate>() || any.downcast_ref::<Enemy>().is_some_and(|en| en.frozen());
             heavy && e.base().hitbox().intersects(&area)
         });
-        let pressed = (world.hero.hitbox.intersects(&area) && !world.hero.airborne) || weighed;
+        let stood_on = !self.heavy && world.hero.hitbox.intersects(&area) && !world.hero.airborne;
+        let pressed = stood_on || weighed;
         if pressed == self.down || (!pressed && self.latch) {
             return;
         }

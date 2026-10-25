@@ -1,7 +1,7 @@
 //! The Aether state. Hits fill the Aether meter (weaknesses faster) and taking a hit drains whatever has not locked
 //! in yet; progress locks after a few seconds unhurt, or at once on a finisher. When it is full Aether wakes by itself:
 //! the equipped form fires once, and for a few seconds the hero is hard to hurt and every hit may pierce to the
-//! target's weakness instead of landing in the current mode's element. Afterwards the meter rests before it fills.
+//! target's weakness instead of landing in the current mode's element. Afterwards the meter starts again from empty.
 
 use bevy::math::Vec2;
 
@@ -20,8 +20,8 @@ use crate::gameplay::supports::Group;
 use crate::scenes::world::World;
 use crate::world::map::TILE;
 
-/// Seconds after Aether fades before the meter fills again.
-const REST: f32 = 10.0;
+/// Share of the meter Afterglow leaves locked in when Aether fades.
+const AFTERGLOW: f32 = 25.0;
 /// Share of the meter a hit taken while building drains, never below the locked progress.
 const HURT_DRAIN: f32 = 15.0;
 /// Damage taken while Aether is awake.
@@ -32,11 +32,6 @@ const REACH: f32 = 56.0;
 impl Player {
     pub fn aether_active(&self) -> bool {
         self.aether_time > 0.0
-    }
-
-    /// Whether the meter is resting after an Aether state, unable to fill.
-    pub fn aether_resting(&self) -> bool {
-        self.aether_rest > 0.0
     }
 
     /// The meter as a fraction: filling while building, draining while awake.
@@ -51,12 +46,16 @@ impl Player {
 
     /// Fills the meter for a hit that landed on a foe.
     pub(super) fn feed_aether(&mut self, world: &mut World, hit: &Hit) {
-        let amount = match hit.kind {
-            HitKind::Melee => 1.2,
-            HitKind::Finisher => 3.0,
-            HitKind::Bolt => 0.6,
-            HitKind::ChargedBolt => 2.0,
-            HitKind::Skill => 1.5,
+        let crescendo = world.state.mods().has("crescendo");
+        let amount = match (hit.kind, crescendo) {
+            (HitKind::Finisher, true) => 6.0,
+            (HitKind::ChargedBolt, true) => 4.0,
+            (_, true) => 0.0,
+            (HitKind::Melee, _) => 1.2,
+            (HitKind::Finisher, _) => 3.0,
+            (HitKind::Bolt, _) => 0.6,
+            (HitKind::ChargedBolt, _) => 2.0,
+            (HitKind::Skill, _) => 1.5,
             _ => 0.5,
         } * if hit.result.element_mod > 1.0 { 1.75 } else { 1.0 }
             * Group::of(hit.kind).map_or(1.0, |g| Self::supports(world, g).aether);
@@ -72,7 +71,7 @@ impl Player {
     }
 
     pub(super) fn add_aether(&mut self, world: &mut World, amount: f32) {
-        if self.aether_active() || self.aether_resting() || world.state.dormant() {
+        if self.aether_active() || world.state.dormant() {
             return;
         }
         let state = &world.state;
@@ -111,8 +110,8 @@ impl Player {
             self.aether = (100.0 * self.aether_time / world.state.aether_duration()).clamp(0.0, 100.0);
             if self.aether_time <= 0.0 {
                 self.aether_time = 0.0;
-                self.aether = 0.0;
-                self.aether_rest = if world.state.mods().has("afterglow") { REST - 4.0 } else { REST };
+                self.aether = if world.state.mods().has("afterglow") { AFTERGLOW } else { 0.0 };
+                self.aether_lock = self.aether;
                 audio::play(Sound::ChargeLevel, 0.5, -0.4);
                 world.add(FloatingText::new(
                     self.center() - Vec2::new(0.0, 14.0),
@@ -121,7 +120,6 @@ impl Player {
                 ));
             }
         } else {
-            self.aether_rest = (self.aether_rest - dt).max(0.0);
             self.aether_calm += dt;
             if self.aether_calm >= world.state.aether_lock_delay() && self.aether_lock < self.aether {
                 self.lock_aether();
@@ -198,15 +196,16 @@ impl Player {
         let (width, power, angles): (f32, f32, &[f32]) = match level {
             1 => (8.0, 2.0, &[0.0]),
             2 => (12.0, 2.6, &[0.0]),
-            _ => (10.0, 2.2, &[-0.3, 0.0, 0.3]),
+            _ => (10.0, 3.0, &[-0.3, 0.0, 0.3]),
         };
+        let mut struck = Vec::new();
         for &angle in angles {
-            self.prism_beam(world, rotate(self.aim, angle), width, power);
+            self.prism_beam(world, rotate(self.aim, angle), width, power, &mut struck);
         }
         world.camera.shake(0.2, 2.0);
     }
 
-    fn prism_beam(&mut self, world: &mut World, dir: Vec2, width: f32, power: f32) {
+    fn prism_beam(&mut self, world: &mut World, dir: Vec2, width: f32, power: f32, struck: &mut Vec<EntityId>) {
         let start = self.center();
         let t = TILE as f32;
         let mut end = start;
@@ -220,7 +219,7 @@ impl Player {
             i += 4;
         }
         for (id, faction, b) in world.damageables() {
-            if faction == Faction::Player {
+            if faction == Faction::Player || struck.contains(&id) {
                 continue;
             }
             let c = b.center();
@@ -231,6 +230,7 @@ impl Player {
             {
                 continue;
             }
+            struck.push(id);
             let hit = self.form_hit(world, power, 4.0, 160.0);
             self.strike_target(world, id, hit);
         }

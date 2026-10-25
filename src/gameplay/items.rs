@@ -142,8 +142,15 @@ impl ItemDef {
 }
 
 const N: AccessoryStats = AccessoryStats::NONE;
-pub const CONSUMABLE_CAP: i32 = 5;
 
+/// How many of a consumable fit in the pack; stronger remedies stack lower.
+pub fn consumable_cap(id: &str) -> i32 {
+    match id {
+        "elixir" => 1,
+        "potion" | "spirit_tonic" => 2,
+        _ => 3,
+    }
+}
 use ItemKind::*;
 
 static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
@@ -180,10 +187,10 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { speed: 1.2, ..N }),
         item("focus_band", "Focus Band", Accessory, 0, 0, "FOC +25%: more critical hits and stronger ailments.")
             .with_acc(AccessoryStats { foc: 1.25, ..N }),
-        item("fortune_coin", "Fortune Coin", Accessory, 350, 0, "Enemies drop 60% more gold.")
-            .with_acc(AccessoryStats { gold: 1.6, ..N }),
-        item("scholar_lens", "Scholar's Lens", Accessory, 0, 0, "Gain 30% more experience.")
-            .with_acc(AccessoryStats { exp: 1.3, ..N }),
+        item("fortune_coin", "Fortune Coin", Accessory, 1500, 0, "Enemies drop 50% more gold.")
+            .with_acc(AccessoryStats { gold: 1.5, ..N }),
+        item("scholar_lens", "Scholar's Lens", Accessory, 2400, 0, "Gain 20% more experience.")
+            .with_acc(AccessoryStats { exp: 1.2, ..N }),
         item("verdant_charm", "Verdant Charm", Accessory, 450, 0, "Regenerate 1% of your life every second.")
             .with_acc(AccessoryStats { regen: 0.01, ..N }),
         item("mentor_ribbon", "Mentor's Ribbon", Accessory, 450, 0, "Element mastery grows 50% faster.")

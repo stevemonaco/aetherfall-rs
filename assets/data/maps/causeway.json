@@ -75,7 +75,7 @@
       "id": "causeway_toll",
       "alive": 3,
       "count": 6,
-      "kinds": "coil,toad"
+      "kinds": "coil,toad,leech,croaker,mudeel,thrall"
     },
     {
       "type": "rift",
@@ -84,13 +84,13 @@
       "id": "causeway_reeds",
       "alive": 3,
       "count": 6,
-      "kinds": "tidetoad,inkling"
+      "kinds": "tidetoad,inkling,leech,croaker,mudeel,thrall"
     },
     {
       "type": "rift",
       "x": 16.0,
       "y": 22.0,
-      "kinds": "toad,coil",
+      "kinds": "toad,coil,leech,croaker,mudeel,thrall",
       "count": 4,
       "id": "causeway_elite",
       "alive": 2,
@@ -106,14 +106,14 @@
       "type": "chest",
       "x": 3.0,
       "y": 10.0,
-      "count": 2,
+      "count": 1,
       "item": "potion"
     },
     {
       "type": "chest",
       "x": 32.0,
       "y": 12.0,
-      "gold": 500
+      "gold": 400
     },
     {
       "type": "chest",
@@ -131,13 +131,13 @@
       "type": "enemy",
       "x": 17.0,
       "y": 9.0,
-      "kind": "coil"
+      "kind": "mudeel"
     },
     {
       "type": "enemy",
       "x": 21.0,
       "y": 8.0,
-      "kind": "toad"
+      "kind": "leech"
     },
     {
       "type": "enemy",
@@ -173,7 +173,7 @@
       "type": "enemy",
       "x": 36.0,
       "y": 19.0,
-      "kind": "inkling"
+      "kind": "thrall"
     },
     {
       "type": "enemy",
@@ -185,7 +185,7 @@
       "type": "enemy",
       "x": 45.0,
       "y": 5.0,
-      "kind": "toad"
+      "kind": "croaker"
     },
     {
       "type": "enemy",

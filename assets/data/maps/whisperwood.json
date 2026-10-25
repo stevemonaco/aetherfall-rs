@@ -45,9 +45,9 @@
       "y": 10.0,
       "name": "Trial of Thorns",
       "to": "trial_wood",
-      "tx": 14,
-      "ty": 14,
-      "done": "rift:trial_wood_a,rift:trial_wood_b,rift:trial_wood_c"
+      "tx": 23,
+      "ty": 24,
+      "done": "champion:trial_wood_well"
     },
     {
       "type": "warp",
@@ -108,7 +108,7 @@
       "restores": "a footbridge over the brook",
       "alive": 3,
       "count": 6,
-      "kinds": "mushroom,spider,wisp"
+      "kinds": "mushroom,spider,wisp,stumpling,tender"
     },
     {
       "type": "rift",
@@ -118,7 +118,7 @@
       "restores": "a lost glade",
       "alive": 3,
       "count": 6,
-      "kinds": "bee,plant,ghost"
+      "kinds": "bee,plant,ghost,stumpling,tender"
     },
     {
       "type": "npc",
@@ -173,7 +173,7 @@
       "type": "dig",
       "x": 6.0,
       "y": 27.0,
-      "gold": 150
+      "gold": 220
     },
     {
       "type": "sign",
@@ -185,7 +185,7 @@
       "type": "enemy",
       "x": 28.0,
       "y": 18.0,
-      "kind": "spider"
+      "kind": "tender"
     },
     {
       "type": "enemy",
@@ -197,7 +197,7 @@
       "type": "enemy",
       "x": 15.0,
       "y": 14.0,
-      "kind": "mushroom"
+      "kind": "stumpling"
     },
     {
       "type": "enemy",

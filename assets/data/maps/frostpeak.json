@@ -76,9 +76,9 @@
       "y": 33.0,
       "name": "Trial of Rime",
       "to": "trial_frost",
-      "tx": 14,
-      "ty": 14,
-      "done": "rift:trial_frost_a,rift:trial_frost_b,rift:trial_frost_c"
+      "tx": 23,
+      "ty": 24,
+      "done": "champion:trial_frost_well"
     },
     {
       "type": "warp",
@@ -159,7 +159,7 @@
       "alive": 2,
       "id": "crag_hearth",
       "restores": "the great hearth of Highcrag",
-      "kinds": "brute,glacimp"
+      "kinds": "brute,glacimp,rimeogre,weaver,harpy"
     },
     {
       "type": "rift",
@@ -169,7 +169,7 @@
       "alive": 3,
       "id": "crag_apprentice",
       "restores": "Sage Ilda's apprentice",
-      "kinds": "crag,glacimp,rime"
+      "kinds": "crag,glacimp,rime,rimeogre,weaver,harpy"
     },
     {
       "type": "dig",
@@ -247,7 +247,7 @@
       "type": "enemy",
       "x": 15.0,
       "y": 57.0,
-      "kind": "brute"
+      "kind": "rimeogre"
     },
     {
       "type": "enemy",
@@ -259,13 +259,13 @@
       "type": "enemy",
       "x": 30.0,
       "y": 50.0,
-      "kind": "rime"
+      "kind": "weaver"
     },
     {
       "type": "enemy",
       "x": 28.0,
       "y": 39.0,
-      "kind": "glacimp"
+      "kind": "harpy"
     },
     {
       "type": "enemy",

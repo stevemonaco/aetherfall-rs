@@ -84,6 +84,10 @@ pub struct Hit {
     pub projectile: bool,
     pub unblockable: bool,
     pub can_crit: bool,
+    /// Damage multiplier when the target is broken or frozen (the Executioner gem).
+    pub execute: f32,
+    /// Wears shields down twice as fast (the Sundering gem).
+    pub sunder: bool,
     pub owner: Option<EntityId>,
     pub result: DamageResult,
     /// Set by a perfect guard: the attacking enemy is staggered.
@@ -110,6 +114,8 @@ impl Hit {
             projectile: false,
             unblockable: false,
             can_crit: true,
+            execute: 1.0,
+            sunder: false,
             owner: None,
             result: DamageResult::NONE,
             parried: false,

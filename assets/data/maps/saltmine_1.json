@@ -45,9 +45,9 @@
       "y": 15.0,
       "name": "Trial of Salt",
       "to": "trial_mine",
-      "tx": 14,
-      "ty": 14,
-      "done": "rift:trial_mine_a,rift:trial_mine_b,rift:trial_mine_c"
+      "tx": 23,
+      "ty": 24,
+      "done": "champion:trial_mine_well"
     },
     {
       "type": "warp",
@@ -79,7 +79,7 @@
       "restores": "Ferryman Loy and his boat",
       "alive": 3,
       "count": 8,
-      "kinds": "coil,inkling,tidetoad"
+      "kinds": "coil,inkling,tidetoad,lobster,mudeel"
     },
     {
       "type": "chest",
@@ -110,7 +110,7 @@
       "type": "enemy",
       "x": 12.0,
       "y": 14.0,
-      "kind": "coil"
+      "kind": "lobster"
     },
     {
       "type": "enemy",
@@ -140,7 +140,7 @@
       "type": "enemy",
       "x": 8.0,
       "y": 7.0,
-      "kind": "coil"
+      "kind": "mudeel"
     },
     {
       "type": "enemy",

@@ -58,7 +58,7 @@
       "x": 16.0,
       "y": 12.0,
       "alive": 3,
-      "kinds": "sentinel,acolyte,boneknight",
+      "kinds": "sentinel,acolyte,boneknight,mimic,stormcaller",
       "restores": "the Highcrag arena",
       "count": 8,
       "id": "crag_arena"
@@ -104,13 +104,13 @@
       "type": "enemy",
       "x": 17.0,
       "y": 10.0,
-      "kind": "boneknight"
+      "kind": "mimic"
     },
     {
       "type": "enemy",
       "x": 9.0,
       "y": 16.0,
-      "kind": "acolyte"
+      "kind": "stormcaller"
     },
     {
       "type": "enemy",

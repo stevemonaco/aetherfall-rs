@@ -156,7 +156,7 @@
       "type": "enemy",
       "x": 18.0,
       "y": 17.0,
-      "kind": "magus"
+      "kind": "hierophant"
     },
     {
       "type": "enemy",
@@ -168,7 +168,7 @@
       "type": "enemy",
       "x": 22.0,
       "y": 21.0,
-      "kind": "darkknight"
+      "kind": "paladin"
     },
     {
       "type": "enemy",
@@ -186,7 +186,7 @@
       "type": "enemy",
       "x": 18.0,
       "y": 5.0,
-      "kind": "fiend"
+      "kind": "cyclone"
     },
     {
       "type": "enemy",

@@ -17,13 +17,14 @@ use crate::core::input::{self, GameAction};
 use crate::core::rng::Rng;
 use crate::core::{font, palette, settings};
 use crate::entities::effects::{FloatingText, Particle, Puff};
-use crate::entities::enemy::Enemy;
+use crate::entities::enemy::{Detonation, Enemy};
 use crate::entities::entity::{Entity, EntityId, PLAYER_ID};
 use crate::entities::pickup::Pickup;
 use crate::entities::player::Player;
 use crate::entities::puzzles::SpanBridge;
 use crate::gameplay::blight_areas::{self, BlightAreaDef};
 use crate::gameplay::combat::{self, Faction, Hit};
+use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{EnemyDef, data};
 use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
@@ -31,6 +32,7 @@ use crate::gameplay::pacts;
 use crate::gameplay::rank::CombatRank;
 use crate::gameplay::skills;
 use crate::gameplay::souls::{self, SoulDef};
+use crate::gameplay::trial_mods::{self, TrialMod};
 use crate::gameplay::weave::Trigger;
 use crate::world::ambience::Ambience;
 use crate::world::baker;
@@ -101,6 +103,9 @@ pub struct World {
     pub decoy: Option<EntityId>,
     pub companion: Option<EntityId>,
     pub toasts: Vec<(String, f32)>,
+    /// The hardships rolled for the Trial Rift the hero is in.
+    pub trial_mods: Vec<TrialMod>,
+    trial_tick: f32,
     pub requests: Vec<WorldRequest>,
     pub auto_save: bool,
     pub time: f64,
@@ -154,6 +159,8 @@ impl World {
             decoy: None,
             companion: None,
             toasts: Vec::new(),
+            trial_mods: Vec::new(),
+            trial_tick: 0.0,
             requests: Vec::new(),
             auto_save,
             time: 0.0,
@@ -225,7 +232,39 @@ impl World {
     }
 
     pub fn enemy_time_scale(&self) -> f32 {
-        if self.enemy_slow > 0.0 { 0.25 } else { 1.0 }
+        let haste = if self.trial_mod(TrialMod::Haste) { 1.15 } else { 1.0 };
+        haste * if self.enemy_slow > 0.0 { 0.25 } else { 1.0 }
+    }
+
+    pub fn trial_mod(&self, m: TrialMod) -> bool {
+        self.trial_mods.contains(&m)
+    }
+
+    /// Eruptions: every few seconds of a fight the ground under the hero bursts in the trial's element.
+    fn update_trial(&mut self, dt: f32) {
+        if !self.trial_mod(TrialMod::Eruptions) {
+            return;
+        }
+        let hero = self.hero.pos;
+        if !self.entities_of::<Enemy>().any(|e| e.targetable() && e.base.pos.distance(hero) < 160.0) {
+            return;
+        }
+        self.trial_tick -= dt;
+        if self.trial_tick > 0.0 {
+            return;
+        }
+        self.trial_tick = 3.5;
+        let element = match self.data.id.as_str() {
+            "trial_ash" => Element::Fire,
+            "trial_frost" | "trial_cove" => Element::Water,
+            "trial_mine" => Element::Thunder,
+            "trial_wood" => Element::Wind,
+            "trial_prism" => Element::Aether,
+            _ => Element::None,
+        };
+        let offset = Vec2::new(self.rng.range(-16, 17) as f32, self.rng.range(-10, 11) as f32);
+        let stats = combat::environment(self.data.level);
+        self.add(Detonation::new(hero + offset, stats, element, 24.0, 1.1, 1.2));
     }
 
     /// How far from the player foes can be seen on a cloaked map, or None when the map is not cloaked.
@@ -417,6 +456,13 @@ impl World {
             .or(spawn_point)
             .unwrap_or(Vec2::new(self.map.pixel_width() as f32 / 2.0, self.map.pixel_height() as f32 / 2.0));
         let start = self.nearest_open(start);
+        self.trial_mods.clear();
+        if id.starts_with("trial_") {
+            self.trial_mods = trial_mods::roll(&self.rng, if id == "trial_prism" { 3 } else { 2 });
+            self.trial_tick = 3.0;
+            let names: Vec<&str> = self.trial_mods.iter().map(|m| m.label()).collect();
+            self.toast(format!("Trial mods: {}", names.join(", ")));
+        }
         self.spawn_elite_pack(start);
         let mut player = Player::new(start, facing);
         player.added(self);
@@ -552,6 +598,7 @@ impl World {
             dt *= self.slow_scale;
         }
         self.enemy_slow = (self.enemy_slow - raw_dt).max(0.0);
+        self.update_trial(dt);
 
         self.rank.update(dt);
         self.update_chemistry(dt);
@@ -705,9 +752,8 @@ impl World {
         self.entities_of::<crate::entities::hazards::SteamCloud>().any(|s| s.base().pos.distance(at) < s.radius() + 6.0)
     }
 
-    /// The given spot if the player can stand there, otherwise the nearest tile that is open.
     /// Now and then a combat map holds a roaming pack: an elite of one of its kinds and a few of its foes, somewhere
-    /// the player can walk to but well away from where they came in.
+    /// the player can walk to but well away from where they came in. Trial Rifts always hold one.
     fn spawn_elite_pack(&mut self, start: Vec2) {
         let roster: Vec<&'static EnemyDef> = self
             .data
@@ -716,11 +762,18 @@ impl World {
             .filter(|e| e.kind == "enemy")
             .filter_map(|e| e.str("kind").and_then(|k| data().enemies.get(k)))
             .collect();
-        let arena = self.data.entities.iter().any(|e| matches!(e.kind.as_str(), "boss" | "trial"));
-        if roster.len() < 4 || arena || self.data.blight_area.is_some() || self.data.id.starts_with("trial_") {
+        let arena = self.data.entities.iter().any(|e| e.kind == "boss");
+        let trial = self.data.id.starts_with("trial_");
+        if roster.len() < 4 || arena || self.data.blight_area.is_some() {
             return;
         }
-        let chance = if pacts::active(&self.state, "swarm") { 0.6 } else { 0.3 };
+        let chance = if trial {
+            1.0
+        } else if pacts::active(&self.state, "swarm") {
+            0.6
+        } else {
+            0.3
+        };
         if self.rng.next_f32() >= chance {
             return;
         }
@@ -771,6 +824,7 @@ impl World {
         }
     }
 
+    /// The given spot if the player can stand there, otherwise the nearest tile that is open.
     fn nearest_open(&self, pos: Vec2) -> Vec2 {
         let t = TILE as f32;
         let (x, y) = ((pos.x / t).floor() as i32, ((pos.y - 3.0) / t).floor() as i32);
@@ -1177,17 +1231,13 @@ impl World {
     }
 
     pub fn give_item(&mut self, id: &str, count: i32) {
-        let got = self.state.give(id, count);
+        let got = self.receive(id, count);
         audio::sfx(Sound::Pickup);
         let name = items::name_of(id);
         let mut text = if count > 1 { format!("Obtained {count} x {name}!") } else { format!("Obtained the {name}!") };
         if let Some(item) = items::get(id) {
             if matches!(item.kind, ItemKind::Consumable | ItemKind::Material) {
-                self.toast(if got < count {
-                    format!("{name} x{got} (pouch full)")
-                } else {
-                    format!("{name} x{count}")
-                });
+                self.toast(overflow_note(&name, got, count));
                 return;
             }
             text.push('\n');
@@ -1220,6 +1270,41 @@ impl World {
 
     pub fn heal_player(&mut self, amount: i32) {
         self.state.hp = (self.state.hp + amount).min(self.state.max_hp());
+    }
+
+    /// Applies a consumable's effect; the caller has already taken it from the pack, or it never fit.
+    pub fn use_consumable(&mut self, id: &str) {
+        let Some(item) = items::get(id) else { return };
+        let state = &mut self.state;
+        match id {
+            "spirit_tonic" => state.sp = state.max_sp().min(state.sp + item.power as f32 * 100.0),
+            "cooling_salve" => {
+                if let Some(p) = self.player.as_mut() {
+                    p.cure_ailments();
+                }
+            }
+            "elixir" => {
+                state.hp = state.max_hp();
+                state.sp = state.max_sp();
+                if let Some(p) = self.player.as_mut() {
+                    p.cure_ailments();
+                }
+            }
+            _ => state.hp = state.max_hp().min(state.hp + state.max_hp() * item.power / 100),
+        }
+        audio::sfx(Sound::Heal);
+    }
+
+    /// Gives an item; a consumable that doesn't fit the pack is used on the spot. Returns how many were kept.
+    pub fn receive(&mut self, id: &str, count: i32) -> i32 {
+        let kept = self.state.give(id, count);
+        let consumable = items::get(id).is_some_and(|i| i.kind == ItemKind::Consumable);
+        if consumable && !pacts::active(&self.state, "abstinence") {
+            for _ in kept..count {
+                self.use_consumable(id);
+            }
+        }
+        kept
     }
 
     fn train_mastery(&mut self, kill: &KillInfo, exp: i32) {
@@ -1265,6 +1350,7 @@ impl World {
         let mut multiplier = self.rank.multiplier();
         *self.state.kills.entry(kill.def.id.clone()).or_default() += 1;
         multiplier *= pacts::reward_multiplier(&self.state);
+        multiplier *= 1.0 + trial_mods::REWARD_PER_MOD * self.trial_mods.len() as f32;
         let elite = if kill.elite { 3.0 } else { 1.0 };
         let exp = (combat::enemy_exp(kill.level)
             * kill.def.exp
@@ -1308,7 +1394,7 @@ impl World {
             self.add(Pickup::item(kill.pos + Vec2::new(-4.0, 0.0), "blight_core"));
         }
         if kill.elite {
-            for (item, chance) in [("potion", 0.4), ("spirit_tonic", 0.25)] {
+            for (item, chance) in [("potion", 0.08), ("spirit_tonic", 0.12)] {
                 if self.rng.next_f32() < chance * multiplier {
                     let offset = Vec2::new(self.rng.range(-8, 9) as f32, 4.0);
                     self.add(Pickup::item(kill.pos + offset, item));
@@ -1468,5 +1554,14 @@ fn split_count(arg: &str) -> (&str, i32) {
     match arg.split_once('*') {
         Some((id, n)) => (id, n.parse().unwrap_or(1)),
         None => (arg, 1),
+    }
+}
+
+/// The toast for an item gained: how many went into the pack, and whether the rest were used on the spot.
+pub fn overflow_note(name: &str, kept: i32, count: i32) -> String {
+    match (kept, count - kept) {
+        (_, 0) => format!("{name} x{count}"),
+        (0, used) => format!("{name} x{used} used (pouch full)"),
+        (kept, used) => format!("{name} x{kept}, x{used} used (pouch full)"),
     }
 }

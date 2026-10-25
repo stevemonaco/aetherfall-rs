@@ -38,6 +38,7 @@
     "###################__###################"
   ],
   "entities": [
+    {"type": "plate", "x": 32.0, "y": 8.0, "flag": "temple_groove", "latch": true, "heavy": true},
     {
       "type": "warp",
       "x": 19.0,
@@ -77,20 +78,14 @@
       "type": "chest",
       "x": 4.0,
       "y": 20.0,
-      "count": 3,
-      "item": "herb"
+      "gold": 200
     },
-    {
-      "type": "barrier",
-      "x": 34.0,
-      "y": 7.0,
-      "element": "water"
-    },
+    {"type": "gate", "x": 34.0, "y": 7.0, "open": "temple_groove"},
     {
       "type": "chest",
       "x": 34.0,
       "y": 5.0,
-      "item": "scholar_lens"
+      "gold": 350
     },
     {
       "type": "iceblock",
@@ -104,12 +99,7 @@
       "flag": "temple_switch",
       "latch": true
     },
-    {
-      "type": "sign",
-      "x": 37.0,
-      "y": 10.0,
-      "text": "A block of temple ice, carved to fit a groove in the floor. Strike it to send it sliding."
-    },
+    {"type": "sign", "x": 37.0, "y": 10.0, "text": "A block of temple ice, carved to fit the groove in the north-west corner. Strike it to send it sliding."},
     {
       "type": "gate",
       "x": 19.0,
@@ -147,13 +137,13 @@
       "restores": "the Brinewatch lighthouse",
       "alive": 3,
       "count": 7,
-      "kinds": "inkling,tidetoad"
+      "kinds": "inkling,tidetoad,thrall"
     },
     {
       "type": "enemy",
       "x": 14.0,
       "y": 14.0,
-      "kind": "tidetoad"
+      "kind": "thrall"
     },
     {
       "type": "enemy",

@@ -61,7 +61,7 @@
       "count": 8,
       "id": "run_hollow_6",
       "alive": 3,
-      "kinds": "voideye,darkknight,voidmote"
+      "kinds": "voideye,darkknight,voidmote,hollowknight,reaper"
     },
     {
       "type": "gate",
@@ -97,7 +97,7 @@
       "type": "enemy",
       "x": 10.0,
       "y": 22.0,
-      "kind": "darkknight"
+      "kind": "hollowknight"
     },
     {
       "type": "enemy",
@@ -109,7 +109,7 @@
       "type": "enemy",
       "x": 18.0,
       "y": 19.0,
-      "kind": "voidmote"
+      "kind": "reaper"
     },
     {
       "type": "enemy",

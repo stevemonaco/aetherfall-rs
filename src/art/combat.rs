@@ -794,20 +794,120 @@ pub fn blade(mode: Element) -> TexId {
 pub fn emblem(mode: Element) -> TexId {
     gfx::cached(&format!("emblem_{}", mode.name()), || {
         let mut cv = Canvas::new(18, 18);
-        let glow = mode.glow();
-        cv.circle(9.0, 9.0, 8.5, mode.dark())
-            .circle(9.0, 9.0, 7.0, mode.dark().lerp(glow, 0.5))
-            .circle(8.0, 8.0, 5.0, glow);
-        let symbol = match mode {
-            Element::Wind => "..##....|.#..#...|....#...|.####.#.|......#.|..####..",
-            Element::Fire => "...#....|..##....|..###...|.####.#.|.######.|..####..",
-            Element::Water => "...##...|..####..|.######.|.######.|..####..|........",
-            Element::Thunder => "....##..|...##...|..####..|....##..|...##...|..#.....",
-            Element::Aether => "...##...|.#.##.#.|..####..|.######.|..####..|.#.##.#.",
-            Element::None => "...##...|..#..#..|.#....#.|.#....#.|..#..#..|...##...",
-        };
-        cv.pattern(5, 6, symbol, &[('#', Rgba::WHITE)]);
+        match mode {
+            Element::Wind => wind_icon(&mut cv),
+            Element::Fire => fire_icon(&mut cv),
+            Element::Water => water_icon(&mut cv),
+            Element::Thunder => thunder_icon(&mut cv),
+            _ => {
+                let glow = mode.glow();
+                cv.circle(9.0, 9.0, 8.5, mode.dark())
+                    .circle(9.0, 9.0, 7.0, mode.dark().lerp(glow, 0.5))
+                    .circle(8.0, 8.0, 5.0, glow);
+                let symbol = if mode == Element::Aether {
+                    "...##...|.#.##.#.|..####..|.######.|..####..|.#.##.#."
+                } else {
+                    "...##...|..#..#..|.#....#.|.#....#.|..#..#..|...##..."
+                };
+                cv.pattern(5, 6, symbol, &[('#', Rgba::WHITE)]);
+            }
+        }
         cv.outline();
         cv
     })
+}
+
+/// Stamps a round brush along a path of points.
+fn brush(cv: &mut Canvas, points: impl Iterator<Item = (f32, f32)>, radius: f32, color: Rgba) {
+    for (x, y) in points {
+        cv.circle(x, y, radius, color);
+    }
+}
+
+/// Two gusts that curl up at their tips.
+fn wind_icon(cv: &mut Canvas) {
+    let (light, mid) = (c(0xE8FFF8), c(0x6AE0B8));
+    let line = |x0: f32, x1: f32, y: f32| (0..=40).map(move |i| (x0 + (x1 - x0) * i as f32 / 40.0, y));
+    let curl = |cx: f32, cy: f32, r: f32, from: f32, to: f32| {
+        (0..=30).map(move |i| {
+            let a = from + (to - from) * i as f32 / 30.0;
+            (cx + a.cos() * r, cy + a.sin() * r)
+        })
+    };
+    for (pts, color) in [
+        (line(2.5, 11.0, 6.0).chain(curl(11.0, 3.8, 2.2, PI / 2.0, -PI * 0.9)).collect::<Vec<_>>(), light),
+        (line(1.5, 13.0, 10.5).chain(curl(13.0, 12.7, 2.2, -PI / 2.0, PI * 0.9)).collect(), light),
+        (line(4.0, 9.5, 14.5).collect(), mid),
+    ] {
+        brush(cv, pts.into_iter(), 0.9, color);
+    }
+    cv.shade(|_, y, col| if col == light && y % 4 == 3 { mid.lerp(light, 0.5) } else { col });
+}
+
+/// A flame: a red tongue around an orange one around a white-hot core.
+fn fire_icon(cv: &mut Canvas) {
+    let layers = [(c(0xC83A1E), 7.0, 1.0), (c(0xFF8A2A), 5.0, 4.0), (c(0xFFD24A), 3.2, 7.0), (c(0xFFF4C8), 1.6, 10.0)];
+    for (color, half, top) in layers {
+        for y in 0..18 {
+            let fy = y as f32 + 0.5;
+            if fy < top || fy > 16.5 {
+                continue;
+            }
+            let t = (fy - top) / (16.5 - top);
+            let bulge = if t < 0.7 { (t / 0.7).powf(0.7) } else { 1.0 - ((t - 0.7) / 0.3).powi(2) * 0.45 };
+            let w = half * bulge;
+            let lean = (1.0 - t) * 1.5;
+            for x in 0..18 {
+                if ((x as f32 + 0.5) - (9.0 + lean)).abs() <= w {
+                    cv.set(x, y, color);
+                }
+            }
+        }
+    }
+    cv.rect(13, 4, 1, 2, c(0xFF8A2A)).rect(4, 7, 1, 1, c(0xC83A1E));
+}
+
+/// A falling drop with a bright highlight.
+fn water_icon(cv: &mut Canvas) {
+    let (dark, mid, light) = (c(0x2A5AC8), c(0x4A9AF0), c(0x9AD8FF));
+    for y in 0..18 {
+        let fy = y as f32 + 0.5;
+        let w = if fy < 1.0 {
+            continue;
+        } else if fy < 10.5 {
+            5.6 * ((fy - 1.0) / 9.5).powf(1.1)
+        } else {
+            let d = (fy - 10.5) / 5.6;
+            if d > 1.0 {
+                continue;
+            }
+            5.6 * (1.0 - d * d).sqrt()
+        };
+        for x in 0..18 {
+            let dx = x as f32 + 0.5 - 9.0;
+            if dx.abs() <= w {
+                let shade = if dx > w * 0.35 || fy > 14.0 { dark } else { mid };
+                cv.set(x, y, shade);
+            }
+        }
+    }
+    cv.line(6, 9, 6, 12, light).line(7, 7, 7, 8, light).rect(7, 13, 1, 1, light);
+}
+
+/// A lightning bolt.
+fn thunder_icon(cv: &mut Canvas) {
+    let bolt = ".........yyyy|........yyyy.|.......yyyy..|......yyyy...|.....yyyy....|....yyyyyyyy.|...yyyyyyyy..|\
+                .......yyyy..|......yyyy...|.....yyy.....|....yy.......|...y.........";
+    cv.pattern(2, 2, bolt, &[('y', c(0xFFE45A))]);
+
+    let lit = cv.clone();
+    cv.shade(|x, y, col| {
+        if !lit.is_set(x - 1, y) {
+            Rgba::WHITE
+        } else if !lit.is_set(x + 1, y) {
+            c(0xE0A020)
+        } else {
+            col
+        }
+    });
 }

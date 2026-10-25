@@ -11,7 +11,8 @@ use super::companion::Companion;
 use super::effects::{DamageNumber, FloatingText, Particle};
 use super::entity::{Entity, EntityBase, EntityId, PLAYER_ID};
 use super::hazards::FirePatch;
-use super::projectile::{Projectile, ProjectileHook};
+use super::mode_burst::ModeBurst;
+use super::projectile::{Projectile, ProjectileHook, Volley};
 use super::skill_actions::SkillAction;
 use super::tether::TetherHook;
 use crate::art::combat as art;
@@ -25,7 +26,7 @@ use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entity_base;
-use crate::gameplay::combat::{self, CombatStats, DamageResult, Faction, Hit, HitKind};
+use crate::gameplay::combat::{self, CombatStats, Faction, Hit, HitKind};
 use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::pacts;
 use crate::gameplay::skills::{self, SkillDef};
@@ -36,6 +37,7 @@ use crate::scenes::world::{HeroInfo, World};
 use crate::world::map::{TILE, Terrain, tile_center};
 
 mod aether;
+mod guard;
 mod triggers;
 
 const BASE_SPEED: f32 = 92.0;
@@ -49,6 +51,22 @@ const SWING_LENGTH: [f32; 3] = [0.24, 0.24, 0.34];
 /// Real seconds a mode key must be held before the quick-change wheel opens.
 const WHEEL_DELAY: f32 = 0.2;
 
+/// How strong a bolt flies. A surge lifts a bolt one tier: plain to charged, charged to tempest.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum BoltTier {
+    Plain,
+    Charged,
+    Tempest,
+}
+
+impl BoltTier {
+    fn surged(self) -> BoltTier {
+        match self {
+            BoltTier::Plain => BoltTier::Charged,
+            _ => BoltTier::Tempest,
+        }
+    }
+}
 pub struct Player {
     base: EntityBase,
     pub facing: Direction,
@@ -75,6 +93,8 @@ pub struct Player {
     aether: f32,
 
     swing_hit: Vec<EntityId>,
+    /// Where a Lunging gem's swing is dashing to.
+    lunge_target: Option<Vec2>,
     attack_time: f32,
     combo_reset: f32,
     throw_held: f32,
@@ -110,8 +130,12 @@ pub struct Player {
     trigger_cooldowns: HashMap<String, f32>,
 
     guard_time: f32,
+    guard_strength: f32,
+    /// Seconds since the guard last blocked or was held, before its strength returns.
+    guard_rest: f32,
+    /// Seconds a broken guard stays down.
+    guard_lock: f32,
     aether_time: f32,
-    aether_rest: f32,
     aether_lock: f32,
     aether_calm: f32,
     reflect_time: f32,
@@ -170,6 +194,7 @@ impl Player {
             aim: Vec2::Y,
             aether: 0.0,
             swing_hit: Vec::new(),
+            lunge_target: None,
             attack_time: -1.0,
             combo_reset: 0.0,
             throw_held: -1.0,
@@ -200,8 +225,10 @@ impl Player {
             dodge_rammed: Vec::new(),
             trigger_cooldowns: HashMap::new(),
             guard_time: -1.0,
+            guard_strength: guard::GUARD_MAX,
+            guard_rest: 0.0,
+            guard_lock: 0.0,
             aether_time: 0.0,
-            aether_rest: 0.0,
             aether_lock: 0.0,
             aether_calm: 0.0,
             reflect_time: 0.0,
@@ -634,9 +661,16 @@ impl Player {
         let awake = self.aether_active();
         let woven = |p: &str| world.state.mods().has(p);
         let last_stand = woven("last_stand") && world.state.hp * 10 < world.state.max_hp() * 3;
-        let steady = awake || woven("bulwark");
+        let vanguard = woven("iron_vanguard");
+        // Iron Vanguard shrugs off bumps and light blows; slams, charges, blasts and shots still land in full.
+        let light_blow =
+            hit.kind == HitKind::Contact || (hit.kind == HitKind::Attack && !hit.projectile && hit.power < 1.3);
+        let steady = awake || woven("bulwark") || (vanguard && light_blow);
         let resolve = if woven("iron_will") { 0.6 } else { 1.0 };
-        let taken = glass * if awake { aether::AWAKE_DAMAGE } else { 1.0 } * if last_stand { 0.75 } else { 1.0 };
+        let taken = glass
+            * if awake { aether::AWAKE_DAMAGE } else { 1.0 }
+            * if last_stand { 0.75 } else { 1.0 }
+            * if vanguard && hit.kind == HitKind::Contact { 0.25 } else { 1.0 };
         let result = combat::resolve(hit, stats, element_mod, taken, &world.rng);
         hit.result = result;
         self.apply_damage(world, result.amount, hit.element, result.crit);
@@ -745,6 +779,7 @@ impl Player {
         }
 
         self.update_aether(world, dt);
+        self.tick_guard(dt);
         self.dormant_note = (self.dormant_note - dt).max(0.0);
 
         if self.static_time > 0.0 {
@@ -896,6 +931,7 @@ impl Player {
             }
         }
 
+        self.guard_cancels();
         if self.attack_time >= 0.0 {
             self.update_swing(world, dt);
             return true;
@@ -995,11 +1031,17 @@ impl Player {
         world.state.mode = mode;
         self.mode_flash = 0.35;
         audio::play(Sound::ChargeLevel, 0.5, 0.2);
-        Particle::burst(world, self.center(), mode.glow(), 14, 50.0, 0.4, true);
-        world.add(FloatingText::new(self.center() - Vec2::new(0.0, 14.0), mode.mode_label(), mode.glow()));
+        world.add(ModeBurst::new(self.base.pos, mode));
     }
 
     // ---- Melee --------------------------------------------------------------------------------------------------
+
+    /// How far a swing reaches, from the Weave and the Cleave gem.
+    fn swing_radius(world: &World, finisher: bool) -> f32 {
+        let cleave = if Self::supports(world, Group::Attack).cleave { 1.3 } else { 1.0 };
+        let base = if finisher { 34.0 } else { 26.0 };
+        base * cleave * (1.0 + world.state.mods().reach)
+    }
 
     fn start_swing(&mut self, world: &mut World) {
         self.throw_held = -1.0;
@@ -1007,33 +1049,115 @@ impl Player {
         self.combo_buffered = false;
         self.swing_hit.clear();
         self.combo_reset = 0.0;
+        let gems = Self::supports(world, Group::Attack);
+        self.lunge_target = if gems.lunge { self.lunge_toward(world) } else { None };
+        if let Some(target) = self.lunge_target {
+            self.aim = safe_dir(target - self.center(), self.aim);
+        }
         self.facing = Direction::from_vec(self.aim, self.facing);
         audio::play(Sound::Swing, 1.0, self.combo_step as f32 * 0.12);
         let finisher = self.combo_step == 2;
+        let radius = Self::swing_radius(world, finisher);
         world.add(SlashEffect::new(
             self.center(),
             self.aim,
             Self::mode(world),
-            if finisher { 30.0 } else { 23.0 },
+            radius,
             finisher,
             self.combo_step % 2 == 1,
         ));
+        if gems.sweep {
+            self.loose_crescent(world, radius, finisher);
+        }
+    }
+
+    /// The nearest foe ahead within a short dash, for the Lunging gem.
+    fn lunge_toward(&self, world: &World) -> Option<Vec2> {
+        let me = self.center();
+        world
+            .damageables()
+            .into_iter()
+            .filter(|&(_, faction, _)| faction == Faction::Enemy)
+            .map(|(_, _, b)| b.center())
+            .filter(|&c| c.distance(me) < 72.0 && (c - me).normalize_or_zero().dot(self.aim) > 0.4)
+            .min_by(|a, b| a.distance(me).total_cmp(&b.distance(me)))
+    }
+
+    /// The Sweeping gem's wave, loosed from the edge of the swing so it reaches what the blade cannot.
+    fn loose_crescent(&self, world: &mut World, radius: f32, finisher: bool) {
+        let mode = Self::mode(world);
+        let gems = Self::supports(world, Group::Attack);
+        let start = self.center() + self.aim * radius * 0.8;
+        let mut wave =
+            Projectile::new(Faction::Player, Self::stats(world), start + Vec2::new(0.0, 6.0), self.aim * 220.0);
+        wave.power = if finisher { 0.8 } else { 0.45 } * gems.damage;
+        wave.element = mode;
+        wave.kind = HitKind::Melee;
+        wave.poise = 0.5 * gems.poise;
+        wave.status_power = 0.5 * gems.status;
+        wave.knockback = 60.0;
+        wave.lifetime = 0.28;
+        wave.piercing = true;
+        wave.size = if finisher { 18.0 } else { 14.0 };
+        wave.scale = if finisher { 1.6 } else { 1.2 };
+        wave.texture = props::wind_slash();
+        wave.tint = mode.light();
+        wave.trail_color = mode.glow();
+        wave.rotate_to_velocity = true;
+        wave.reflectable = false;
+        wave.execute = gems.execute;
+        wave.hook = ProjectileHook::PlayerShot;
+        world.add(wave);
+    }
+
+    /// The Deflecting gem: enemy shots inside the swing are cut down, or sent back by a finisher.
+    fn deflect_shots(&self, world: &mut World, radius: f32, finisher: bool) {
+        let center = self.center();
+        let aim = self.aim;
+        let stats = Self::stats(world);
+        for id in world.ids_of::<Projectile>() {
+            world.with_as::<Projectile, _>(id, |shot, w| {
+                let to = shot.base.pos - Vec2::new(0.0, shot.z) - center;
+                let ahead = to.length() < 7.0 || to.normalize_or_zero().dot(aim) > 0.2;
+                if shot.owner != Faction::Enemy || to.length() > radius + 4.0 || !ahead || shot.base.removed {
+                    return;
+                }
+                if finisher && shot.reflectable {
+                    shot.reflect(Faction::Player, stats, aim);
+                } else {
+                    shot.expire(w);
+                }
+                audio::play(Sound::Clink, 0.6, 0.4);
+            });
+        }
     }
 
     fn update_swing(&mut self, world: &mut World, dt: f32) {
-        self.attack_time += dt;
+        let gems = Self::supports(world, Group::Attack);
+        self.attack_time += dt * gems.swing_speed;
         let length = SWING_LENGTH[self.combo_step];
         let finisher = self.combo_step == 2;
         let lunge_end = if finisher { 0.13 } else { 0.09 };
         if self.attack_time < lunge_end {
-            let delta = self.aim * if finisher { 120.0 } else { 45.0 } * dt;
+            let mut speed = if finisher { 120.0 } else { 45.0 };
+            if let Some(target) = self.lunge_target {
+                if target.distance(self.center()) > 14.0 {
+                    speed = 300.0;
+                } else {
+                    self.lunge_target = None;
+                }
+            }
+            let delta = self.aim * speed * dt;
             self.move_by(world, delta, false, true);
         }
 
         let (active_start, active_end) = if finisher { (0.07, 0.2) } else { (0.04, 0.14) };
-        let reach = if Self::supports(world, Group::Attack).cleave { 1.3 } else { 1.0 };
+        let reach = if gems.cleave { 1.3 } else { 1.0 };
         if self.attack_time >= active_start && self.attack_time <= active_end {
-            let radius = if finisher { 30.0 } else { 23.0 } * reach;
+            let radius = Self::swing_radius(world, finisher);
+            if gems.deflect {
+                self.deflect_shots(world, radius, finisher);
+            }
             for (id, faction, hurtbox) in world.damageables() {
                 if faction == Faction::Player
                     || self.swing_hit.contains(&id)
@@ -1051,7 +1175,8 @@ impl Player {
         }
 
         if self.attack_time >= active_start && self.attack_time - world.frame_delta < active_start {
-            self.mow_grass(world, if finisher { 30.0 } else { 23.0 });
+            let radius = Self::swing_radius(world, finisher);
+            self.mow_grass(world, radius);
         }
 
         if self.attack_time < length {
@@ -1122,63 +1247,80 @@ impl Player {
     }
 
     fn throw_bolt(&mut self, world: &mut World, charged: bool) {
+        let gems = Self::supports(world, Group::Ranged);
+        let mut tier = if charged { BoltTier::Charged } else { BoltTier::Plain };
+        if world.rng.next_f32() < world.state.mods().surge + gems.surge {
+            tier = tier.surged();
+            Particle::burst(world, self.center() + self.aim * 6.0, Rgba::WHITE, 8, 50.0, 0.25, true);
+        }
         self.bolt_cooldown = if charged { 0.3 } else { 0.16 };
         self.facing = Direction::from_vec(self.aim, self.facing);
-        let bolt = self.make_bolt(world, self.aim, charged, -1.0);
-        world.add(bolt);
-        if Self::supports(world, Group::Ranged).multishot {
-            for angle in [-0.22, 0.22] {
-                let side = self.make_bolt(world, crate::core::geom::rotate(self.aim, angle), charged, -1.0);
-                world.add(side);
+        if gems.multishot {
+            let volley = Volley::default();
+            for angle in [-0.22, 0.0, 0.22] {
+                let mut bolt = self.make_bolt(world, crate::core::geom::rotate(self.aim, angle), tier);
+                bolt.volley = Some(volley.clone());
+                world.add(bolt);
             }
-        }
-        if charged {
-            audio::play(if Self::mode(world) == Element::Fire { Sound::ShootFire } else { Sound::ShootWind }, 0.9, 0.1);
         } else {
-            audio::play(Sound::ShootWind, 0.45, 0.6);
+            let bolt = self.make_bolt(world, self.aim, tier);
+            world.add(bolt);
+        }
+        match tier {
+            BoltTier::Plain => audio::play(Sound::ShootWind, 0.45, 0.6),
+            BoltTier::Charged => {
+                let sound = if Self::mode(world) == Element::Fire { Sound::ShootFire } else { Sound::ShootWind };
+                audio::play(sound, 0.9, 0.1);
+            }
+            BoltTier::Tempest => {
+                audio::play(Sound::ShootFire, 1.0, -0.3);
+                audio::play(Sound::ChargeLevel, 0.6, 0.5);
+                world.camera.shake(0.08, 1.0);
+            }
         }
     }
 
-    pub fn make_bolt(&self, world: &World, dir: Vec2, charged: bool, power: f32) -> Projectile {
+    pub fn make_bolt(&self, world: &World, dir: Vec2, tier: BoltTier) -> Projectile {
         let mode = Self::mode(world);
+        let (speed, power, poise, status, knock, life, bounces, size) = match tier {
+            BoltTier::Plain => (280.0, 0.6, 0.5, 0.6, 60.0, 0.55, 1, 7.0),
+            BoltTier::Charged => (320.0, 1.4, 2.0, 1.6, 160.0, 0.75, 2, 10.0),
+            BoltTier::Tempest => (340.0, 2.3, 3.5, 2.4, 220.0, 0.9, 3, 14.0),
+        };
+        let charged = tier != BoltTier::Plain;
         let mut bolt = Projectile::new(
             Faction::Player,
             Self::stats(world),
             self.base.pos + dir * 6.0 - Vec2::new(0.0, 2.0),
-            dir * if charged { 320.0 } else { 280.0 },
+            dir * speed,
         );
-        bolt.power = if power >= 0.0 {
-            power
-        } else if charged {
-            1.4
-        } else {
-            0.6
-        };
+        let gems = Self::supports(world, Group::Ranged);
+        let vanguard = world.state.mods().has("iron_vanguard");
+        bolt.power = power * gems.damage * if vanguard { 0.1 } else { 1.0 };
         bolt.element = mode;
         bolt.kind = if charged { HitKind::ChargedBolt } else { HitKind::Bolt };
-        bolt.poise = if charged { 2.0 } else { 0.5 };
-        bolt.status_power = if charged { 1.6 } else { 0.6 };
-        bolt.knockback = if charged { 160.0 } else { 60.0 };
+        bolt.poise = poise * gems.poise;
+        bolt.status_power = status * gems.status * if vanguard { 0.5 } else { 1.0 };
+        bolt.knockback = knock;
         bolt.z = 7.0;
-        bolt.lifetime = if charged { 0.75 } else { 0.55 };
-        bolt.piercing = charged;
-        bolt.bounces = if charged { 2 } else { 1 } + world.state.mods().bounces;
+        bolt.lifetime = life;
+        bolt.piercing = charged || gems.pierce;
+        bolt.bounces = bounces + world.state.mods().bounces;
         bolt.paints_path = charged && matches!(mode, Element::Water | Element::Fire);
-        bolt.size = if charged { 10.0 } else { 7.0 };
+        bolt.size = size;
         bolt.texture = art::bolt(mode, charged);
         bolt.rotate_to_velocity = true;
         bolt.trail_color = mode.glow();
         bolt.hook = ProjectileHook::PlayerShot;
-        if power < 0.0 {
-            let gems = Self::supports(world, Group::Ranged);
-            bolt.power *= gems.damage;
-            bolt.poise *= gems.poise;
-            bolt.status_power *= gems.status;
-            bolt.piercing |= gems.pierce;
+        bolt.execute = gems.execute;
+        bolt.seeking = gems.seeking;
+        if tier == BoltTier::Tempest {
+            bolt.scale = 1.6;
+            bolt.tint = Rgba::WHITE.lerp(mode.light(), 0.5);
+            bolt.trail_color = mode.light();
         }
         bolt
     }
-
     /// Applies the special group's gems and the Echo scale to a skill's own projectile.
     pub fn scale_skill_shot(&self, world: &World, shot: &mut Projectile) {
         let gems = Self::supports(world, Group::Special);
@@ -1268,73 +1410,12 @@ impl Player {
 
     // ---- Guarding -----------------------------------------------------------------------------------------------
 
-    fn update_guard(&mut self, dt: f32) {
-        if input::held(GameAction::Guard) && !self.airborne() && self.throw_held < 0.0 {
-            if self.guard_time < 0.0 {
-                self.guard_time = 0.0;
-                audio::play(Sound::Clink, 0.25, -0.4);
-            } else {
-                self.guard_time += dt;
-            }
-        } else {
-            self.guard_time = -1.0;
-        }
-    }
-
     fn facing_hit(&self, from: Vec2) -> bool {
         let to = from - self.center();
         if to.length_squared() < 1.0 {
             return true;
         }
         to.normalize().dot(self.aim) > 85f32.to_radians().cos()
-    }
-
-    fn perfect_window(&self, world: &World) -> f32 {
-        let mods = world.state.mods();
-        let window = 0.15 + world.state.acc().perfect_window + mods.perfect_window;
-        if mods.has("stillwater") { window * 2.0 } else { window }
-    }
-
-    fn block(&mut self, world: &mut World, hit: &mut Hit) -> bool {
-        let perfect = !pacts::active(&world.state, "brittle")
-            && self.guard_time >= 0.0
-            && self.guard_time < self.perfect_window(world);
-        if perfect {
-            hit.result = DamageResult::blocked(true);
-            world.add_sp(50.0);
-            world.hit_stop(0.09);
-            world.rank.style(2.0);
-            audio::play(Sound::Clink, 1.0, 0.6);
-            Particle::burst(world, self.center() + self.aim * 8.0, Rgba::WHITE, 12, 70.0, 0.3, true);
-            world.add(FloatingText::new(self.center() - Vec2::new(0.0, 16.0), "PERFECT", palette::HIGHLIGHT));
-            if hit.projectile {
-                hit.expire_owner = true;
-            } else {
-                hit.parried = true;
-            }
-            self.trigger(world, Trigger::PerfectGuard, Some(hit));
-            return true;
-        }
-
-        let heavy = hit.power >= 1.5;
-        if heavy {
-            let mode = Self::mode(world);
-            let result =
-                combat::resolve(hit, world.state.stats(mode), combat::mode_resist(mode, hit.element), 0.3, &world.rng);
-            self.apply_damage(world, result.amount, hit.element, false);
-        }
-        hit.result = DamageResult::blocked(false);
-        audio::play(Sound::Clink, 0.8, -0.2);
-        Particle::burst(world, self.center() + self.aim * 8.0, Rgba::rgb(220, 220, 255), 6, 40.0, 0.2, true);
-        self.knock(hit.from, if heavy { 160.0 } else { 90.0 }, 0.08);
-        if heavy {
-            self.guard_time = -1.0;
-            self.stun_time = 0.35;
-        }
-        if hit.projectile {
-            hit.expire_owner = true;
-        }
-        true
     }
 
     fn counter(&mut self, world: &mut World, hit: &Hit) {
@@ -1512,14 +1593,9 @@ impl Player {
         status: f32,
         knock: f32,
     ) -> Hit {
-        let (power, poise, status) = match Group::of(kind) {
-            Some(group) => {
-                let gems = Self::supports(world, group);
-                let scale = if kind == HitKind::Skill { self.skill_scale } else { 1.0 };
-                (power * gems.damage_for(kind) * scale, poise * gems.poise, status * gems.status)
-            }
-            None => (power, poise, status),
-        };
+        let gems = Group::of(kind).map(|group| Self::supports(world, group)).unwrap_or_default();
+        let scale = if kind == HitKind::Skill { self.skill_scale } else { 1.0 };
+        let (power, poise, status) = (power * gems.damage_for(kind) * scale, poise * gems.poise, status * gems.status);
         Hit {
             power,
             element: element.unwrap_or(Self::mode(world)),
@@ -1530,6 +1606,8 @@ impl Player {
             from: self.center(),
             owner: Some(PLAYER_ID),
             aether: self.aether_active(),
+            execute: gems.execute,
+            sunder: gems.sunder,
             ..Hit::new(Faction::Player, Self::stats(world))
         }
     }
@@ -1787,27 +1865,6 @@ impl Player {
         );
     }
 
-    fn draw_shield(&self, world: &World, batch: &mut Batch, lift: Vec2) {
-        let perfect = self.guard_time >= 0.0 && self.guard_time < self.perfect_window(world);
-        let at = snap(self.center() + lift + self.aim * 7.0 + Vec2::new(0.0, 2.0));
-        let color = if perfect { Rgba::WHITE.lerp(palette::HIGHLIGHT, 0.6) } else { Rgba::WHITE };
-        let origin = Vec2::new(5.0, 6.0);
-        batch.draw_ex(art::guard_shield(), at, None, color, 0.0, origin, Vec2::ONE, false, false);
-        if perfect {
-            batch.draw_ex(
-                art::guard_shield(),
-                at,
-                None,
-                Rgba::WHITE.mul(0.5),
-                0.0,
-                origin,
-                Vec2::splat(1.3),
-                false,
-                false,
-            );
-        }
-    }
-
     fn draw_charge(&self, world: &World, batch: &mut Batch, lift: Vec2) {
         let charge = self.throw_charge();
         let center = self.center() + lift + self.aim * 6.0;
@@ -2021,6 +2078,7 @@ impl Entity for Player {
         if self.charging_skill() {
             self.draw_skill_charge(world, batch, lift);
         }
+        self.draw_guard_bar(batch, lift);
 
         let max = world.state.dodge_charges();
         if self.dodge_charges < max as f32 && !self.is_dead() {

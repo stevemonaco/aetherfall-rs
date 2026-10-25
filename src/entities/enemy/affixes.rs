@@ -15,6 +15,7 @@ use crate::entities::hazards::GasCloud;
 use crate::entity_base;
 use crate::gameplay::combat::{CombatStats, Faction, Hit, HitKind};
 use crate::gameplay::element::{BASIC, Element};
+use crate::gameplay::trial_mods::TrialMod;
 use crate::scenes::world::World;
 use crate::world::map::TILE;
 
@@ -108,10 +109,10 @@ impl Enemy {
     }
 
     /// Rolls this elite's affixes and applies the ones that change it from the start.
-    pub(super) fn roll_affixes(&mut self, world: &World) {
+    pub(super) fn roll_affixes(&mut self, world: &World, extra: usize) {
         let mut pool: Vec<Affix> = ALL.into_iter().filter(|a| a.fits(self)).collect();
         world.rng.shuffle(&mut pool);
-        pool.truncate(count_for(self.level));
+        pool.truncate(count_for(self.level) + extra);
         self.affixes = pool;
         if self.has_affix(Affix::Hulking) {
             self.max_hp = self.max_hp * 7 / 5;
@@ -181,7 +182,7 @@ impl Enemy {
         self.affix_timer = if next == f32::MAX { 1.0 } else { next };
     }
 
-    fn blink(&mut self, world: &mut World) {
+    pub(super) fn blink(&mut self, world: &mut World) {
         let behind = world.hero.pos - world.hero.facing.to_vec() * 22.0;
         let t = TILE as f32;
         let (tx, ty) = ((behind.x / t).floor() as i32, ((behind.y - 3.0) / t).floor() as i32);
@@ -219,17 +220,18 @@ impl Enemy {
     }
 
     pub(super) fn feed_on_hit(&mut self, world: &mut World) {
-        if !self.has_affix(Affix::Vampiric) || self.hp <= 0 {
+        let thirst = world.trial_mod(TrialMod::Bloodthirst);
+        if !(self.has_affix(Affix::Vampiric) || thirst) || self.hp <= 0 {
             return;
         }
-        let amount = (self.max_hp / 12).max(1);
+        let amount = (self.max_hp / if self.has_affix(Affix::Vampiric) { 12 } else { 16 }).max(1);
         self.hp = (self.hp + amount).min(self.max_hp);
         Particle::burst(world, self.hurtbox().center(), Rgba::rgb(220, 40, 60), 6, 30.0, 0.3, true);
     }
 
     pub(super) fn affix_death(&self, world: &mut World) {
         if self.has_affix(Affix::Volatile) {
-            world.add(Detonation::new(self.base.pos, self.stats()));
+            world.add(Detonation::new(self.base.pos, self.stats(), Element::Fire, 30.0, 0.9, 1.6));
         }
     }
 
@@ -239,24 +241,28 @@ impl Enemy {
         }
         let glow = Rgba::rgb(255, 200, 90).mul(0.3 + (self.anim_time * 4.0).sin() * 0.1);
         for offset in [Vec2::new(-1.0, 0.0), Vec2::new(1.0, 0.0), Vec2::new(0.0, -1.0), Vec2::new(0.0, 1.0)] {
-            self.strip.draw(batch, feet + offset, self.anim_frame(), glow, self.facing_right, true, self.def.scale);
+            self.strip.draw(batch, feet + offset, self.anim_frame(), glow, self.facing_right, true, self.scale());
         }
     }
 }
 
-/// A Volatile elite's parting burst: a marked circle that explodes a moment later.
+/// A marked circle that explodes a moment later: a Volatile death, or one blast of an eruption.
 pub struct Detonation {
     base: EntityBase,
     stats: CombatStats,
+    element: Element,
+    radius: f32,
     fuse: f32,
+    power: f32,
 }
 
-const DETONATION_RADIUS: f32 = 30.0;
-const DETONATION_FUSE: f32 = 0.9;
-
 impl Detonation {
-    fn new(at: Vec2, stats: CombatStats) -> Detonation {
-        Detonation { base: EntityBase::at(at), stats, fuse: DETONATION_FUSE }
+    pub fn new(at: Vec2, stats: CombatStats, element: Element, radius: f32, fuse: f32, power: f32) -> Detonation {
+        Detonation { base: EntityBase::at(at), stats, element, radius, fuse, power }
+    }
+
+    fn color(&self) -> Rgba {
+        if self.element == Element::None { Rgba::rgb(255, 120, 60) } else { self.element.glow() }
     }
 }
 
@@ -264,7 +270,7 @@ impl Entity for Detonation {
     entity_base!();
 
     fn added(&mut self, world: &mut World) {
-        world.add(GroundMarker::new(self.base.pos, DETONATION_RADIUS, DETONATION_FUSE, Rgba::rgb(255, 120, 60)));
+        world.add(GroundMarker::new(self.base.pos, self.radius, self.fuse, self.color()));
     }
 
     fn update(&mut self, world: &mut World, dt: f32) {
@@ -274,20 +280,21 @@ impl Entity for Detonation {
         }
         self.base.removed = true;
         let center = self.base.pos;
-        let r = DETONATION_RADIUS;
+        let r = self.radius;
         let area = Box2::new(center.x - r, center.y - r * 0.7, r * 2.0, r * 1.4);
         if world.hero.hurtbox.intersects(&area) && world.hero.pos.distance(center) < r + 6.0 {
             let mut hit = Hit {
-                power: 1.6,
-                element: Element::Fire,
+                power: self.power,
+                element: self.element,
                 from: center,
                 knockback: 220.0,
                 ..Hit::new(Faction::Enemy, self.stats)
             };
             world.hit_player(&mut hit);
         }
-        world.add(Shockwave::new(center, r, Rgba::rgb(255, 140, 60)));
-        Particle::burst(world, center - Vec2::new(0.0, 6.0), Rgba::rgb(255, 160, 80), 20, 90.0, 0.5, true);
+        let color = self.color();
+        world.add(Shockwave::new(center, r, color));
+        Particle::burst(world, center - Vec2::new(0.0, 6.0), color, 20, 90.0, 0.5, true);
         world.camera.shake(0.2, 2.0);
         audio::play(Sound::Break, 0.8, -0.2);
     }

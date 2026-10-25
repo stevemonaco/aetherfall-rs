@@ -1,6 +1,9 @@
 //! Anything thrown, shot or lobbed. Player bolts bounce off walls; every projectile applies its element to the tile it
 //! stops on (burning grass, electrifying water, and so on).
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use bevy::math::Vec2;
 
 use crate::art::props;
@@ -26,6 +29,9 @@ pub enum ProjectileHook {
     /// The Meteor Art: bursts into flame where it lands.
     Meteor,
 }
+
+/// Targets struck by any shot of one volley, so a spread of shots lands at most once on each target.
+pub type Volley = Rc<RefCell<Vec<EntityId>>>;
 
 #[derive(Clone)]
 pub struct Projectile {
@@ -61,6 +67,11 @@ pub struct Projectile {
     /// Applies the element to every tile crossed, not just where it stops (charged shots, lances).
     pub paints_path: bool,
     pub hook: ProjectileHook,
+    pub volley: Option<Volley>,
+    /// Damage multiplier against broken or frozen targets.
+    pub execute: f32,
+    /// Turns toward the nearest foe in flight.
+    pub seeking: bool,
     already_hit: Vec<EntityId>,
     age: f32,
     last_tile: (i32, i32),
@@ -98,6 +109,9 @@ impl Projectile {
             scale: 1.0,
             paints_path: false,
             hook: ProjectileHook::None,
+            volley: None,
+            execute: 1.0,
+            seeking: false,
             already_hit: Vec::new(),
             age: 0.0,
             last_tile: (-1, -1),
@@ -146,6 +160,14 @@ impl Projectile {
         faction != self.owner
             && !(faction == Faction::Neutral && self.owner != Faction::Player)
             && !self.already_hit.contains(&id)
+            && !self.volley.as_ref().is_some_and(|v| v.borrow().contains(&id))
+    }
+
+    fn mark_hit(&mut self, id: EntityId) {
+        self.already_hit.push(id);
+        if let Some(volley) = &self.volley {
+            volley.borrow_mut().push(id);
+        }
     }
 
     /// Hits a target; returns whether it connected. Applies any reaction (reflect, expire) the target asked for.
@@ -161,6 +183,7 @@ impl Projectile {
             unblockable: self.unblockable,
             from: self.base.pos - self.velocity * 0.05,
             owner: Some(self.base.id),
+            execute: self.execute,
             aether: self.owner == Faction::Player && world.player.as_ref().is_some_and(|p| p.aether_active()),
             ..Hit::new(self.owner, self.attacker)
         };
@@ -183,10 +206,27 @@ impl Projectile {
             if self.can_hit(id, faction)
                 && hurtbox.center().distance(self.base.pos - Vec2::new(0.0, 4.0)) < radius + hurtbox.w / 2.0
             {
-                self.already_hit.push(id);
+                self.mark_hit(id);
                 self.strike(world, id, faction);
             }
         }
+    }
+
+    /// Bends the flight toward the nearest foe ahead, a few radians a second at most.
+    fn steer(&mut self, world: &World, dt: f32) {
+        let here = self.base.pos - Vec2::new(0.0, self.z);
+        let heading = self.velocity.normalize_or_zero();
+        let target = world
+            .damageables()
+            .into_iter()
+            .filter(|&(id, faction, _)| faction == Faction::Enemy && self.can_hit(id, faction))
+            .map(|(_, _, b)| b.center())
+            .filter(|&c| c.distance(here) < 90.0 && (c - here).normalize_or_zero().dot(heading) > 0.3)
+            .min_by(|a, b| a.distance(here).total_cmp(&b.distance(here)));
+        let Some(target) = target else { return };
+        let want = (target - here).normalize_or_zero();
+        let turn = heading.angle_to(want).clamp(-7.0 * dt, 7.0 * dt);
+        self.velocity = crate::core::geom::rotate(self.velocity, turn);
     }
 
     /// Moves one frame, bouncing off walls; returns false if the projectile expired against one.
@@ -223,6 +263,7 @@ impl Projectile {
         self.attacker = stats;
         self.velocity = direction * self.velocity.length() * 1.2;
         self.already_hit.clear();
+        self.volley = None;
         self.age = 0.0;
     }
 
@@ -283,6 +324,9 @@ impl Entity for Projectile {
             return;
         }
 
+        if self.seeking && self.owner == Faction::Player {
+            self.steer(world, dt);
+        }
         if !self.advance(world, dt) {
             return;
         }
@@ -320,7 +364,7 @@ impl Entity for Projectile {
             if !self.can_hit(id, faction) || !hurtbox.intersects(&damage_box) {
                 continue;
             }
-            self.already_hit.push(id);
+            self.mark_hit(id);
             if self.strike(world, id, faction) && !self.piercing {
                 self.expire(world);
                 return;

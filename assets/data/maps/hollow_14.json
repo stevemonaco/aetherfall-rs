@@ -61,7 +61,7 @@
       "count": 11,
       "id": "run_hollow_14",
       "alive": 3,
-      "kinds": "voideye,darkknight,voidmote"
+      "kinds": "voideye,darkknight,voidmote,hollowknight"
     },
     {
       "type": "gate",
@@ -91,13 +91,13 @@
       "type": "enemy",
       "x": 12.0,
       "y": 17.0,
-      "kind": "darkknight"
+      "kind": "hollowknight"
     },
     {
       "type": "enemy",
       "x": 10.0,
       "y": 17.0,
-      "kind": "darkknight"
+      "kind": "hollowknight"
     },
     {
       "type": "enemy",

@@ -1,6 +1,10 @@
 //! A monster rift: a tear where stolen light leaks out. Once the player comes near it pours out waves of enemies;
 //! defeating its quota leaves it unstable, and striking it then seals it for good, releasing whatever it held (a
 //! villager, a building, a soul...). Sealing sets the flag `rift:id`.
+//!
+//! A wellspring (`endless`) pours foes without end and only wavers once its `after` condition holds (usually every
+//! other rift sealed). A rift with a `champion` summons that foe, boss-sized, when sealed; its death sets
+//! `champion:id`.
 
 use std::f32::consts::TAU;
 
@@ -19,6 +23,7 @@ use crate::core::palette;
 use crate::entity_base;
 use crate::gameplay::combat::{Faction, Hit};
 use crate::gameplay::game_data::data;
+use crate::gameplay::trial_mods::TrialMod;
 use crate::gameplay::{pacts, souls};
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, tile_center};
@@ -44,6 +49,9 @@ pub struct Rift {
     elite: Option<String>,
     elite_id: Option<EntityId>,
     elite_down: bool,
+    endless: bool,
+    after: Option<String>,
+    champion: Option<String>,
     wake: f32,
     spawned: Vec<EntityId>,
     state: RiftState,
@@ -81,6 +89,9 @@ impl Rift {
             elite: data.str("elite").map(str::to_string),
             elite_id: None,
             elite_down: false,
+            endless: data.bool("endless", false),
+            after: data.str("after").map(str::to_string),
+            champion: data.str("champion").map(str::to_string),
             wake: data.float("wake", 120.0),
             spawned: Vec::new(),
             state: RiftState::Dormant,
@@ -94,6 +105,26 @@ impl Rift {
 
     pub fn flag(&self) -> String {
         format!("rift:{}", self.id)
+    }
+
+    fn champion_flag(&self) -> String {
+        format!("champion:{}", self.id)
+    }
+
+    fn summon_champion(&self, world: &mut World) {
+        let Some(def) = self.champion.as_ref().and_then(|k| data().enemies.get(k)) else { return };
+        let level = self.level.unwrap_or(world.chem.zone_level.max(def.level));
+        let champion =
+            Enemy::champion(def, self.base.pos + Vec2::new(0.0, 6.0), Some(level), world, self.champion_flag());
+        world.add(champion);
+        world.add(Puff::new(self.base.pos - Vec2::new(0.0, 6.0), Rgba::rgb(255, 214, 110)));
+        world.add(FloatingText::new(
+            self.base.pos - Vec2::new(0.0, 44.0),
+            "A champion steps through!",
+            palette::HIGHLIGHT,
+        ));
+        audio::play(Sound::BossRoar, 0.9, -0.2);
+        world.camera.shake(0.5, 2.0);
     }
 
     fn swarm(world: &World) -> bool {
@@ -143,7 +174,12 @@ impl Rift {
             }
         }
 
-        if self.remaining(world) <= 0 {
+        let done = if self.endless {
+            self.after.as_deref().is_none_or(|c| world.state.check(Some(c)))
+        } else {
+            self.remaining(world) <= 0
+        };
+        if done {
             self.state = RiftState::Unstable;
             audio::play(Sound::ChargeLevel, 1.0, 0.3);
             world.add(FloatingText::new(
@@ -156,7 +192,13 @@ impl Rift {
 
         let summon_elite = self.elite.is_some() && self.elite_id.is_none() && !self.elite_down;
         let escorts = self.spawned.len() as i32 - if self.elite_id.is_some() { 1 } else { 0 };
-        let pending = if summon_elite { 1 } else { self.alive.min(self.quota(world) - self.killed) - escorts };
+        let pending = if summon_elite {
+            1
+        } else if self.endless {
+            self.alive - escorts
+        } else {
+            self.alive.min(self.quota(world) - self.killed) - escorts
+        };
         if pending <= 0 {
             return;
         }
@@ -164,18 +206,17 @@ impl Rift {
         if self.spawn_timer > 0.0 {
             return;
         }
-        self.spawn_timer = 1.1;
+        self.spawn_timer = if self.endless { 2.2 } else { 1.1 };
         let kind = if summon_elite { self.elite.clone().unwrap_or_default() } else { self.pick_kind(world) };
         let Some(def) = data().enemies.get(&kind) else { return };
         let angle = world.rng.next_f32() * TAU;
         let at = self.base.pos + Vec2::new(angle.cos() * 14.0, angle.sin() * 8.0 + 6.0);
         let zone = world.chem.zone_level;
         let level = self.level.unwrap_or(if zone > 1 { zone } else { def.level });
+        self.spawn_count += 1;
         let elite = summon_elite
-            || (Self::swarm(world) && {
-                self.spawn_count += 1;
-                self.spawn_count % 3 == 0
-            });
+            || (Self::swarm(world) && self.spawn_count % 3 == 0)
+            || (world.trial_mod(TrialMod::EliteTide) && self.spawn_count % 4 == 0);
         let enemy = if elite { Enemy::elite(def, at, Some(level), world) } else { Enemy::new(def, at, Some(level)) };
         let id = world.add(enemy);
         self.spawned.push(id);
@@ -207,6 +248,7 @@ impl Rift {
             let actions = self.then.clone();
             world.run_actions(&actions);
         }
+        self.summon_champion(world);
         self.base.removed = true;
     }
 }
@@ -223,12 +265,18 @@ impl Entity for Rift {
     }
 
     fn light(&self, _world: &World) -> Option<(f32, Rgba)> {
-        (self.state != RiftState::Sealed).then_some((70.0, Rgba::rgb(200, 120, 255)))
+        let color = if self.endless { Rgba::rgb(255, 200, 110) } else { Rgba::rgb(200, 120, 255) };
+        (self.state != RiftState::Sealed).then_some((70.0, color))
     }
 
     fn added(&mut self, world: &mut World) {
-        if world.state.flags.contains(&self.flag()) {
-            self.base.removed = true;
+        if !world.state.flags.contains(&self.flag()) {
+            return;
+        }
+        self.base.removed = true;
+        // Leaving before the champion fell must not lose it: it waits where its rift was.
+        if self.champion.is_some() && !world.state.flags.contains(&self.champion_flag()) {
+            self.summon_champion(world);
         }
     }
 
@@ -293,6 +341,8 @@ impl Entity for Rift {
             Rgba::WHITE
         } else if self.state == RiftState::Unstable {
             Rgba::WHITE.lerp(Rgba::rgb(255, 230, 255), 0.5)
+        } else if self.endless {
+            Rgba::rgb(255, 214, 140)
         } else {
             Rgba::WHITE
         };
@@ -310,7 +360,7 @@ impl Entity for Rift {
             false,
         );
         if self.state == RiftState::Pouring {
-            let text = self.remaining(world).to_string();
+            let text = if self.endless { "~".to_string() } else { self.remaining(world).to_string() };
             font::draw_centered(
                 batch,
                 &text,

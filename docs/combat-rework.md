@@ -1,7 +1,7 @@
 # Combat rework: skills, the Weave, supports and the Aether
 
 Design notes for the skill system rework. Saves from the earlier rework (save version 3) load and are migrated;
-the Weave was rebuilt in version 4, so those saves get every Weave point back.
+the Weave changed in versions 4 to 6, so older saves get every Weave point back.
 
 ## The blade and the sigils
 
@@ -20,6 +20,8 @@ the Weave was rebuilt in version 4, so those saves get every Weave point back.
 - Tap the mode key (L1, or Q/E) to cycle; the mouse wheel and 1-4 also switch.
 - Hold it for 0.2s to open the quick-change wheel: the world slows nearly to a stop, and a direction picks the mode.
   Wind is up, Fire right, Water down and Thunder left, so opposite elements face each other. Release to switch.
+- Each mode has its own HUD icon (a gust, a flame, a drop and a bolt), and switching plays a flourish around the hero:
+  a whirl of wind, a pillar of flame, a water spout or a lightning strike with crackling arcs.
 
 ## Mastery
 
@@ -50,7 +52,8 @@ Overheat is gone. Its meter now builds the Aether instead.
 - While awake, every hit may pierce to the target's weakness instead of landing in the current mode's element:
   25% + 15% per mastery level of that weakness element, +25% once awakened, +15% with the Prism Band, +20% with the
   Prism Lens, plus Weave nodes, capped at 100%. Hits that pierce a shield's emblem shatter it.
-- Afterwards the meter rests for 10 seconds before it fills again (6 with the Afterglow notable).
+- The meter can't fill while Aether is awake, and empties when it fades; it starts filling again at once. The
+  Afterglow notable leaves a quarter of it filled and locked.
 - Aether hits open Concord seals once the blade has awakened, and are the only hits that reach Aether-sealed foes
   (the First Concord's Unbound phase, Sovereign Vael's aether form). Striking those foes with other hits feeds the
   meter instead.
@@ -90,16 +93,42 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
   diagonal bands: meter, pierce, duration).
 - Minor nodes rotate three stats per region and grow with distance from the hub: +1% ATK near it, +2% in the middle
   ring, +3% at the rim. Core stats also appear at half value in other regions (ATK in Swiftness and Aether, life in
-  Spirit), so no stat sits in a cheap cluster.
-- 46 notables carry the triggers and passives (Riposte, Phantom Step, Wildfire, Bloodlust, Battle Trance, Elite
-  Hunter, Last Stand, Iron Will, Acrobat, Slipstream, Echoing Arts, Anchor, Afterglow...). Eight keystones sit at the
-  tips and need a Weave Knot: Overcharge, Glass Edge, Stillwater, Bulwark, Tailwind, Blood Art, Aether Bond and
-  Unbroken.
+  Spirit), so no stat sits in a cheap cluster. Might's west half leans ranged (FOC, bolt surge) and its east half
+  melee (reach, finisher damage).
+- 50 notables carry the triggers and passives (Riposte, Phantom Step, Wildfire, Bloodlust, Battle Trance, Elite
+  Hunter, Last Stand, Iron Will, Acrobat, Slipstream, Echoing Arts, Anchor, Afterglow, Surging Shots, Long Reach...). Ten keystones need a Weave Knot:
+  Overcharge, Glass Edge, Stillwater, Bulwark, Tailwind, Blood Art, Aether Bond, Unbroken, Iron Vanguard and Crescendo.
 - One point per level plus Tomes of Insight: about 105 points by the end of the Hollow, so roughly 60% of the Weave.
   Free unpicking at any save crystal.
 
-## Progression
+## Melee, guarding and shots
 
+- Iron Vanguard (keystone, Might's melee side): melee reaches 10% further, contact hits deal 75% less, and contact
+  hits and light blows (non-projectile attacks under 1.3 power) no longer knock you back or cancel your actions.
+  Slams, charges, blasts and shots still do. In exchange, plain and charged shots deal 90% less damage and build
+  ailments at half rate, but still carry their element, break obstacles and hit switches. Skills are unaffected.
+- Crescendo (keystone, Aether band): only finishers and charged shots fill the Aether meter, at twice their usual
+  rate (6 and 4). Other sources, such as triggers that feed the meter, still work.
+- Swings reach further: 26 pixels (34 for finishers), before the Cleave gem and the Weave's reach nodes (Long Reach,
+  Whirling Edge and Reach minors).
+- Guarding cancels a swing or a charging throw. Only a perfect guard (parry) or one raised a moment before it (a clean
+  block, within two perfect windows) stops a hit entirely. Any other block lets 15-50% of the damage through, more as
+  the guard weakens. Guard strength drops with each block and slowly while held, and recovers once the guard is
+  lowered; at zero the guard breaks, stunning the hero and letting most of the hit through. A bar under the hero
+  shows it.
+- Bolts come in three tiers: plain, charged and tempest (bigger, piercing, three bounces, 2.3 power). A bolt can
+  surge one tier stronger: Surging Shots (15%), Tempest Quiver (10%), Surge minors (1-3% each) and the Surging gem
+  (25%) all stack.
+
+## Items
+
+- Healing stacks lower: three herbs, two draughts, two spirit tonics, one elixir. A remedy that doesn't fit is used
+  on the spot instead of being lost. Elites rarely drop remedies now
+  (8% draught, 12% tonic), herb drops are rare, and several chests and gifts give gold instead.
+- The Scholar's Lens grants 20% more EXP and the Fortune Coin 50% more gold. Both are sold in Highcrag (act 3) for
+  2400 G and 1500 G; the Lens is also at Ashford's tinker.
+
+## Progression
 - Monsters have 25% more life and 12% more attack. The hero's base life is 25% lower (82 + 10.5 per level).
 - Kills give half the EXP they did. Fighting above your level gives up to 25% more (5% per level); fighting below it
   costs 15% per level, so falling behind matters and farming easy areas does not pay.
@@ -114,13 +143,27 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
   (bursts a moment after death), Noxious (trails poison clouds), Thorned (plain bolts glance off), Rallying (calls up
   to four lesser kin), Aura-bound (the old elemental aura that only its opposite strips) and Hulking (40% more life,
   never flinches).
-- An elite kill gives three times the EXP, four times the gold, a guaranteed heart and a chance at a potion or spirit
-  tonic.
-- Roaming packs: entering a combat map (not towns, boss rooms, trials or Blighted expeditions) has a 30% chance (60%
+- An elite kill gives three times the EXP, four times the gold, a guaranteed heart and a small chance at a draught or
+  spirit tonic.
+- Roaming packs: entering a combat map (not towns, boss rooms or Blighted expeditions) has a 30% chance (60%
   under the Swarm pact) to hold an elite of one of the map's kinds with two to four of its foes, somewhere reachable
   but well away from the entrance and the exits.
 - Elite rifts pour out the elite first, then escorts from the rift's kinds (or the map's own foes when it lists
   none) up to its count (3 by default). The rift wavers once the elite and the escorts are all down.
+
+## Bestiary
+
+- New attacks: Burst (a quick string of re-aimed shots), Spiral (a turning two-armed stream), Mortar (lobbed shells
+  onto marked circles), Eruption (a row of blasts racing along the aim), Hook (a line that drags the hero in),
+  Whirl (spins toward the hero, striking on every beat), Blink (teleports behind the hero), Mend (heals hurt allies
+  nearby) and Ward (shields allies nearby). Support casts are only chosen when an ally needs them.
+- New traits: Volatile (bursts in its element on death), Regen (heals 4% a second once left alone) and Enrage (faster
+  movement and attacks below half life).
+- 34 new foes across every act and the Hollow, from Field Rats and Glade Tenders to Rime Ogres, Storm Callers, Slag
+  Shamans and Void Reapers. Each zone swaps a few of its old foes for new ones, and the new kinds join its rifts and
+  the trial arenas.
+- Some old foes learned new moves: Cave Spiders hook, Inklings burst, Hex Acolytes and Ember Wraiths blink, Sky
+  Magi lob mortars, Void Clerics mend, Void Eyes spiral, and Frost Brutes and Concord Knights enrage.
 
 ## Zones
 
@@ -144,20 +187,38 @@ and, for dungeon approaches, a save crystal by the entrance.
 
 - Three socket groups per mode: attack (melee combo), ranged (bolts) and special (skill). One socket each, two at
   mastery 3. Each gem is a single item, so it can sit in only one socket.
-- Every support has a drawback. The Aether page has a single socket for Prism supports: Prism Lens (pierces 20% more
+- Multishot's three bolts share one volley: each foe takes at most one bolt from it, even after bounces. Gale Slash,
+  the triple Ice Lance and the triple Prism Ray share their hits the same way, and hit harder to make up for it
+  (2.6, 2.6 and 3.0 per hit).
+- Every support but Surging has a drawback. The Aether page has a single socket for Prism supports: Prism Lens (pierces 20% more
   often, 1.5s shorter) and Everlight (3s longer, meter fills 20% slower).
-- Supports come from Trial Rifts: gold rifts in the world that lead to a hard arena with three rifts to seal (one
-  holding an elite). Sealing all three reveals two gem chests.
+- New gems: Lunging (swings dash to the nearest foe ahead), Sweeping (swings loose a short crescent wave),
+  Deflecting (swings cut down enemy shots; finishers send them back), Sundering (shields wear twice as fast, guards
+  break faster), Surging (bolts surge a tier 25% of the time, with no drawback), Seeking (bolts curve toward foes) and Executioner (35%
+  more damage to broken or frozen foes, 10% less otherwise). All but Surging carry a drawback.
+
+## Trial Rifts
+
+Golden rifts lead to a 46x30 arena themed to the host, with its own hazards (bog, ice, pits, metal, water).
+
+- Foes already roam the arena, and an elite pack always waits deeper in.
+- Four rifts to seal, one holding an elite, plus a golden wellspring that pours foes without end from the moment you
+  arrive. The wellspring can't be sealed until the other four are.
+- Sealing the wellspring summons the Rift Champion: one of the trial's foes at boss size, with nine times a foe's
+  life, an extra affix and a life bar across the screen. If you leave before it falls, it waits there for you.
+- Every visit rolls two trial mods (three in the Trial of the Prism), shown at the top of the screen: Haste, Volatile,
+  Eruptions, Ironhide, Elite Tide and Bloodthirst. Each mod adds 25% EXP and gold to the trial's kills.
+- Defeating the champion opens three gem chests.
 
 | Trial | Host | Gems |
 |---|---|---|
-| Trial of Thorns | Whisperwood | Cleave, Brutal |
-| Trial of Mire | Mistmoor Marsh | Multishot, Infusion |
-| Trial of Salt | Salt Mine | Piercing, Lingering |
-| Trial of Rime | Frostpeak | Momentum, Leech |
-| Trial of Tides | Cove | Efficiency, Haste |
-| Trial of Cinders | Ashen Reach | Echo, Overdrive |
-| Trial of the Prism (after the blade awakens) | Cinderfall | Prism Lens, Everlight |
+| Trial of Thorns | Whisperwood | Cleave, Brutal, Lunging |
+| Trial of Mire | Mistmoor Marsh | Momentum, Infusion, Sweeping |
+| Trial of Salt | Salt Mine | Piercing, Lingering, Seeking |
+| Trial of Rime | Frostpeak | Multishot, Leech, Sundering |
+| Trial of Tides | Cove | Efficiency, Haste, Surging |
+| Trial of Cinders | Ashen Reach | Echo, Overdrive, Deflecting |
+| Trial of the Prism (after the blade awakens) | Cinderfall | Prism Lens, Everlight, Executioner |
 
 ## Shields
 

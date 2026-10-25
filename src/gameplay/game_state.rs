@@ -18,7 +18,7 @@ use super::weave::{self, WeaveMods, WeaveNode};
 use crate::core::direction::Direction;
 use crate::core::storage;
 
-pub const SAVE_VERSION: i32 = 4;
+pub const SAVE_VERSION: i32 = 6;
 /// The oldest save version that can still be migrated.
 const OLDEST_SAVE: i32 = 3;
 pub const SLOT_COUNT: i32 = 3;
@@ -359,10 +359,10 @@ impl GameState {
     }
 
     /// Brings a save from before the Weave and the Aether rework up to date: renamed items, rings turned into orbs,
-    /// the neutral mode and its skills gone, and skills matched to mastery. The Weave was rebuilt in version 4, so
+    /// the neutral mode and its skills gone, and skills matched to mastery. The Weave changed in versions 4 to 6, so
     /// older saves get every point back.
     fn migrate(&mut self) {
-        if self.version < 4 {
+        if self.version < 6 {
             self.reset_weave();
         }
         self.version = SAVE_VERSION;
@@ -477,7 +477,7 @@ impl GameState {
                     return 1;
                 }
                 ItemKind::Consumable => {
-                    let fits = (items::CONSUMABLE_CAP - self.count(id)).clamp(0, count);
+                    let fits = (items::consumable_cap(id) - self.count(id)).clamp(0, count);
                     if fits > 0 {
                         *self.inventory.entry(id.to_string()).or_default() += fits;
                     }

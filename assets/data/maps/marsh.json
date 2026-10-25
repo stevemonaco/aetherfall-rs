@@ -52,9 +52,9 @@
       "y": 19.0,
       "name": "Trial of Mire",
       "to": "trial_marsh",
-      "tx": 14,
-      "ty": 14,
-      "done": "rift:trial_marsh_a,rift:trial_marsh_b,rift:trial_marsh_c"
+      "tx": 23,
+      "ty": 24,
+      "done": "champion:trial_marsh_well"
     },
     {
       "type": "vent",
@@ -85,7 +85,7 @@
       "x": 25.0,
       "y": 22.0,
       "alive": 3,
-      "kinds": "toad,coil",
+      "kinds": "toad,coil,leech,croaker,mudeel",
       "restores": "Old Tam's net shed in Brinewatch",
       "count": 7,
       "id": "brine_fisher"
@@ -95,7 +95,7 @@
       "x": 47.0,
       "y": 6.0,
       "alive": 3,
-      "kinds": "mirecap,coil,toad",
+      "kinds": "mirecap,coil,toad,leech,croaker,mudeel",
       "restores": "the shipwright's yard in Brinewatch",
       "count": 8,
       "id": "brine_shipwright"
@@ -252,13 +252,13 @@
       "type": "enemy",
       "x": 13.0,
       "y": 12.0,
-      "kind": "toad"
+      "kind": "leech"
     },
     {
       "type": "enemy",
       "x": 19.0,
       "y": 25.0,
-      "kind": "toad"
+      "kind": "croaker"
     },
     {
       "type": "enemy",
@@ -270,7 +270,7 @@
       "type": "enemy",
       "x": 28.0,
       "y": 15.0,
-      "kind": "coil"
+      "kind": "mudeel"
     },
     {
       "type": "enemy",

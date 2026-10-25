@@ -95,7 +95,7 @@
       "type": "enemy",
       "x": 8.0,
       "y": 12.0,
-      "kind": "sentinel"
+      "kind": "runetotem"
     },
     {
       "type": "enemy",
@@ -113,7 +113,7 @@
       "type": "enemy",
       "x": 9.0,
       "y": 7.0,
-      "kind": "stormeye"
+      "kind": "stormwraith"
     },
     {
       "type": "enemy",

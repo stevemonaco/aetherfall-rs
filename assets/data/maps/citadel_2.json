@@ -113,13 +113,13 @@
       "type": "enemy",
       "x": 14.0,
       "y": 10.0,
-      "kind": "darkknight"
+      "kind": "prismgolem"
     },
     {
       "type": "enemy",
       "x": 30.0,
       "y": 21.0,
-      "kind": "darkknight"
+      "kind": "paladin"
     },
     {
       "type": "enemy",
@@ -137,7 +137,7 @@
       "type": "enemy",
       "x": 8.0,
       "y": 16.0,
-      "kind": "magus"
+      "kind": "hierophant"
     },
     {
       "type": "enemy",

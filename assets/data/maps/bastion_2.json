@@ -92,7 +92,7 @@
       "type": "rift",
       "x": 9.0,
       "y": 13.0,
-      "kinds": "voidmote,crawler",
+      "kinds": "voidmote,crawler,skimmer",
       "alive": 3,
       "soul": "lantern",
       "restores": "a lantern spirit",
@@ -114,7 +114,7 @@
       "type": "enemy",
       "x": 14.0,
       "y": 10.0,
-      "kind": "voidmote"
+      "kind": "skimmer"
     },
     {
       "type": "enemy",

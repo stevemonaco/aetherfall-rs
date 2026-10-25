@@ -89,11 +89,11 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
             let level = (level > 0).then_some(level);
             if entry.kind != "boss" {
                 let map_level = world.data.level;
-                return Some(Box::new(Enemy::new(
-                    def,
-                    pos,
-                    Some(level.unwrap_or(if map_level > 1 { map_level } else { def.level })),
-                )));
+                let level = Some(level.unwrap_or(if map_level > 1 { map_level } else { def.level }));
+                if entry.bool("elite", false) {
+                    return Some(Box::new(Enemy::elite(def, pos, level, world)));
+                }
+                return Some(Box::new(Enemy::new(def, pos, level)));
             }
             let flag = entry.str("flag").map(str::to_string).unwrap_or_else(|| format!("boss_{kind}"));
             Box::new(boss::create(def, pos, flag, entry.strings("defeat"), entry.bool("echo", false)))

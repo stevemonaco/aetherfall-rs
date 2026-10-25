@@ -130,7 +130,7 @@
       ],
       "do": [ "quest:brindle_gel", "shop:village" ] },
     { "if": "quest:brindle_gel,count:slime_gel:3,!brindle_done", "speaker": "Brindle", "lines": [ "Three gels, fresh and wobbly! A deal's a deal." ],
-      "do": [ "take:slime_gel*3", "flag:brindle_done", "give:potion*2", "gold:+100", "shop:village" ] },
+      "do": [ "take:slime_gel*3", "flag:brindle_done", "give:potion", "gold:+150", "shop:village" ] },
     { "speaker": "Brindle", "lines": [ "Welcome to Brindle's Goods! Herbs, hides and shields, all honest prices." ], "do": [ "shop:village" ] }
   ],
 
@@ -224,7 +224,7 @@
       ],
       "do": [ "quest:nets_and_hulls" ] },
     { "if": "rift:brine_fisher,rift:brine_shipwright,!nets_done", "speaker": "Fisher Lin", "lines": [ "Tam's shed and Kett's yard, back like they never left! Here, a little something from the whole waterfront." ],
-      "do": [ "flag:nets_done", "give:potion*2", "gold:+400" ] },
+      "do": [ "flag:nets_done", "give:potion", "gold:+500" ] },
     { "if": "!has:rabbit_boots", "speaker": "Fisher Lin", "lines": [ "The storms tore two planks off the pier. The skiff out to the shoals and the temple is out of reach unless you can leap like a marsh toad." ] },
     { "if": "!has:tide_crystal", "speaker": "Fisher Lin", "lines": [ "Those boots! You could hop the gaps easy. Press jump and go. Just don't land in the water." ] },
     { "speaker": "Fisher Lin", "lines": [ "Fish are biting again. Whatever you did down there, thank you." ] }

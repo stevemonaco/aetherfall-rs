@@ -77,24 +77,9 @@
       "y": 6.0,
       "open": "mine_vault"
     },
-    {
-      "type": "plate",
-      "x": 18.0,
-      "y": 8.0,
-      "flag": "mine_vault",
-      "latch": true
-    },
-    {
-      "type": "crate",
-      "x": 28.0,
-      "y": 9.0
-    },
-    {
-      "type": "sign",
-      "x": 19.0,
-      "y": 10.0,
-      "text": "Ore cart scale. Needs a heavy load to trip it."
-    },
+    {"type": "plate", "x": 16.0, "y": 6.0, "flag": "mine_vault", "latch": true, "heavy": true},
+    {"type": "stoneblock", "x": 28.0, "y": 9.0, "id": "ore_cart"},
+    {"type": "sign", "x": 19.0, "y": 10.0, "text": "Ore scale. Only a loaded cart trips it. The scale sits in the far corner; shove the cart until it rolls there."},
     {
       "type": "enemy",
       "x": 22.0,
@@ -117,7 +102,7 @@
       "type": "enemy",
       "x": 30.0,
       "y": 12.0,
-      "kind": "coil"
+      "kind": "lobster"
     },
     {
       "type": "enemy",

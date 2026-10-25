@@ -12,7 +12,7 @@ use crate::entities::effects::{DamageNumber, FloatingText};
 use crate::entities::entity::{Entity, EntityBase};
 use crate::entity_base;
 use crate::gameplay::items;
-use crate::scenes::world::World;
+use crate::scenes::world::{World, overflow_note};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PickupKind {
@@ -101,10 +101,10 @@ impl Entity for Pickup {
                 world.add(DamageNumber::heal(world.hero.center, self.amount));
             }
             PickupKind::Item(item) => {
-                let got = world.state.give(item, self.amount);
+                let got = world.receive(item, self.amount);
                 audio::play(Sound::Pickup, 0.6, 0.0);
                 let name = items::name_of(item);
-                world.toast(if got > 0 { format!("{name} x{}", self.amount) } else { format!("{name} (pouch full)") });
+                world.toast(overflow_note(&name, got, self.amount));
             }
             PickupKind::Gold => {
                 world.state.gold += self.amount;

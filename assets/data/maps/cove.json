@@ -46,9 +46,9 @@
       "y": 16.0,
       "name": "Trial of Tides",
       "to": "trial_cove",
-      "tx": 14,
-      "ty": 14,
-      "done": "rift:trial_cove_a,rift:trial_cove_b,rift:trial_cove_c"
+      "tx": 23,
+      "ty": 24,
+      "done": "champion:trial_cove_well"
     },
     {
       "type": "tide",
@@ -135,19 +135,19 @@
       "restores": "the smugglers' lookout",
       "alive": 3,
       "count": 8,
-      "kinds": "inkling,tidetoad,crag"
+      "kinds": "inkling,tidetoad,crag,reefcrab,lobster"
     },
     {
       "type": "enemy",
       "x": 20.0,
       "y": 6.0,
-      "kind": "inkling"
+      "kind": "reefcrab"
     },
     {
       "type": "enemy",
       "x": 27.0,
       "y": 15.0,
-      "kind": "tidetoad"
+      "kind": "lobster"
     },
     {
       "type": "enemy",

@@ -92,7 +92,7 @@
       "y": 11.0,
       "restores": "the Concord Forge's anvil",
       "alive": 3,
-      "kinds": "crawler,voidmote,ashhound",
+      "kinds": "crawler,voidmote,ashhound,cinderimp",
       "count": 8,
       "id": "ash_forge_anvil"
     },
@@ -135,7 +135,7 @@
       "type": "enemy",
       "x": 10.0,
       "y": 9.0,
-      "kind": "ashhound"
+      "kind": "cinderimp"
     }
   ]
 }

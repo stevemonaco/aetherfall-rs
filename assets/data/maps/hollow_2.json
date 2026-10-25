@@ -61,7 +61,7 @@
       "count": 7,
       "id": "run_hollow_2",
       "alive": 3,
-      "kinds": "boneknight,ghost,eye"
+      "kinds": "boneknight,ghost,eye,hollowknight"
     },
     {
       "type": "gate",
@@ -97,7 +97,7 @@
       "type": "enemy",
       "x": 9.0,
       "y": 7.0,
-      "kind": "boneknight"
+      "kind": "hollowknight"
     },
     {
       "type": "enemy",

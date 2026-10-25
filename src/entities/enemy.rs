@@ -3,6 +3,7 @@
 //! break gauge; everything takes elemental ailments. Bosses are enemies with a [`BossCore`] that replaces thinking,
 //! dying and drawing.
 
+mod abilities;
 mod affixes;
 
 use std::collections::HashMap;
@@ -31,9 +32,10 @@ use crate::gameplay::element::{BASIC, Element};
 use crate::gameplay::game_data::{AttackDef, EnemyDef, data};
 use crate::gameplay::pacts;
 use crate::gameplay::status::{Ailment, StatusSet};
+use crate::gameplay::trial_mods::TrialMod;
 use crate::scenes::world::{KillInfo, World};
 use crate::world::map::TILE;
-pub use affixes::Affix;
+pub use affixes::{Affix, Detonation};
 
 /// Melee hits a shield takes before breaking; heavy hits count twice and plain bolts not at all.
 const SHIELD_HP: f32 = 6.0;
@@ -104,6 +106,11 @@ pub struct Enemy {
     affix_timer: f32,
     shield_regrow: f32,
     rallied: i32,
+    act_ticks: i32,
+    regen: f32,
+    champion: bool,
+    /// Set when this foe dies, e.g. to open a trial's reward chests.
+    death_flag: Option<String>,
 }
 
 impl Enemy {
@@ -165,6 +172,10 @@ impl Enemy {
             affix_timer: 0.0,
             shield_regrow: 0.0,
             rallied: 0,
+            act_ticks: 0,
+            regen: 0.0,
+            champion: false,
+            death_flag: None,
         }
     }
 
@@ -176,12 +187,43 @@ impl Enemy {
         enemy.guard_max = (def.guard * 1.5).max(8.0);
         enemy.guard_value = enemy.guard_max;
         enemy.is_elite = true;
-        enemy.roll_affixes(world);
+        enemy.roll_affixes(world, 0);
         enemy
     }
 
+    /// A Rift Champion: an elite grown to boss size, with nine times a foe's life, an extra affix and a life bar
+    /// across the screen. Its death sets `flag`.
+    pub fn champion(def: &'static EnemyDef, at: Vec2, level: Option<i32>, world: &World, flag: String) -> Enemy {
+        let mut enemy = Enemy::new(def, at, Some(level.unwrap_or(def.level) + 3));
+        enemy.max_hp *= 9;
+        enemy.hp = enemy.max_hp;
+        enemy.guard_max = (def.guard * 2.5).max(16.0);
+        enemy.guard_value = enemy.guard_max;
+        enemy.base.width *= 1.5;
+        enemy.is_elite = true;
+        enemy.champion = true;
+        enemy.death_flag = Some(flag);
+        enemy.alerted = true;
+        enemy.phase = Phase::Chase;
+        enemy.roll_affixes(world, 1);
+        enemy
+    }
+
+    pub fn is_champion(&self) -> bool {
+        self.champion
+    }
+
+    /// The name on a champion's life bar, with its affixes.
+    pub fn champion_title(&self) -> String {
+        format!("Champion {}  ({})", self.def.name, self.affix_title())
+    }
+
+    fn scale(&self) -> f32 {
+        self.def.scale * if self.champion { 1.5 } else { 1.0 }
+    }
+
     pub fn heavy(&self) -> bool {
-        self.boss.is_some() || self.def.heavy || self.has_affix(Affix::Hulking)
+        self.boss.is_some() || self.def.heavy || self.champion || self.has_affix(Affix::Hulking)
     }
 
     fn hunted(&self, world: &World, hit: &Hit) -> bool {
@@ -386,6 +428,9 @@ impl Enemy {
             if world.rng.next_f32() > attack.weight * dt * 6.0 {
                 continue;
             }
+            if matches!(attack.kind.as_str(), "mend" | "ward") && !self.support_needed(world, attack) {
+                continue;
+            }
             self.begin_attack(world, i, target);
             return;
         }
@@ -416,11 +461,22 @@ impl Enemy {
 
     fn ranged(&self) -> bool {
         !self.def.attacks.is_empty()
-            && self
-                .def
-                .attacks
-                .iter()
-                .all(|a| matches!(a.kind.as_str(), "shoot" | "ring" | "beam" | "spores" | "summon"))
+            && self.def.attacks.iter().all(|a| {
+                matches!(
+                    a.kind.as_str(),
+                    "shoot"
+                        | "ring"
+                        | "beam"
+                        | "spores"
+                        | "summon"
+                        | "burst"
+                        | "spiral"
+                        | "mortar"
+                        | "eruption"
+                        | "mend"
+                        | "ward"
+                )
+            })
     }
 
     fn locomote(&mut self, world: &mut World, dt: f32, dir: Vec2, speed: f32) {
@@ -473,6 +529,7 @@ impl Enemy {
         let attack = self.attack_def(i);
         self.attack = Some(i);
         self.act_done = false;
+        self.act_ticks = 0;
         self.locked_target = target;
         self.locked_dir = safe_normalize(target - self.base.pos);
         self.facing_right = self.locked_dir.x > 0.0;
@@ -491,6 +548,16 @@ impl Enemy {
                 let width = if attack.kind == "beam" { 8.0 } else { self.base.width };
                 world.add(LineMarker::new(mouth, end, width, attack.windup, color));
             }
+            "hook" | "eruption" => {
+                let end = ray_end(world, mouth, self.locked_dir, attack.distance);
+                let width = if attack.kind == "hook" { 6.0 } else { attack.radius };
+                world.add(LineMarker::new(mouth, end, width, attack.windup, color));
+            }
+            "mortar" => self.telegraph_mortar(world, attack, target),
+            "whirl" => {
+                world.add(GroundMarker::new(self.base.pos, attack.radius, attack.windup, color));
+            }
+            "mend" | "ward" => self.telegraph_support(world, attack),
             "lunge" => {
                 world.add(LineMarker::new(
                     mouth,
@@ -517,7 +584,7 @@ impl Enemy {
         let windup = self.windup_time(world, attack);
         // Ranged attacks keep tracking until the last moment; charges and lunges commit at the start.
         if let Some(t) = target
-            && matches!(attack.kind.as_str(), "shoot" | "bite")
+            && matches!(attack.kind.as_str(), "shoot" | "bite" | "burst" | "spiral")
             && self.phase_time < windup - 0.15
         {
             self.locked_target = t;
@@ -577,6 +644,26 @@ impl Enemy {
                     self.set_phase(Phase::Recover);
                 }
             }
+            "burst" | "spiral" => {
+                let every = if attack.kind == "burst" { 0.12 } else { 0.08 };
+                if self.act_ticks < attack.count && self.phase_time >= self.act_ticks as f32 * every {
+                    let from = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() / 2.0);
+                    if attack.kind == "burst" {
+                        self.burst_shot(world, attack, from);
+                    } else {
+                        self.spiral_shot(world, attack, from, self.act_ticks);
+                    }
+                    self.act_ticks += 1;
+                }
+                if self.act_ticks >= attack.count {
+                    self.set_phase(Phase::Recover);
+                }
+            }
+            "whirl" => {
+                if self.whirl(world, attack, dt) {
+                    self.set_phase(Phase::Recover);
+                }
+            }
             _ => {
                 if !self.act_done {
                     self.act_done = true;
@@ -590,7 +677,7 @@ impl Enemy {
     }
 
     fn perform(&mut self, world: &mut World, attack: &'static AttackDef) {
-        let from = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale / 2.0);
+        let from = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() / 2.0);
         let stats = self.stats();
         match attack.kind.as_str() {
             "bite" => {
@@ -670,6 +757,11 @@ impl Enemy {
                 }
                 audio::play(Sound::ChargeLevel, 0.8, -0.5);
             }
+            "mortar" => self.mortar(world, attack, from),
+            "hook" => self.hook(world, attack),
+            "eruption" => self.eruption(world, attack),
+            "mend" | "ward" => self.support(world, attack),
+            "blink" => self.blink(world),
             _ => {}
         }
     }
@@ -829,7 +921,7 @@ impl Enemy {
                 HitKind::Bolt | HitKind::Tether => 0.0,
                 HitKind::Finisher | HitKind::ChargedBolt | HitKind::Skill => 2.0,
                 _ => 1.0,
-            };
+            } * if hit.sunder { 2.0 } else { 1.0 };
             let at = self.hurtbox().center() + safe_dir(hit.from - self.base.pos, Vec2::Y) * 6.0;
             hit.result = DamageResult::blocked(false);
             if self.shield_hp > 0.0 {
@@ -863,7 +955,8 @@ impl Enemy {
         let mut mods = if self.phase == Phase::Broken { 2.0 } else { 1.0 }
             * if self.aura { 0.3 } else { 1.0 }
             * if self.marked > 0.0 { 1.25 } else { 1.0 }
-            * if self.hunted(world, hit) { 1.2 } else { 1.0 };
+            * if self.hunted(world, hit) { 1.2 } else { 1.0 }
+            * if self.phase == Phase::Broken || self.frozen() { hit.execute } else { 1.0 };
         let mut shatter = false;
         if self.frozen() && hit.power >= 0.5 && self.status.shatter() {
             shatter = true;
@@ -981,7 +1074,7 @@ impl Enemy {
             }
             _ => {}
         }
-        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale + 18.0);
+        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() + 18.0);
         world.add(FloatingText::new(at, ailment.label(), element.glow()));
     }
 
@@ -995,7 +1088,7 @@ impl Enemy {
         }
         self.guard_value = 0.0;
         self.break_for(3.0);
-        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale + 18.0);
+        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() + 18.0);
         world.add(FloatingText::new(at, "BREAK!", palette::HIGHLIGHT));
         audio::play(Sound::Break, 0.9, 0.2);
         world.hit_stop(0.08);
@@ -1014,7 +1107,7 @@ impl Enemy {
             if self.guard_value <= 0.0 {
                 self.guard_value = 0.0;
                 self.break_for(3.0);
-                let at = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale + 18.0);
+                let at = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() + 18.0);
                 world.add(FloatingText::new(at, "BREAK!", palette::HIGHLIGHT));
                 return;
             }
@@ -1079,7 +1172,7 @@ impl Enemy {
     pub fn damage(&mut self, world: &mut World, amount: i32, element: Element, crit: bool, suffix: &str) {
         self.hp -= amount;
         self.hp_bar_time = 2.5;
-        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale + 6.0 + self.z);
+        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() + 6.0 + self.z);
         world.add(DamageNumber::styled(at, amount, element, crit, false, false, suffix));
         if self.hp <= 0 && !self.base.removed {
             self.die(world);
@@ -1103,7 +1196,7 @@ impl Enemy {
         self.phase_time = -0.9;
         audio::play(Sound::BossRoar, 0.5, 0.6);
         Particle::burst(world, self.hurtbox().center(), Rgba::rgb(170, 90, 220), 16, 60.0, 0.6, false);
-        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale + 18.0);
+        let at = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() + 18.0);
         world.add(FloatingText::new(at, "RISES AGAIN", Rgba::rgb(210, 150, 255)));
     }
 
@@ -1145,6 +1238,16 @@ impl Enemy {
         }
         self.base.removed = true;
         self.affix_death(world);
+        self.trait_death(world);
+        let bursts = self.has_affix(Affix::Volatile) || self.def.has_trait("volatile");
+        if world.trial_mod(TrialMod::Volatile) && !bursts && !self.champion {
+            world.add(Detonation::new(self.base.pos, self.stats(), Element::None, 24.0, 0.8, 1.2));
+        }
+        if let Some(flag) = self.death_flag.take() {
+            world.state.flags.insert(flag);
+            world.toast("The rift's champion falls!");
+            world.camera.shake(0.4, 2.0);
+        }
         audio::sfx(Sound::EnemyDie);
         world.add(Puff::new(self.base.pos - Vec2::new(0.0, 6.0), Rgba::WHITE));
         Particle::burst(world, self.base.pos - Vec2::new(0.0, 6.0), Rgba::rgb(255, 240, 200), 10, 60.0, 0.4, false);
@@ -1283,7 +1386,7 @@ impl Enemy {
     }
 
     fn draw_enemy(&self, world: &World, batch: &mut Batch) {
-        let scale = self.def.scale;
+        let scale = self.scale();
         if self.phase == Phase::Burrowed {
             batch.draw(props::shadow(10), snap(self.base.pos - Vec2::new(5.0, 2.0)), Rgba::rgb(120, 80, 50).mul(0.8));
             return;
@@ -1407,7 +1510,7 @@ impl Enemy {
     }
 
     fn draw_stars(&self, batch: &mut Batch) {
-        let center = self.base.pos - Vec2::new(0.0, self.base.height * self.def.scale + 6.0 + self.z);
+        let center = self.base.pos - Vec2::new(0.0, self.base.height * self.scale() + 6.0 + self.z);
         for i in 0..3 {
             let a = self.anim_time * 6.0 + i as f32 * TAU / 3.0;
             batch.draw(props::spark(), snap(center + Vec2::new(a.cos() * 7.0, a.sin() * 2.5)), palette::HIGHLIGHT);
@@ -1416,10 +1519,10 @@ impl Enemy {
 
     fn draw_bars(&self, batch: &mut Batch) {
         let shown = self.hp_bar_time > 0.0 || (self.is_elite && self.alerted);
-        if !shown || self.hp <= 0 || self.boss.is_some() {
+        if !shown || self.hp <= 0 || self.boss.is_some() || self.champion {
             return;
         }
-        let width = ((self.base.width * self.def.scale) as i32 + 4).max(14) as f32;
+        let width = ((self.base.width * self.scale()) as i32 + 4).max(14) as f32;
         let at = snap(self.base.pos + Vec2::new(-width / 2.0, 3.0));
         let alpha = if self.is_elite && self.alerted { 1.0 } else { (self.hp_bar_time * 2.0).min(1.0) };
         let height = if self.guard_max > 0.0 { 6.0 } else { 4.0 };
@@ -1491,7 +1594,7 @@ impl Entity for Enemy {
         if let Some(brain) = self.boss.as_ref().and_then(|b| b.brain()) {
             return brain.hurtbox(self);
         }
-        let scale = self.def.scale;
+        let scale = self.scale();
         Box2::new(
             self.base.pos.x - self.base.width / 2.0 - 1.0,
             self.base.pos.y - self.base.height * scale - 3.0 - self.z,
@@ -1543,6 +1646,10 @@ impl Entity for Enemy {
             self.max_hp = (self.max_hp as f32 * 1.5) as i32;
             self.hp = self.max_hp;
         }
+        if world.trial_mod(TrialMod::Ironhide) {
+            self.max_hp = (self.max_hp as f32 * 1.4) as i32;
+            self.hp = self.max_hp;
+        }
         if self.boss.is_some() {
             boss::added(self, world);
         }
@@ -1584,6 +1691,7 @@ impl Entity for Enemy {
 
         self.think(world, dt);
         self.update_affixes(world, dt);
+        self.update_traits(world, dt);
         if self.deals_contact_damage() {
             self.touch_target(world);
         }

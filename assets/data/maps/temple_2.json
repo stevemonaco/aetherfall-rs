@@ -154,7 +154,7 @@
       "type": "enemy",
       "x": 8.0,
       "y": 19.0,
-      "kind": "inkling"
+      "kind": "tidesnail"
     },
     {
       "type": "enemy",
@@ -178,7 +178,7 @@
       "type": "enemy",
       "x": 25.0,
       "y": 18.0,
-      "kind": "tidetoad"
+      "kind": "reefcrab"
     },
     {
       "type": "enemy",

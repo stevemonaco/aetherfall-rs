@@ -66,7 +66,7 @@ const fn prism(id: &'static str, name: &'static str, description: &'static str) 
 
 use Group::*;
 
-pub const ALL: [SupportDef; 14] = [
+pub const ALL: [SupportDef; 21] = [
     gem("cleave_gem", "Cleave Gem", Some(Attack), "Melee swings reach 30% wider, but deal 15% less damage."),
     gem(
         "momentum_gem",
@@ -74,8 +74,40 @@ pub const ALL: [SupportDef; 14] = [
         Some(Attack),
         "Combo finishers deal 60% more damage; the first two swings 20% less.",
     ),
-    gem("multishot_gem", "Multishot Gem", Some(Ranged), "Bolts fly in threes, but each deals 40% less damage."),
+    gem(
+        "multishot_gem",
+        "Multishot Gem",
+        Some(Ranged),
+        "Bolts fly in a spread of three that strikes each foe once, but deal 40% less damage.",
+    ),
     gem("pierce_gem", "Piercing Gem", Some(Ranged), "Every bolt pierces, but deals 20% less damage."),
+    gem(
+        "lunge_gem",
+        "Lunging Gem",
+        Some(Attack),
+        "Swings dash you toward the nearest foe ahead, but deal 10% less damage.",
+    ),
+    gem("sweep_gem", "Sweeping Gem", Some(Attack), "Swings loose a short crescent wave, but deal 15% less damage."),
+    gem(
+        "deflect_gem",
+        "Deflecting Gem",
+        Some(Attack),
+        "Swings cut down enemy shots and finishers send them back, but swings are 10% slower.",
+    ),
+    gem(
+        "sunder_gem",
+        "Sundering Gem",
+        Some(Attack),
+        "Melee hits wear shields twice as fast and break guards 50% faster, but deal 10% less damage.",
+    ),
+    gem("surge_gem", "Surging Gem", Some(Ranged), "Bolts have a 25% chance to fly one tier stronger."),
+    gem("seeking_gem", "Seeking Gem", Some(Ranged), "Bolts curve toward foes, but deal 15% less damage."),
+    gem(
+        "executioner_gem",
+        "Executioner Gem",
+        None,
+        "Hits deal 35% more to broken or frozen foes, but 10% less to anything else.",
+    ),
     gem(
         "linger_gem",
         "Lingering Gem",
@@ -125,6 +157,17 @@ pub struct SupportMods {
     pub linger: bool,
     pub echo: bool,
     pub efficiency: bool,
+    pub lunge: bool,
+    pub sweep: bool,
+    pub deflect: bool,
+    pub sunder: bool,
+    /// Chance a bolt flies one tier stronger.
+    pub surge: f32,
+    pub seeking: bool,
+    /// Damage multiplier against broken or frozen foes.
+    pub execute: f32,
+    /// Multiplier on how fast swings play out.
+    pub swing_speed: f32,
 }
 
 impl Default for SupportMods {
@@ -144,6 +187,14 @@ impl Default for SupportMods {
             linger: false,
             echo: false,
             efficiency: false,
+            lunge: false,
+            sweep: false,
+            deflect: false,
+            sunder: false,
+            surge: 0.0,
+            seeking: false,
+            execute: 1.0,
+            swing_speed: 1.0,
         }
     }
 }
@@ -197,6 +248,32 @@ impl SupportMods {
                 "overdrive_gem" => {
                     m.damage *= 1.25;
                     m.aether *= 0.6;
+                }
+                "lunge_gem" => {
+                    m.lunge = true;
+                    m.damage *= 0.9;
+                }
+                "sweep_gem" => {
+                    m.sweep = true;
+                    m.damage *= 0.85;
+                }
+                "deflect_gem" => {
+                    m.deflect = true;
+                    m.swing_speed *= 0.9;
+                }
+                "sunder_gem" => {
+                    m.sunder = true;
+                    m.poise *= 1.5;
+                    m.damage *= 0.9;
+                }
+                "surge_gem" => m.surge += 0.25,
+                "seeking_gem" => {
+                    m.seeking = true;
+                    m.damage *= 0.85;
+                }
+                "executioner_gem" => {
+                    m.execute *= 1.5;
+                    m.damage *= 0.9;
                 }
                 _ => {}
             }

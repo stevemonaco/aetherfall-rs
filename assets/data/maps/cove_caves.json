@@ -82,7 +82,7 @@
       "type": "enemy",
       "x": 20.0,
       "y": 18.0,
-      "kind": "boneknight"
+      "kind": "mimic"
     },
     {
       "type": "enemy",

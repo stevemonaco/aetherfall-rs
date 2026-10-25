@@ -143,6 +143,10 @@ pub struct WeaveMods {
     pub aether_gain: f32,
     pub pierce: f32,
     pub aether_time: f32,
+    /// Chance a bolt flies one tier stronger.
+    pub surge: f32,
+    /// Extra melee reach, as a fraction.
+    pub reach: f32,
     pub buildup: HashMap<Element, f32>,
     pub passives: HashSet<String>,
     pub triggers: Vec<TriggerDef>,
@@ -167,6 +171,8 @@ impl Default for WeaveMods {
             aether_gain: 1.0,
             pierce: 0.0,
             aether_time: 0.0,
+            surge: 0.0,
+            reach: 0.0,
             buildup: HashMap::new(),
             passives: HashSet::new(),
             triggers: Vec::new(),
@@ -229,6 +235,43 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
         "passive:elite_hunter",
     ),
     (2, -8, Notable, "keen_edge", "Keen Edge", "FOC +8%: more critical hits.", "foc:0.08"),
+    (
+        -2,
+        -5,
+        Notable,
+        "surging_shots",
+        "Surging Shots",
+        "Bolts have a 15% chance to fly one tier stronger.",
+        "surge:0.15",
+    ),
+    (
+        -3,
+        -8,
+        Notable,
+        "tempest_quiver",
+        "Tempest Quiver",
+        "Bolts surge 10% more often and bounce once more.",
+        "surge:0.1,bounce:1",
+    ),
+    (2, -5, Notable, "long_reach", "Long Reach", "Melee swings reach 15% further.", "reach:0.15"),
+    (
+        3,
+        -8,
+        Keystone,
+        "iron_vanguard",
+        "Iron Vanguard",
+        "Melee reaches 10% further, contact hits deal 75% less and light blows can't knock you back, but shots deal 90% less damage.",
+        "reach:0.1,passive:iron_vanguard",
+    ),
+    (
+        1,
+        -8,
+        Notable,
+        "whirling_edge",
+        "Whirling Edge",
+        "Melee swings reach 10% further, and finishers deal 10% more damage.",
+        "reach:0.1,finisher:0.1",
+    ),
     (0, -8, Keystone, "overcharge", "Overcharge", "ATK +25%, but DEF -25%.", "atk:0.25,def:-0.25"),
     (4, -7, Keystone, "glass_edge", "Glass Edge", "FOC +40%, but life -20%.", "foc:0.4,hp:-0.2"),
     // Ward
@@ -448,7 +491,7 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
         Notable,
         "afterglow",
         "Afterglow",
-        "After Aether fades, the meter rests 4 seconds less.",
+        "When Aether fades, a quarter of the meter stays filled and locked.",
         "passive:afterglow",
     ),
     (
@@ -459,6 +502,15 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
         "Aether Bond",
         "Aether always pierces, but lasts half as long.",
         "passive:aether_bond",
+    ),
+    (
+        -5,
+        6,
+        Keystone,
+        "crescendo",
+        "Crescendo",
+        "Only finishers and charged shots fill the Aether meter, but they fill it twice as fast.",
+        "passive:crescendo",
     ),
     (
         -6,
@@ -489,7 +541,9 @@ fn minor(region: Region, x: i32, y: i32) -> (String, String, String) {
     let t = tier;
     match (region, (x + y).rem_euclid(3)) {
         (Region::Might, 0) => stat("Strength", "ATK", "atk", 0.01 * t),
-        (Region::Might, 1) => stat("Focus", "FOC", "foc", 0.015 * t),
+        (Region::Might, 1) if x < 0 => stat("Focus", "FOC", "foc", 0.015 * t),
+        (Region::Might, 1) => stat("Reach", "Melee reach", "reach", 0.02 * t),
+        (Region::Might, _) if x < 0 => stat("Surge", "Bolt surge chance", "surge", 0.01 * t),
         (Region::Might, _) => stat("Edge", "Finisher damage", "finisher", 0.04 * t),
         (Region::Ward, 0) => stat("Vitality", "Life", "hp", 0.015 * t),
         (Region::Ward, 1) => stat("Toughness", "DEF", "def", 0.01 * t),
@@ -596,6 +650,8 @@ pub fn compute<'a>(taken: impl Iterator<Item = &'a String>) -> WeaveMods {
                 "aether" => mods.aether_gain *= value(1),
                 "pierce" => mods.pierce += value(1),
                 "aether_time" => mods.aether_time += value(1),
+                "surge" => mods.surge += value(1),
+                "reach" => mods.reach += value(1),
                 "passive" => {
                     mods.passives.insert(p[1].to_string());
                     if p[1] == "tailwind" {

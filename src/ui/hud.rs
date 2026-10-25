@@ -38,7 +38,10 @@ pub fn draw(batch: &mut Batch, world: &World) {
     );
     if let Some(boss) = world.boss.and_then(|id| world.get_as::<Enemy>(id)) {
         draw_boss_bar(batch, boss);
+    } else if let Some(champion) = world.entities_of::<Enemy>().find(|e| e.is_champion() && e.hp > 0) {
+        draw_boss_bar(batch, champion);
     }
+    draw_trial_mods(batch, world);
     if input::mouse_aiming() && !input::scripted() {
         draw_cursor(batch, state.mode);
     }
@@ -86,8 +89,6 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
     if !state.dormant() {
         let color = if player.aether_active() {
             if blink(world, 0.15) { Rgba::WHITE } else { Element::Aether.glow() }
-        } else if player.aether_resting() {
-            Element::Aether.dark().lerp(Rgba::WHITE, 0.2)
         } else {
             Element::Aether.light()
         };
@@ -320,7 +321,11 @@ fn draw_toasts(batch: &mut Batch, world: &World) {
 pub fn draw_boss_bar(batch: &mut Batch, boss: &Enemy) {
     let width = 300;
     let (x, y) = ((SCREEN_WIDTH - width) / 2, SCREEN_HEIGHT - 20);
-    let name = boss.boss.as_ref().map(|b| b.display_name(boss.def)).unwrap_or_else(|| boss.def.name.clone());
+    let name = match &boss.boss {
+        Some(core) => core.display_name(boss.def),
+        None if boss.is_champion() => boss.champion_title(),
+        None => boss.def.name.clone(),
+    };
     font::draw(batch, &name, Vec2::new(x as f32, (y - 11) as f32), palette::TEXT, Some(palette::TEXT_SHADOW));
     batch.fill(IRect::new(x - 1, y - 1, width + 2, 7), palette::OUTLINE);
     batch.fill(IRect::new(x, y, width, 5), Rgba::rgb(70, 20, 20));
@@ -332,6 +337,17 @@ pub fn draw_boss_bar(batch: &mut Batch, boss: &Enemy) {
         let color = if boss.is_broken() { palette::HIGHLIGHT } else { Rgba::rgb(170, 190, 220) };
         batch.fill(IRect::new(x, y + 7, ((width / 2) as f32 * boss.guard_value / boss.guard_max) as i32, 1), color);
     }
+}
+
+/// The Trial Rift's mods, centred under the top edge.
+fn draw_trial_mods(batch: &mut Batch, world: &World) {
+    if world.trial_mods.is_empty() {
+        return;
+    }
+    let names: Vec<&str> = world.trial_mods.iter().map(|m| m.label()).collect();
+    let text = names.join("  /  ");
+    let at = Vec2::new(((SCREEN_WIDTH - font::measure(&text)) / 2) as f32, 4.0);
+    font::draw(batch, &text, at, Rgba::rgb(255, 214, 110), Some(palette::TEXT_SHADOW));
 }
 
 fn draw_cursor(batch: &mut Batch, mode: Element) {

@@ -664,25 +664,8 @@ fn use_item(world: &mut World, id: &str, in_list: &mut bool) {
         audio::sfx(Sound::MenuCancel);
         return;
     }
-    let state = &mut world.state;
-    state.take(id, 1);
-    match id {
-        "spirit_tonic" => state.sp = state.max_sp().min(state.sp + item.power as f32 * 100.0),
-        "cooling_salve" => {
-            if let Some(p) = world.player.as_mut() {
-                p.cure_ailments();
-            }
-        }
-        "elixir" => {
-            state.hp = state.max_hp();
-            state.sp = state.max_sp();
-            if let Some(p) = world.player.as_mut() {
-                p.cure_ailments();
-            }
-        }
-        _ => state.hp = state.max_hp().min(state.hp + state.max_hp() * item.power / 100),
-    }
-    audio::sfx(Sound::Heal);
+    world.state.take(item.id, 1);
+    world.use_consumable(item.id);
     if world.state.count(id) == 0 {
         *in_list = false;
     }

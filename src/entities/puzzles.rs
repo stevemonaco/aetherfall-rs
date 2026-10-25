@@ -185,7 +185,7 @@ impl Entity for LockedDoor {
     }
 }
 
-/// Records the game and becomes a fast-travel destination.
+/// Records the game; coming near it makes it a fast-travel destination.
 pub struct SaveCrystal {
     base: EntityBase,
     time: f32,
@@ -204,6 +204,11 @@ impl SaveCrystal {
             time: 0.0,
         }
     }
+
+    fn flag(&self, world: &World) -> String {
+        let (tx, ty) = self.base.tile_pos();
+        format!("crystal:{}:{tx}_{ty}", world.map_id())
+    }
 }
 
 impl Entity for SaveCrystal {
@@ -219,6 +224,9 @@ impl Entity for SaveCrystal {
 
     fn update(&mut self, world: &mut World, dt: f32) {
         self.time += dt;
+        if world.hero.pos.distance(self.base.pos) < 40.0 && world.state.flags.insert(self.flag(world)) {
+            world.toast("Crystal attuned: you can travel here.");
+        }
         if world.rng.next_f32() < 0.08 {
             let at = self.base.pos + Vec2::new(world.rng.range(-6, 7) as f32, -10.0);
             world.add(Particle::new(at, Vec2::new(0.0, -14.0), Rgba::rgb(160, 230, 255), 0.8).spark());
@@ -227,9 +235,7 @@ impl Entity for SaveCrystal {
 
     fn interact(&mut self, world: &mut World) {
         audio::play(Sound::ChargeLevel, 0.7, 0.3);
-        let (tx, ty) = self.base.tile_pos();
-        let flag = format!("crystal:{}:{tx}_{ty}", world.map_id());
-        world.state.flags.insert(flag);
+        world.state.flags.insert(self.flag(world));
         world.save_game();
         world.queue(Box::new(|_| Box::new(crate::scenes::crystal::CrystalScene::new())));
     }

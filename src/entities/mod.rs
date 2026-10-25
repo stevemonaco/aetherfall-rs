@@ -10,6 +10,7 @@ pub mod enemy;
 pub mod entity;
 pub mod golem;
 pub mod hazards;
+pub mod mode_burst;
 pub mod obstacles;
 pub mod pickup;
 pub mod player;

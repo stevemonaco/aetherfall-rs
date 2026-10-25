@@ -9,11 +9,11 @@
   },
   "brinewatch": {
     "greeting": "Fresh from the lake!",
-    "items": [ "herb", "potion", "spirit_tonic", "cooling_salve", "scale_armor", "coral_shield", "power_charm", "fortune_coin", "mentor_ribbon" ]
+    "items": [ "herb", "potion", "spirit_tonic", "cooling_salve", "scale_armor", "coral_shield", "power_charm", "mentor_ribbon" ]
   },
   "highcrag": {
     "greeting": "Fresh from the forge!",
-    "items": [ "herb", "potion", "spirit_tonic", "elixir", "frost_plate", "storm_shield", "guard_charm", "sage_pendant", "cool_stone" ]
+    "items": [ "herb", "potion", "spirit_tonic", "elixir", "frost_plate", "storm_shield", "guard_charm", "sage_pendant", "cool_stone", "fortune_coin", "scholar_lens" ]
   },
   "ashford": {
     "greeting": "What we have is yours.",

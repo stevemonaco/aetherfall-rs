@@ -67,7 +67,7 @@
       "id": "arena_bronze",
       "restores": "a bronze medal",
       "unless": "rift:arena_bronze",
-      "kinds": "crag,brute,glacimp,boneknight",
+      "kinds": "crag,brute,glacimp,boneknight,harpy,stormcaller,rimeogre,salamander",
       "alive": 4,
       "if": "arena_open"
     },
@@ -79,7 +79,7 @@
       "id": "arena_silver",
       "restores": "a silver medal",
       "unless": "rift:arena_silver",
-      "kinds": "boneknight,sentinel,acolyte,stormeye",
+      "kinds": "boneknight,sentinel,acolyte,stormeye,harpy,stormcaller,rimeogre,salamander",
       "alive": 4,
       "if": "rift:arena_bronze,arena_open"
     },
@@ -90,7 +90,7 @@
       "count": 18,
       "id": "arena_gold",
       "restores": "a gold medal",
-      "kinds": "slagbrute,cinderdevil,warder,voidmote,darkknight",
+      "kinds": "slagbrute,cinderdevil,warder,voidmote,darkknight,harpy,stormcaller,rimeogre,salamander",
       "alive": 5,
       "if": "rift:arena_silver,arena_open"
     },

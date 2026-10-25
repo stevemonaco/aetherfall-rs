@@ -12,7 +12,7 @@ use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::gameplay::game_data::{ShopDef, data};
 use crate::gameplay::game_state::GameState;
-use crate::gameplay::items::{self, CONSUMABLE_CAP, ItemDef, ItemKind};
+use crate::gameplay::items::{self, ItemDef, ItemKind, consumable_cap};
 use crate::scene_any;
 
 pub struct ShopScene {
@@ -40,8 +40,8 @@ impl ShopScene {
         if owned(state, item) {
             self.message = "You already own that.".into();
             audio::sfx(Sound::MenuCancel);
-        } else if item.kind == ItemKind::Consumable && state.count(item.id) >= CONSUMABLE_CAP {
-            self.message = format!("You can only carry {CONSUMABLE_CAP}.");
+        } else if item.kind == ItemKind::Consumable && state.count(item.id) >= consumable_cap(item.id) {
+            self.message = format!("You can only carry {}.", consumable_cap(item.id));
             audio::sfx(Sound::MenuCancel);
         } else if state.gold < item.price {
             self.message = "You can't afford that.".into();

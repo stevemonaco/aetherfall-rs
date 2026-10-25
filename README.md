@@ -26,7 +26,10 @@ Since the port, the combat systems have been reworked here (the C# game stays at
 - Slower levelling, tougher monsters and less life for the hero. Elites carry affixes, roam the world in packs and
   bring escorts out of elite rifts.
 - Eight more zones; every act's dungeon now lies a journey away from its town.
-- Support gems socket into each mode's attack, ranged and special groups; they come from golden Trial Rifts.
+- 34 new foes and nine new enemy attacks (mortars, hooks, whirls, healers and warders among them).
+- Support gems socket into each mode's attack, ranged and special groups; they come from golden Trial Rifts, themed
+  arenas with an endless wellspring, rolled hardships and a Rift Champion guarding the gems.
+- Guarding wears down and lets damage through unless it is timed; bolts can surge into stronger tiers.
 - The Hall of Echoes (an Echo Stone by the Leafhollow shrine) has training dummies that show damage per second.
 - The Memory Lens is gone: eras open at memory crystals, and crystals outside the Bastion need an Aether Mote.
 
