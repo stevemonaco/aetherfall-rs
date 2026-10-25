@@ -33,6 +33,8 @@ pub struct AccessoryStats {
     pub sp_gain: f32,
     /// Multiplier on how fast the Aether meter fills.
     pub aether: f32,
+    /// Seconds cut from the delay before Aether progress locks.
+    pub aether_lock: f32,
     pub jump_time: f32,
     pub fire_taken: f32,
     pub life_on_kill: f32,
@@ -57,6 +59,7 @@ impl AccessoryStats {
         exp: 1.0,
         sp_gain: 1.0,
         aether: 1.0,
+        aether_lock: 0.0,
         jump_time: 1.0,
         fire_taken: 1.0,
         life_on_kill: 0.0,
@@ -80,6 +83,7 @@ impl AccessoryStats {
             exp: a.exp * b.exp,
             sp_gain: a.sp_gain * b.sp_gain,
             aether: a.aether * b.aether,
+            aether_lock: a.aether_lock + b.aether_lock,
             jump_time: a.jump_time.max(b.jump_time),
             fire_taken: a.fire_taken * b.fire_taken,
             life_on_kill: a.life_on_kill + b.life_on_kill,
@@ -194,6 +198,8 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             .with_acc(AccessoryStats { fire_taken: 0.5, atk: 1.05, ..N }),
         item("cool_stone", "Resonant Stone", Accessory, 500, 0, "The Aether meter fills 35% faster.")
             .with_acc(AccessoryStats { aether: 1.35, ..N }),
+        item("lodestone", "Lodestone", Accessory, 0, 0, "Aether progress locks after 2 seconds without a hit, not 4.")
+            .with_acc(AccessoryStats { aether_lock: 2.0, ..N }),
         item("wind_feather", "Wind Feather", Accessory, 0, 0, "One extra dodge charge.")
             .with_acc(AccessoryStats { dodge_charges: 1, ..N }),
         item("parry_ring", "Duelist's Ring", Accessory, 0, 0, "Perfect guard window is much wider.")
@@ -270,6 +276,14 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             0,
             0,
             "The Aether Blade, cold and still. It won't answer your hand until a sigil is set in its hilt.",
+        ),
+        item(
+            "aether_conduit",
+            "Aether Conduit",
+            Key,
+            0,
+            0,
+            "A Concord conduit fitted to the blade's hilt. The Aether meter needs 8% less to fill.",
         ),
         item("grotto_key", "Grotto Key", Key, 0, 0, "Opens the sealed door in the Mossy Grotto."),
         item("temple_key", "Coral Key", Key, 0, 0, "Opens a sealed door in the Sunken Temple."),

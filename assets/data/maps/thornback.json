@@ -1,0 +1,361 @@
+{
+  "name": "Thornback Hills",
+  "theme": "field",
+  "music": "Retro-Exploration1",
+  "level": 6,
+  "rows": [
+    "TTTTTTTTTT####################################TTTTTTTTTT",
+    "TTTTTTTTT######################################TTTTTTTTT",
+    "TTTTTTTT########################################TTTTTTTT",
+    "TTTTTTTT####################.#############TTTTTTTTTTTTTT",
+    "TTTTTTTT################....::....########TTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTT##..\"\"..::........##TTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTT#.\"\"\"...::...........TTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTT..\"\"\"...::..\"\"............TTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTT........::::::::::::::::::...TTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT......::::::::::::::::::....TTTTTT",
+    "TTTTTTTTTT###############..#################::....TTTTTT",
+    "TTTT.ww..T#+_+_+_+########TTTTTTTTTTTT######::.....TTTTT",
+    "TTTT.w...T#_______######TTTTTTTTTTTTTTTT####::......TTTT",
+    "TTTT.....ww_+++++_#####TTTTTTTTTTTTTTTTT####::..TTTTTTTT",
+    "TTTT.ww..T#_______######TTTTTTTTTTTTTTT#####::#TTTTTTTTT",
+    "TTTTTTTTTT#+_+_+_+##########TTTTTT##########::##TTTTTTTT",
+    "TTTTTTTTTT####::####..####TT######TTT#####T.::..TTTTTTTT",
+    "TTTTTTTTTTTTTT::..TT..::::::::::::::::::wwww::..TTTTTTTT",
+    "TTTTTTTTTTTTTT::..T...::::::::::::::::::ww.w::..TTTTTTTT",
+    "TTTTTTTTTT....::......::TTT.......wwww::::::::....TTTTTT",
+    "TTTTTT..::::::::::::::::.############.::::::::....TTTTTT",
+    "TTTTTT..::::::::::::::::.###########TT..::........,TTTTT",
+    "TTTTTT,,::,,,,,,,,,,,,,,,###########TT,,::,,,,,~~~~~TTTT",
+    "TTTT~~~~==,,,,,,,,,,,,,,,,,########,,,,,::,,,,~~~~~~~TTT",
+    "TTTT~~~~==~~~~~~~~~,,,,,,,,,~~~~~~~~~~~,==,,,,~~~~~~~TTT",
+    "TTTT~~~~==~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~==~~~~~~~~~~~TTT",
+    "TTTT~~~~==,,,,,,,,~~~~~~~~~~~,,,,,,,,,~~==~~~~~~~~~~~TTT",
+    "TTTT,~~,::,,,,,,,,,,################TTTT::,,,,,,,TTTTTTT",
+    "TTTT,,,,::,,........##TTTTTT########TTTT::TTTTTTTTTTTTTT",
+    "TTTTww..::+#+#+.....##TTTTTT########TTTT::TTTTTTTTTTTTTT",
+    "TTTTww..::++++++....##TTTTTT########TT..::.....TTTTTTTTT",
+    "TTTTww..::++++++....################TT..::wwwwwTTTTTTTTT",
+    "TTTTww..::::::::::::####wwwwww######TT..::wwwww...TTTTTT",
+    "TTTTww..::::::::::::####wwwwww######TT..::........TTTTTT",
+    "TTTTTTTT......+++.::####wwwwww######....::::::::..TTTTTT",
+    "TTTTTTTT..wwww....::....wwwwww######....::::::::..TTTTTT",
+    "TTTTTTTT..wwww....:::::::::::#######..\"\"\".............TT",
+    "TTTTTTTT..wwww....:::::::::::#######..\"\"\"...####......TT",
+    "TTTTTTTTTTTTTTT.......\"\"\"\".::##TTTT#........####......TT",
+    "TTTTTTTTTTTTTTTTTTTTTT\"\"\"\".::##TTTT#TTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT.....::TTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT.....::TTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTT::TTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 27.0,
+      "y": 43.0,
+      "ty": 8,
+      "w": 2,
+      "tx": 46,
+      "to": "fields",
+      "facing": "down"
+    },
+    {
+      "type": "decor",
+      "x": 28.0,
+      "y": 3.0,
+      "kind": "cave"
+    },
+    {
+      "type": "warp",
+      "x": 28.0,
+      "y": 3.0,
+      "ty": 33,
+      "sound": "door",
+      "tx": 24,
+      "to": "grotto",
+      "facing": "up"
+    },
+    {
+      "type": "save",
+      "x": 31.0,
+      "y": 6.0
+    },
+    {
+      "type": "sign",
+      "x": 25.0,
+      "y": 4.0,
+      "text": "The Mossy Grotto. Smoke has drifted from it since the fires began."
+    },
+    {
+      "type": "sign",
+      "x": 25.0,
+      "y": 40.0,
+      "text": "Thornback Hills. The Mossy Grotto lies at the top of the shepherds' trail."
+    },
+    {
+      "type": "rift",
+      "x": 6.0,
+      "y": 31.0,
+      "alive": 3,
+      "id": "thornback_den",
+      "count": 6,
+      "kinds": "spider,blueslime"
+    },
+    {
+      "type": "rift",
+      "x": 14.0,
+      "y": 14.0,
+      "alive": 3,
+      "id": "thornback_barrow",
+      "count": 6,
+      "kinds": "skeleton,ghost"
+    },
+    {
+      "type": "rift",
+      "x": 50.0,
+      "y": 37.0,
+      "kinds": "spider,eye",
+      "elite": "skeleton",
+      "count": 4,
+      "id": "thornback_elite",
+      "alive": 2
+    },
+    {
+      "type": "chest",
+      "x": 5.0,
+      "y": 13.0,
+      "item": "insight_tome"
+    },
+    {
+      "type": "chest",
+      "x": 26.0,
+      "y": 33.0,
+      "item": "herb",
+      "count": 3
+    },
+    {
+      "type": "chest",
+      "x": 50.0,
+      "y": 11.0,
+      "gold": 250
+    },
+    {
+      "type": "chest",
+      "x": 52.0,
+      "y": 36.0,
+      "item": "slime_gel",
+      "count": 2
+    },
+    {
+      "type": "dig",
+      "x": 15.0,
+      "y": 29.0,
+      "gold": 150
+    },
+    {
+      "type": "enemy",
+      "x": 13.0,
+      "y": 30.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 16.0,
+      "y": 31.0,
+      "kind": "mushroom"
+    },
+    {
+      "type": "enemy",
+      "x": 11.0,
+      "y": 35.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 12.0,
+      "y": 22.0,
+      "kind": "blueslime"
+    },
+    {
+      "type": "enemy",
+      "x": 15.0,
+      "y": 23.0,
+      "kind": "blueslime"
+    },
+    {
+      "type": "enemy",
+      "x": 19.0,
+      "y": 22.0,
+      "kind": "plant"
+    },
+    {
+      "type": "enemy",
+      "x": 12.0,
+      "y": 12.0,
+      "kind": "skeleton"
+    },
+    {
+      "type": "enemy",
+      "x": 16.0,
+      "y": 14.0,
+      "kind": "skeleton"
+    },
+    {
+      "type": "enemy",
+      "x": 14.0,
+      "y": 12.0,
+      "kind": "ghost"
+    },
+    {
+      "type": "enemy",
+      "x": 30.0,
+      "y": 19.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 33.0,
+      "y": 19.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 36.0,
+      "y": 17.0,
+      "kind": "eye"
+    },
+    {
+      "type": "enemy",
+      "x": 46.0,
+      "y": 12.0,
+      "kind": "spider"
+    },
+    {
+      "type": "enemy",
+      "x": 47.0,
+      "y": 16.0,
+      "kind": "eye"
+    },
+    {
+      "type": "enemy",
+      "x": 45.0,
+      "y": 14.0,
+      "kind": "skeleton"
+    },
+    {
+      "type": "decor",
+      "x": 24.0,
+      "y": 9.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 16.0,
+      "y": 38.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 23.0,
+      "y": 38.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 48.0,
+      "y": 33.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 11.0,
+      "y": 19.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 43.0,
+      "y": 22.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 34.0,
+      "y": 7.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 36.0,
+      "y": 6.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 47.0,
+      "y": 18.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 17.0,
+      "y": 19.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 38.0,
+      "y": 30.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 11.0,
+      "y": 28.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 24.0,
+      "y": 22.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 20.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 37.0,
+      "y": 36.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 46.0,
+      "y": 30.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 9.0,
+      "y": 35.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 47.0,
+      "y": 9.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 11.0,
+      "kind": "bush"
+    }
+  ]
+}

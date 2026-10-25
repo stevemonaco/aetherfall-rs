@@ -112,6 +112,8 @@ pub struct Player {
     guard_time: f32,
     aether_time: f32,
     aether_rest: f32,
+    aether_lock: f32,
+    aether_calm: f32,
     reflect_time: f32,
     mirror_time: f32,
     mirror_charges: i32,
@@ -200,6 +202,8 @@ impl Player {
             guard_time: -1.0,
             aether_time: 0.0,
             aether_rest: 0.0,
+            aether_lock: 0.0,
+            aether_calm: 0.0,
             reflect_time: 0.0,
             mirror_time: 0.0,
             mirror_charges: 0,
@@ -627,11 +631,22 @@ impl Player {
         let mut stats = world.state.stats(mode);
         stats.def *= self.status.defense_factor();
         let glass = if pacts::active(&world.state, "glass") { 1.5 } else { 1.0 };
-        let result = combat::resolve(hit, stats, element_mod, glass, &world.rng);
+        let awake = self.aether_active();
+        let woven = |p: &str| world.state.mods().has(p);
+        let last_stand = woven("last_stand") && world.state.hp * 10 < world.state.max_hp() * 3;
+        let steady = awake || woven("bulwark");
+        let resolve = if woven("iron_will") { 0.6 } else { 1.0 };
+        let taken = glass * if awake { aether::AWAKE_DAMAGE } else { 1.0 } * if last_stand { 0.75 } else { 1.0 };
+        let result = combat::resolve(hit, stats, element_mod, taken, &world.rng);
         hit.result = result;
         self.apply_damage(world, result.amount, hit.element, result.crit);
 
-        let buildup = 30.0 * hit.status_power * (1.0 + hit.attacker.foc / 150.0) * element_mod;
+        let buildup = 30.0
+            * hit.status_power
+            * (1.0 + hit.attacker.foc / 150.0)
+            * element_mod
+            * if awake { 0.5 } else { 1.0 }
+            * resolve;
         let ailment = self.status.add(hit.element, buildup, hit.attacker, false);
         if ailment == Ailment::Gust {
             self.knock(hit.from, 220.0, 0.25);
@@ -646,7 +661,7 @@ impl Player {
         if !self.is_dead() {
             self.trigger(world, Trigger::Hurt, Some(hit));
         }
-        if hit.kind != HitKind::Environment && hit.power >= 0.4 {
+        if hit.kind != HitKind::Environment && hit.power >= 0.4 && !steady {
             self.cancel_actions();
             let time = if self.airborne() { 0.0 } else { 0.14 };
             self.knock(hit.from, hit.knockback + 60.0, time);

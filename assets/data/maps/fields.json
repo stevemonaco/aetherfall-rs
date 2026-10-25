@@ -69,13 +69,13 @@
       "type": "sign",
       "x": 30.0,
       "y": 3.0,
-      "text": "Windward Fields. North: Leafhollow. North-east: the Mossy Grotto."
+      "text": "Windward Fields. North: Leafhollow. North-east: Thornback Hills and the Mossy Grotto beyond."
     },
     {
       "type": "sign",
       "x": 44.0,
       "y": 12.0,
-      "text": "Mossy Grotto ahead. The cave was sealed with a rockfall after the fires began."
+      "text": "The shepherds' tunnel to Thornback Hills and the Mossy Grotto. A rockfall sealed it after the fires began."
     },
     {
       "type": "npc",
@@ -98,9 +98,9 @@
       "y": 6.0,
       "sound": "door",
       "facing": "up",
-      "ty": 33,
-      "tx": 24,
-      "to": "grotto"
+      "ty": 41,
+      "tx": 27,
+      "to": "thornback"
     },
     {
       "type": "rock",

@@ -56,9 +56,9 @@
       "x": 24.0,
       "y": 32.0,
       "facing": "down",
-      "ty": 6,
-      "to": "highcrag",
-      "tx": 8,
+      "ty": 7,
+      "to": "cloudstep",
+      "tx": 19,
       "art": "stairs_down",
       "sound": "door"
     },

@@ -177,7 +177,7 @@
   "traveler": [
     { "speaker": "Traveler", "lines": [
         "Melee is fine, but don't forget your bolts. Tap throw to fling one; hold it to charge a piercing shot. They bounce off walls, too.",
-        "A charged blast of wind can shatter cracked stone. There's a rockfall over the grotto entrance to the north-east."
+        "A charged blast of wind can shatter cracked stone. There's a rockfall over the old shepherds' tunnel to the north-east. The grotto lies in the hills beyond."
       ] }
   ],
 
@@ -225,7 +225,7 @@
       "do": [ "quest:nets_and_hulls" ] },
     { "if": "rift:brine_fisher,rift:brine_shipwright,!nets_done", "speaker": "Fisher Lin", "lines": [ "Tam's shed and Kett's yard, back like they never left! Here, a little something from the whole waterfront." ],
       "do": [ "flag:nets_done", "give:potion*2", "gold:+400" ] },
-    { "if": "!has:rabbit_boots", "speaker": "Fisher Lin", "lines": [ "The storms tore two planks off the pier. The temple island's out of reach unless you can leap like a marsh toad." ] },
+    { "if": "!has:rabbit_boots", "speaker": "Fisher Lin", "lines": [ "The storms tore two planks off the pier. The skiff out to the shoals and the temple is out of reach unless you can leap like a marsh toad." ] },
     { "if": "!has:tide_crystal", "speaker": "Fisher Lin", "lines": [ "Those boots! You could hop the gaps easy. Press jump and go. Just don't land in the water." ] },
     { "speaker": "Fisher Lin", "lines": [ "Fish are biting again. Whatever you did down there, thank you." ] }
   ],
@@ -283,7 +283,7 @@
     { "if": "restored:brinewatch:40,!brine_reward_40", "speaker": "Mayor Hollis", "lines": [ "The town is coming back to life. Take this; it was found in the lighthouse lamp." ], "do": [ "flag:brine_reward_40", "give:life_shard" ] },
     { "if": "restored:brinewatch:80,!brine_reward_80", "speaker": "Mayor Hollis", "lines": [ "The ferry, the yard, the light... You've given Brinewatch its harbour back. A duelist left this ring in lieu of rent once. Yours." ], "do": [ "flag:brine_reward_80", "give:parry_ring" ] },
     { "if": "restored:brinewatch:100,!brine_reward_100", "speaker": "Mayor Hollis", "lines": [ "Every soul accounted for. The council voted: this belongs with you." ], "do": [ "flag:brine_reward_100", "give:spirit_pip" ] },
-    { "if": "!has:tide_crystal", "speaker": "Mayor Hollis", "lines": [ "The temple lies past the broken pier. May the tides favor you." ] },
+    { "if": "!has:tide_crystal", "speaker": "Mayor Hollis", "lines": [ "Take the skiff past the broken pier. The temple lies at the far end of Gullwing Shoals. May the tides favor you." ] },
     { "speaker": "Mayor Hollis", "lines": [ "Brinewatch owes you everything. The pass north is open, by my order." ] }
   ],
 
@@ -346,7 +346,7 @@
   ],
 
   "edda": [
-    { "if": "!has:storm_crystal", "speaker": "Edda", "lines": [ "My grandmother says the sky-city still hangs above the clouds, right over the Sky Altar. Do you think anyone still lives up there?" ] },
+    { "if": "!has:storm_crystal", "speaker": "Edda", "lines": [ "My grandmother says the sky-city still hangs above the clouds, right over the Sky Altar at the top of the cloud stair. Do you think anyone still lives up there?" ] },
     { "speaker": "Edda", "lines": [ "The altar's glowing! I've never seen it do that before." ] }
   ],
 
@@ -355,14 +355,14 @@
     { "if": "restored:highcrag:80,!crag_reward_80", "speaker": "Altar Keeper", "lines": [ "The arena, the anvil, the hearth... This charm belonged to Highcrag's last champion." ], "do": [ "flag:crag_reward_80", "give:phoenix_plume" ] },
     { "if": "restored:highcrag:100,!crag_reward_100", "speaker": "Altar Keeper", "lines": [ "The whole mountain sings. This gem is yours." ], "do": [ "flag:crag_reward_100", "give:spirit_pip" ] },
     { "if": "!crystals:3", "speaker": "Altar Keeper", "lines": [
-        "This altar was the Concord's stair to their sky-city. Three sockets: fire, tide and storm.",
+        "The altar at the top of Cloudstep Ascent was the Concord's stair to their sky-city. Three sockets: fire, tide and storm.",
         "The fourth crystal, wind, never fell. It is still up there, with whoever rules the Citadel now."
       ] },
     { "if": "crystals:3,!aether_awakened", "speaker": "Altar Keeper", "lines": [
         "All three crystals, and still the stair stays shut. The Concord sealed it in Aether, the four elements woven as one.",
         "Your blade could carry it, if it ever woke fully. The Concord's forge lay in the crater east of here, where their first city fell. If any of it still stands, it's there."
       ] },
-    { "speaker": "Altar Keeper", "lines": [ "The Aether Blade... Place the crystals in the altar, and the sky will open for you. Be ready: the Citadel will not welcome you." ] }
+    { "speaker": "Altar Keeper", "lines": [ "The Aether Blade... Climb the cloud stair and place the crystals in the altar, and the sky will open for you. Be ready: the Citadel will not welcome you." ] }
   ],
 
   "sky_altar": [

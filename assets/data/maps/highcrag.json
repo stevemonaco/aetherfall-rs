@@ -4,12 +4,12 @@
   "music": "Menu-CastleMaster",
   "level": 22,
   "rows": [
-    "####################################",
-    "####################################",
-    "##****+++++***********************##",
-    "##****+++++***********************##",
-    "##****+++++***********************##",
-    "##****+++++***********************##",
+    "#######++###################::######",
+    "#######++###################::######",
+    "##****+++++*****************::****##",
+    "##****+++++*****************::****##",
+    "##****+++++*****************::****##",
+    "##****+++++*****************::****##",
     "##******:*******************:*****##",
     "##******:*******************:*****##",
     "##******:*******************:*****##",
@@ -114,37 +114,38 @@
       "roof": "slate"
     },
     {
-      "type": "building",
-      "x": 26.0,
-      "y": 2.0,
-      "door": 2,
-      "h": 4,
+      "type": "warp",
+      "x": 28.0,
+      "y": 0.0,
+      "w": 2,
       "facing": "up",
-      "ty": 21,
-      "w": 5,
-      "tx": 13,
-      "to": "spire_1",
-      "roof": "slate"
+      "tx": 19,
+      "ty": 53,
+      "to": "ridge"
     },
     {
       "type": "sign",
       "x": 31.0,
       "y": 6.0,
-      "text": "The Storm Spire. Lightning has struck it every night for a hundred years."
+      "text": "North: Stormbreak Ridge and the Storm Spire."
     },
     {
-      "type": "decor",
-      "x": 8.0,
-      "y": 3.0,
-      "name": "",
-      "dialogue": "sky_altar",
-      "kind": "altar"
+      "type": "warp",
+      "x": 7.0,
+      "y": 0.0,
+      "w": 2,
+      "facing": "up",
+      "tx": 19,
+      "ty": 61,
+      "to": "cloudstep",
+      "if": "crystals:3",
+      "blocked": "Altar Keeper: The cloud stair only holds for one who carries fire, tide and storm."
     },
     {
       "type": "sign",
       "x": 11.0,
       "y": 5.0,
-      "text": "The Sky Altar. \"Bring fire, tide and storm, and the sky shall open.\""
+      "text": "North: Cloudstep Ascent, the old Concord stair to the Sky Altar."
     },
     {
       "type": "decor",

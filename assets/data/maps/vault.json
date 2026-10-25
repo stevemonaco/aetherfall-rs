@@ -18,6 +18,19 @@
   ],
   "entities": [
     {
+      "type": "warp",
+      "x": 8.0,
+      "y": 10.0,
+      "to": "hollow_mouth",
+      "tx": 23,
+      "ty": 37,
+      "facing": "up",
+      "sound": "door",
+      "art": "stairs_down",
+      "if": "game_clear",
+      "blocked": "A cold draft rises through cracks in the floor. Something far below is breathing."
+    },
+    {
       "type": "spawn",
       "x": 8.0,
       "y": 7.0

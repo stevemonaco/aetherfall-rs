@@ -42,6 +42,8 @@ pub struct Rift {
     restores: Option<String>,
     soul: Option<String>,
     elite: Option<String>,
+    elite_id: Option<EntityId>,
+    elite_down: bool,
     wake: f32,
     spawned: Vec<EntityId>,
     state: RiftState,
@@ -64,19 +66,21 @@ impl Rift {
             },
             id: data.str("id").map(str::to_string).unwrap_or_else(|| format!("{}_{}", data.x, data.y)),
             kinds: data
-                .str_or("kinds", "slime")
+                .str_or("kinds", "")
                 .split(',')
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
                 .map(str::to_string)
                 .collect(),
             then: data.strings("do"),
-            quota: data.int("count", 6),
+            quota: data.int("count", if data.str("elite").is_some() { 3 } else { 6 }),
             alive: data.int("alive", 3),
             level: (level > 0).then_some(level),
             restores: data.str("restores").map(str::to_string),
             soul: data.str("soul").map(str::to_string),
             elite: data.str("elite").map(str::to_string),
+            elite_id: None,
+            elite_down: false,
             wake: data.float("wake", 120.0),
             spawned: Vec::new(),
             state: RiftState::Dormant,
@@ -100,8 +104,23 @@ impl Rift {
         if Self::swarm(world) { self.quota * 3 / 2 } else { self.quota }
     }
 
+    /// Foes left before the rift wavers: its quota, plus the elite when it holds one.
     fn remaining(&self, world: &World) -> i32 {
-        if self.elite.is_some() { if self.killed > 0 { 0 } else { 1 } } else { self.quota(world) - self.killed }
+        let elite = if self.elite.is_some() && !self.elite_down { 1 } else { 0 };
+        self.quota(world) - self.killed + elite
+    }
+
+    /// The kinds this rift pours out; without a list it borrows the map's own foes.
+    fn pick_kind(&self, world: &World) -> String {
+        if !self.kinds.is_empty() {
+            return self.kinds[world.rng.below(self.kinds.len() as i32) as usize].clone();
+        }
+        let roster: Vec<&str> =
+            world.data.entities.iter().filter(|e| e.kind == "enemy").filter_map(|e| e.str("kind")).collect();
+        if roster.is_empty() {
+            return self.elite.clone().unwrap_or_else(|| "slime".to_string());
+        }
+        roster[world.rng.below(roster.len() as i32) as usize].to_string()
     }
 
     fn pour(&mut self, world: &mut World, dt: f32) {
@@ -109,19 +128,18 @@ impl Rift {
         while i > 0 {
             i -= 1;
             let id = self.spawned[i];
-            match world.get_as::<Enemy>(id) {
-                Some(e) if !e.base.removed => {}
-                Some(e) => {
-                    if e.hp <= 0 {
-                        self.killed += 1;
-                    }
-                    self.spawned.remove(i);
-                }
-                None => {
-                    // Removed enemies leave the world before the rift sees them; a missing one was defeated.
-                    self.killed += 1;
-                    self.spawned.remove(i);
-                }
+            let defeated = match world.get_as::<Enemy>(id) {
+                Some(e) if !e.base.removed => continue,
+                Some(e) => e.hp <= 0,
+                // Removed enemies leave the world before the rift sees them; a missing one was defeated.
+                None => true,
+            };
+            self.spawned.remove(i);
+            if Some(id) == self.elite_id {
+                self.elite_down = defeated;
+                self.elite_id = None;
+            } else if defeated {
+                self.killed += 1;
             }
         }
 
@@ -136,11 +154,9 @@ impl Rift {
             return;
         }
 
-        let pending = if self.elite.is_some() {
-            1 - self.spawned.len() as i32 - self.killed
-        } else {
-            self.alive.min(self.quota(world) - self.killed) - self.spawned.len() as i32
-        };
+        let summon_elite = self.elite.is_some() && self.elite_id.is_none() && !self.elite_down;
+        let escorts = self.spawned.len() as i32 - if self.elite_id.is_some() { 1 } else { 0 };
+        let pending = if summon_elite { 1 } else { self.alive.min(self.quota(world) - self.killed) - escorts };
         if pending <= 0 {
             return;
         }
@@ -149,14 +165,13 @@ impl Rift {
             return;
         }
         self.spawn_timer = 1.1;
-        let kind =
-            self.elite.clone().unwrap_or_else(|| self.kinds[world.rng.below(self.kinds.len() as i32) as usize].clone());
+        let kind = if summon_elite { self.elite.clone().unwrap_or_default() } else { self.pick_kind(world) };
         let Some(def) = data().enemies.get(&kind) else { return };
         let angle = world.rng.next_f32() * TAU;
         let at = self.base.pos + Vec2::new(angle.cos() * 14.0, angle.sin() * 8.0 + 6.0);
         let zone = world.chem.zone_level;
         let level = self.level.unwrap_or(if zone > 1 { zone } else { def.level });
-        let elite = self.elite.is_some()
+        let elite = summon_elite
             || (Self::swarm(world) && {
                 self.spawn_count += 1;
                 self.spawn_count % 3 == 0
@@ -164,6 +179,9 @@ impl Rift {
         let enemy = if elite { Enemy::elite(def, at, Some(level), world) } else { Enemy::new(def, at, Some(level)) };
         let id = world.add(enemy);
         self.spawned.push(id);
+        if summon_elite {
+            self.elite_id = Some(id);
+        }
         world.add(Puff::new(at - Vec2::new(0.0, 6.0), Rgba::rgb(200, 140, 255)));
         audio::play(Sound::Door, 0.5, 0.6);
     }

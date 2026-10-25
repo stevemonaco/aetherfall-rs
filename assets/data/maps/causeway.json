@@ -1,0 +1,305 @@
+{
+  "name": "Drowned Causeway",
+  "theme": "marsh",
+  "music": "Action-GhoulPatrol",
+  "level": 13,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTT;;;;;;;;;TTTTTTTT;;;;;;;;TTTTT,,,,,,,TTTTTTTTT",
+    "TTTT.....;;;;;;;;;;;;;;~~~~~~~~;;;sss;;~~~~,,,,,,,,,,,TTTTTT",
+    "TTTT.....;;~~~~~~~~~~~~~~~~;.ww.;~sss~~~~~;,,,,,,,,,,,TTTTTT",
+    "TTTT......;~~~~~~~~~~~~~~~~;....;~~~~~~~==;,,,,,,,,,,.TTTTTT",
+    "TTTT......;~~~~~;;;;;;;;~~ss....~~~~~~~~~~~,,,,,,,,,,.TTTTTT",
+    "TTTT......;~~~~...........ss~~~~~~~~~~~~~~~~~~==~;;.......TT",
+    "TT..wwww..;s~;....wwww...;;~~~~~~~~~~~~~~~~~~~==~;;...www.TT",
+    "TT..wwww..;s~;....wwww...;;~~~~~~~~~~~~~~~~~~~==~;;...www.TT",
+    "TT..wwww..;s~;;..........;;~~##_###~~~~~~~~~~~==s;;...www.TT",
+    "TT.\"\".....;sss~~~~~~~~~ss~~~#_#___#~~~~~~~~~~~==s;;.......TT",
+    "TT.\"\".....;sss~~~~~~~~~ss~~~#_____#~~~~~~~~~~~==s;;.......TT",
+    ":::+++++++++++~~~~~~~~~++++++_____++++~~~~~+++++++++++++++::",
+    ":::++++++++++++~~~~~~~~++++++_____++++~~~~~+++++++++++++++::",
+    "TT........;~~~~~~~~~~~~~~~~~#_____#~==~~~~~ss~~~s;;.\"\"\"...TT",
+    "TT...wwww.;~~~~~~~~~~~~~~~~~##____#~==~~~~~ss~~~s;;.\"\"\"...TT",
+    "TT...wwww.;~~~~~~~~~~~~~~~~~#####~;;........;;~~s;;.......TT",
+    "TT.....ss.;~;......;;~~~~~~~~~~~~~...wwww...;;~~~;;....TTTTT",
+    "TTTTT....sss.www.....~~~~~~~~~~~~~...wwww.....~~~;;....TTTTT",
+    "TTTTT....sss.www.....;~~~~~~~~~~~~...wwww.....~~~;;..wwTTTTT",
+    "TTTTT.....~~.........;~~~~~~~~~~~~~..........~~~~~~..wwTTTTT",
+    "TTTTTTT...~~;;......~;;~~~~~~~~~~~~;;;;;;;;~~~;;;;;....TTTTT",
+    "TTTTTTT...~~~~~~~~~~~~;sssss;;;~~~~~~~~~~~~~~~;;wwww;;TTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTT;;;;;;;;;TTTTTTTTTTTTTTT;;wwww;;TTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "entities": [
+    {
+      "type": "warp",
+      "x": 0.0,
+      "y": 14.0,
+      "facing": "left",
+      "tx": 54,
+      "to": "marsh",
+      "h": 2,
+      "ty": 20
+    },
+    {
+      "type": "warp",
+      "x": 59.0,
+      "y": 14.0,
+      "facing": "right",
+      "tx": 1,
+      "to": "brinewatch",
+      "h": 2,
+      "ty": 18
+    },
+    {
+      "type": "sign",
+      "x": 3.0,
+      "y": 13.0,
+      "text": "The Drowned Causeway. Brinewatch lies east across the water."
+    },
+    {
+      "type": "sign",
+      "x": 30.0,
+      "y": 13.0,
+      "text": "The old toll house. A carved board still reads: 'One copper to cross. Two to cross dry.'"
+    },
+    {
+      "type": "rift",
+      "x": 31.0,
+      "y": 16.0,
+      "id": "causeway_toll",
+      "alive": 3,
+      "count": 6,
+      "kinds": "coil,toad"
+    },
+    {
+      "type": "rift",
+      "x": 39.0,
+      "y": 20.0,
+      "id": "causeway_reeds",
+      "alive": 3,
+      "count": 6,
+      "kinds": "tidetoad,inkling"
+    },
+    {
+      "type": "rift",
+      "x": 16.0,
+      "y": 22.0,
+      "kinds": "toad,coil",
+      "count": 4,
+      "id": "causeway_elite",
+      "alive": 2,
+      "elite": "tidetoad"
+    },
+    {
+      "type": "chest",
+      "x": 30.0,
+      "y": 6.0,
+      "item": "insight_tome"
+    },
+    {
+      "type": "chest",
+      "x": 3.0,
+      "y": 10.0,
+      "count": 2,
+      "item": "potion"
+    },
+    {
+      "type": "chest",
+      "x": 32.0,
+      "y": 12.0,
+      "gold": 500
+    },
+    {
+      "type": "chest",
+      "x": 50.0,
+      "y": 4.0,
+      "item": "tide_pearl"
+    },
+    {
+      "type": "dig",
+      "x": 19.0,
+      "y": 22.0,
+      "item": "lodestone"
+    },
+    {
+      "type": "enemy",
+      "x": 17.0,
+      "y": 9.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 21.0,
+      "y": 8.0,
+      "kind": "toad"
+    },
+    {
+      "type": "enemy",
+      "x": 23.0,
+      "y": 10.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 25.0,
+      "y": 15.0,
+      "kind": "mirecap"
+    },
+    {
+      "type": "enemy",
+      "x": 32.0,
+      "y": 16.0,
+      "kind": "mirecap"
+    },
+    {
+      "type": "enemy",
+      "x": 35.0,
+      "y": 14.0,
+      "kind": "coil"
+    },
+    {
+      "type": "enemy",
+      "x": 42.0,
+      "y": 20.0,
+      "kind": "tidetoad"
+    },
+    {
+      "type": "enemy",
+      "x": 36.0,
+      "y": 19.0,
+      "kind": "inkling"
+    },
+    {
+      "type": "enemy",
+      "x": 43.0,
+      "y": 21.0,
+      "kind": "inkling"
+    },
+    {
+      "type": "enemy",
+      "x": 45.0,
+      "y": 5.0,
+      "kind": "toad"
+    },
+    {
+      "type": "enemy",
+      "x": 48.0,
+      "y": 6.0,
+      "kind": "toad"
+    },
+    {
+      "type": "enemy",
+      "x": 51.0,
+      "y": 5.0,
+      "kind": "bee"
+    },
+    {
+      "type": "enemy",
+      "x": 50.0,
+      "y": 18.0,
+      "kind": "fenplant"
+    },
+    {
+      "type": "enemy",
+      "x": 51.0,
+      "y": 11.0,
+      "kind": "fenplant"
+    },
+    {
+      "type": "enemy",
+      "x": 14.0,
+      "y": 20.0,
+      "kind": "bee"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 6.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 3.0,
+      "y": 18.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 8.0,
+      "y": 22.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 56.0,
+      "y": 8.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 53.0,
+      "y": 19.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 29.0,
+      "y": 7.0,
+      "kind": "tree"
+    },
+    {
+      "type": "decor",
+      "x": 52.0,
+      "y": 20.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 56.0,
+      "y": 13.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 7.0,
+      "y": 4.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 18.0,
+      "y": 21.0,
+      "kind": "bush"
+    },
+    {
+      "type": "decor",
+      "x": 16.0,
+      "y": 10.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 44.0,
+      "y": 20.0,
+      "kind": "boulder"
+    },
+    {
+      "type": "decor",
+      "x": 33.0,
+      "y": 12.0,
+      "kind": "pot"
+    },
+    {
+      "type": "decor",
+      "x": 29.0,
+      "y": 16.0,
+      "kind": "pot"
+    }
+  ]
+}

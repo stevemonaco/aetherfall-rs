@@ -135,8 +135,8 @@
       "tx": 1,
       "h": 2,
       "facing": "right",
-      "to": "brinewatch",
-      "ty": 18
+      "to": "causeway",
+      "ty": 14
     },
     {
       "type": "building",

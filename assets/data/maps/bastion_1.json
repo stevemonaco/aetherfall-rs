@@ -48,8 +48,8 @@
       "sound": "door",
       "facing": "down",
       "tx": 27,
-      "to": "ashen_rim",
-      "ty": 3,
+      "to": "barrens",
+      "ty": 2,
       "w": 2
     },
     {

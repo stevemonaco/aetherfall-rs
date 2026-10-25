@@ -63,11 +63,10 @@
       "y": 2.0,
       "sound": "door",
       "w": 2,
-      "tx": 19,
-      "to": "bastion_1",
+      "tx": 27,
+      "to": "barrens",
       "facing": "up",
-      "art": "stairs_up",
-      "ty": 29
+      "ty": 41
     },
     {
       "type": "sign",

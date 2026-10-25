@@ -47,10 +47,10 @@
       "x": 24.0,
       "y": 35.0,
       "facing": "down",
-      "ty": 8,
-      "tx": 46,
+      "ty": 5,
+      "tx": 28,
       "w": 2,
-      "to": "fields"
+      "to": "thornback"
     },
     {
       "type": "spawn",

@@ -3,6 +3,8 @@
 //! break gauge; everything takes elemental ailments. Bosses are enemies with a [`BossCore`] that replaces thinking,
 //! dying and drawing.
 
+mod affixes;
+
 use std::collections::HashMap;
 use std::f32::consts::{PI, TAU};
 
@@ -31,6 +33,7 @@ use crate::gameplay::pacts;
 use crate::gameplay::status::{Ailment, StatusSet};
 use crate::scenes::world::{KillInfo, World};
 use crate::world::map::TILE;
+pub use affixes::Affix;
 
 /// Melee hits a shield takes before breaking; heavy hits count twice and plain bolts not at all.
 const SHIELD_HP: f32 = 6.0;
@@ -97,6 +100,10 @@ pub struct Enemy {
     facing_right: bool,
     alerted: bool,
     strip: FrameStrip,
+    affixes: Vec<Affix>,
+    affix_timer: f32,
+    shield_regrow: f32,
+    rallied: i32,
 }
 
 impl Enemy {
@@ -154,28 +161,31 @@ impl Enemy {
             facing_right: false,
             alerted: false,
             strip,
+            affixes: Vec::new(),
+            affix_timer: 0.0,
+            shield_regrow: 0.0,
+            rallied: 0,
         }
     }
 
-    /// A rift elite: four times the life, a break gauge and an elemental aura that only its opposite strips.
+    /// An elite: three times the life, a break gauge and one to three affixes by level.
     pub fn elite(def: &'static EnemyDef, at: Vec2, level: Option<i32>, world: &World) -> Enemy {
         let mut enemy = Enemy::new(def, at, Some(level.unwrap_or(def.level) + 2));
-        enemy.max_hp *= 4;
+        enemy.max_hp *= 3;
         enemy.hp = enemy.max_hp;
         enemy.guard_max = (def.guard * 1.5).max(8.0);
         enemy.guard_value = enemy.guard_max;
-        if !enemy.aura {
-            enemy.aura = true;
-            let weakest = strongest_resist(def);
-            enemy.aura_element =
-                if def.resist_to(weakest) > 1.0 { weakest.opposite() } else { BASIC[world.rng.below(4) as usize] };
-        }
         enemy.is_elite = true;
+        enemy.roll_affixes(world);
         enemy
     }
 
     pub fn heavy(&self) -> bool {
-        self.boss.is_some() || self.def.heavy
+        self.boss.is_some() || self.def.heavy || self.has_affix(Affix::Hulking)
+    }
+
+    fn hunted(&self, world: &World, hit: &Hit) -> bool {
+        hit.is_player() && (self.is_elite || self.boss.is_some()) && world.state.mods().has("elite_hunter")
     }
 
     pub fn is_flying(&self) -> bool {
@@ -224,7 +234,10 @@ impl Enemy {
     }
 
     fn move_speed(&self) -> f32 {
-        self.def.speed * self.status.speed_factor() * if self.enraged { 1.35 } else { 1.0 }
+        self.def.speed
+            * self.status.speed_factor()
+            * if self.enraged { 1.35 } else { 1.0 }
+            * if self.has_affix(Affix::Swift) { 1.4 } else { 1.0 }
     }
 
     pub fn move_by(&mut self, world: &World, delta: Vec2, flying: bool) -> Vec2 {
@@ -694,6 +707,8 @@ impl Enemy {
         let connected = world.hit_player(hit);
         if hit.parried {
             self.parried(world);
+        } else if connected && hit.result.amount > 0 {
+            self.feed_on_hit(world);
         }
         connected
     }
@@ -838,7 +853,7 @@ impl Enemy {
             return true;
         }
 
-        if self.invulnerable {
+        if self.invulnerable || self.deflects(hit) {
             audio::sfx(Sound::Clink);
             Particle::burst(world, self.hurtbox().center(), Rgba::WHITE, 4, 50.0, 0.2, true);
             return true;
@@ -847,7 +862,8 @@ impl Enemy {
         let element_mod = self.def.resist_to(element);
         let mut mods = if self.phase == Phase::Broken { 2.0 } else { 1.0 }
             * if self.aura { 0.3 } else { 1.0 }
-            * if self.marked > 0.0 { 1.25 } else { 1.0 };
+            * if self.marked > 0.0 { 1.25 } else { 1.0 }
+            * if self.hunted(world, hit) { 1.2 } else { 1.0 };
         let mut shatter = false;
         if self.frozen() && hit.power >= 0.5 && self.status.shatter() {
             shatter = true;
@@ -1128,6 +1144,7 @@ impl Enemy {
             return;
         }
         self.base.removed = true;
+        self.affix_death(world);
         audio::sfx(Sound::EnemyDie);
         world.add(Puff::new(self.base.pos - Vec2::new(0.0, 6.0), Rgba::WHITE));
         Particle::burst(world, self.base.pos - Vec2::new(0.0, 6.0), Rgba::rgb(255, 240, 200), 10, 60.0, 0.4, false);
@@ -1160,6 +1177,7 @@ impl Enemy {
             level: self.level,
             pos: self.base.pos,
             boss: self.boss.is_some(),
+            elite: self.is_elite,
             blighted: self.blighted,
             weakness: self.last_weak,
         }
@@ -1305,6 +1323,9 @@ impl Enemy {
                 self.strip.draw(batch, feet + offset, self.anim_frame(), glow, self.facing_right, true, scale);
             }
         }
+        if self.is_elite {
+            self.draw_elite_glow(batch, feet);
+        }
 
         let mut alpha = if self.def.movement == "ghost" { 0.65 + (self.anim_time * 6.0).sin() * 0.2 } else { 1.0 };
         if self.spawn_fade > 0.0 && (self.spawn_fade * 30.0) as i32 % 2 == 0 {
@@ -1394,12 +1415,13 @@ impl Enemy {
     }
 
     fn draw_bars(&self, batch: &mut Batch) {
-        if self.hp_bar_time <= 0.0 || self.hp <= 0 || self.boss.is_some() {
+        let shown = self.hp_bar_time > 0.0 || (self.is_elite && self.alerted);
+        if !shown || self.hp <= 0 || self.boss.is_some() {
             return;
         }
         let width = ((self.base.width * self.def.scale) as i32 + 4).max(14) as f32;
         let at = snap(self.base.pos + Vec2::new(-width / 2.0, 3.0));
-        let alpha = (self.hp_bar_time * 2.0).min(1.0);
+        let alpha = if self.is_elite && self.alerted { 1.0 } else { (self.hp_bar_time * 2.0).min(1.0) };
         let height = if self.guard_max > 0.0 { 6.0 } else { 4.0 };
         batch.fill_rect(at.x - 1.0, at.y - 1.0, width + 2.0, height, palette::OUTLINE.mul(alpha));
         batch.fill_rect(at.x, at.y, width * self.hp as f32 / self.max_hp as f32, 2.0, palette::LIFE.mul(alpha));
@@ -1415,6 +1437,11 @@ impl Enemy {
             }
             batch.fill_rect(bx, at.y - 3.0, (6.0 * b).max(1.0), 1.0, e.glow().mul(alpha));
             bx += 7.0;
+        }
+        if !self.affixes.is_empty() {
+            let title = self.affix_title();
+            let at = snap(Vec2::new(self.base.pos.x, at.y - 12.0));
+            font::draw_centered(batch, &title, at, Rgba::rgb(255, 210, 120).mul(alpha), Some(palette::TEXT_SHADOW));
         }
     }
 }
@@ -1529,7 +1556,7 @@ impl Entity for Enemy {
         self.contact_cooldown = (self.contact_cooldown - dt).max(0.0);
         self.hp_bar_time = (self.hp_bar_time - dt).max(0.0);
         self.marked = (self.marked - dt).max(0.0);
-        let cooldown_rate = if self.enraged { 1.5 } else { 1.0 };
+        let cooldown_rate = if self.enraged { 1.5 } else { 1.0 } * if self.has_affix(Affix::Swift) { 1.4 } else { 1.0 };
         for c in self.cooldowns.values_mut() {
             *c = (*c - dt * cooldown_rate).max(0.0);
         }
@@ -1556,6 +1583,7 @@ impl Entity for Enemy {
         }
 
         self.think(world, dt);
+        self.update_affixes(world, dt);
         if self.deals_contact_damage() {
             self.touch_target(world);
         }

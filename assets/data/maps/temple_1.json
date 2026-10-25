@@ -44,11 +44,11 @@
       "y": 31.0,
       "facing": "down",
       "sound": "door",
-      "to": "brinewatch",
-      "ty": 17,
+      "to": "shoals",
+      "ty": 9,
       "w": 2,
       "art": "stairs_up",
-      "tx": 42
+      "tx": 52
     },
     {
       "type": "save",

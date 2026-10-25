@@ -134,7 +134,7 @@ pub fn exp_to_next(level: i32) -> i32 {
 }
 
 pub fn player_base_hp(level: i32) -> f32 {
-    110.0 + 14.0 * level as f32
+    82.0 + 10.5 * level as f32
 }
 
 pub fn player_base_atk(level: i32) -> f32 {
@@ -150,11 +150,11 @@ pub fn player_base_foc(level: i32) -> f32 {
 }
 
 pub fn enemy_hp(level: i32) -> f32 {
-    24.0 + 13.0 * level as f32
+    30.0 + 16.25 * level as f32
 }
 
 pub fn enemy_atk(level: i32) -> f32 {
-    12.0 + 3.2 * level as f32
+    13.4 + 3.6 * level as f32
 }
 
 pub fn enemy_def(level: i32) -> f32 {
@@ -166,12 +166,13 @@ pub fn enemy_foc(level: i32) -> f32 {
 }
 
 pub fn enemy_exp(level: i32) -> f32 {
-    8.0 * (level as f32).powf(1.5)
+    4.0 * (level as f32).powf(1.5)
 }
 
-/// Over-levelled players earn less and under-levelled ones a little more, so farming weak areas fades quickly.
+/// Over-levelled players earn much less and under-levelled ones a little more, so farming weak areas fades quickly.
 pub fn exp_gap_factor(enemy_level: i32, player_level: i32) -> f32 {
-    (1.0 + 0.1 * (enemy_level - player_level) as f32).clamp(0.1, 1.5)
+    let gap = (enemy_level - player_level) as f32;
+    if gap >= 0.0 { (1.0 + 0.05 * gap).min(1.25) } else { (1.0 + 0.15 * gap).max(0.1) }
 }
 
 pub fn crit_chance(foc: f32) -> f32 {

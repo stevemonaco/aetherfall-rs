@@ -84,11 +84,11 @@
       "type": "warp",
       "x": 19.0,
       "y": 63.0,
-      "tx": 12,
+      "tx": 19,
       "facing": "down",
       "w": 2,
-      "ty": 1,
-      "to": "brinewatch"
+      "ty": 2,
+      "to": "gorge"
     },
     {
       "type": "warp",

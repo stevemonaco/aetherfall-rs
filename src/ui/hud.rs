@@ -89,12 +89,16 @@ fn draw_vitals(batch: &mut Batch, world: &World, state: &GameState, player: &Pla
         } else if player.aether_resting() {
             Element::Aether.dark().lerp(Rgba::WHITE, 0.2)
         } else {
-            Element::Aether.glow()
+            Element::Aether.light()
         };
         let height = (16.0 * player.aether_meter()).round() as i32;
         batch.fill(IRect::new(x - 5, y, 4, 18), palette::OUTLINE);
         batch.fill(IRect::new(x - 4, y + 1, 2, 16), Element::Aether.dark());
         batch.fill(IRect::new(x - 4, y + 17 - height, 2, height), color);
+        if !player.aether_active() {
+            let locked = (16.0 * player.aether_locked()).round() as i32;
+            batch.fill(IRect::new(x - 4, y + 17 - locked, 2, locked), Element::Aether.glow());
+        }
     }
 
     let bx = x + 22;

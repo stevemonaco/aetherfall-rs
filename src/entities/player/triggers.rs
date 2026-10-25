@@ -76,6 +76,17 @@ impl Player {
             "phantom" => {
                 world.add(Decoy::new(self.pos()));
             }
+            "bloodlust" => {
+                let amount = (world.state.max_hp() * 3 / 100).max(1);
+                world.heal_player(amount);
+                world.add(DamageNumber::heal(self.center(), amount));
+            }
+            "aether_surge" => self.add_aether(world, 4.0),
+            "acrobat" => {
+                let max = world.state.dodge_charges() as f32;
+                self.dodge_charges = (self.dodge_charges + 1.0).min(max);
+            }
+            "spirit_ward" => self.ward(1.0),
             "overflow" => {
                 world.state.sp = (world.state.sp + 100.0).min(world.state.max_sp());
                 let at = self.center() - Vec2::new(0.0, 22.0);

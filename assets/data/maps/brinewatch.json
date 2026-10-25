@@ -55,10 +55,10 @@
       "x": 0.0,
       "y": 18.0,
       "facing": "left",
-      "tx": 54,
+      "tx": 58,
       "h": 2,
-      "to": "marsh",
-      "ty": 20
+      "to": "causeway",
+      "ty": 14
     },
     {
       "type": "warp",
@@ -69,8 +69,8 @@
       "tx": 19,
       "blocked": "Guard: The pass is closed! Ever since the lake spirit started raging, the mountain trail floods and freezes by turns.",
       "w": 2,
-      "to": "frostpeak",
-      "ty": 62
+      "to": "gorge",
+      "ty": 61
     },
     {
       "type": "building",
@@ -217,12 +217,10 @@
       "type": "warp",
       "x": 42.0,
       "y": 16.0,
-      "facing": "up",
-      "tx": 19,
-      "sound": "door",
-      "art": "stairs_down",
-      "to": "temple_1",
-      "ty": 28
+      "facing": "right",
+      "tx": 2,
+      "to": "shoals",
+      "ty": 20
     },
     {
       "type": "decor",
@@ -240,7 +238,7 @@
       "type": "sign",
       "x": 41.0,
       "y": 18.0,
-      "text": "The Sunken Temple. Built by the Concord to hold the Tide Crystal."
+      "text": "The skiff to Gullwing Shoals. The Sunken Temple lies at the far end of the islands."
     },
     {
       "type": "decor",

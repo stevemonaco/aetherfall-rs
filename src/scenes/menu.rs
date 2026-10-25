@@ -321,11 +321,12 @@ impl MenuScene {
                 Some((Element::Aether, skill)) => {
                     let level = state.aether_level();
                     format!(
-                        "{} Lv{} {} Aether lasts {:.0}s; it grows with sigils and the blade's awakening. Confirm to swap.",
+                        "{} Lv{} {} Aether lasts {:.0}s; progress locks after {:.0}s unhurt. Confirm to swap.",
                         skill.description,
                         level,
                         skill.levels[(level - 1).clamp(0, 2) as usize],
-                        state.aether_duration()
+                        state.aether_duration(),
+                        state.aether_lock_delay()
                     )
                 }
                 Some((mode, skill)) => {

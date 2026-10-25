@@ -15,19 +15,23 @@ Since the port, the combat systems have been reworked here (the C# game stays at
 
 - The hero wakes with the dormant Aether Blade and can't attack until the first sigil wakes it. Each sigil unlocks
   one of four element modes (there is no neutral mode); holding the mode key opens a quick-change wheel.
-- Landing hits fills the Aether meter. When it brims, Aether wakes for a few seconds and hits may pierce to the
-  target's weakness; taking hits drains it. Corvin's forge awakens the blade for a stronger Aether.
+- Landing hits fills the Aether meter, which grows with every sigil. Taking hits drains progress until it locks in
+  (after a few seconds unhurt, or at once on a finisher). When it brims, Aether wakes for a few seconds: hits may
+  pierce to the target's weakness and the hero is hard to hurt. Corvin's forge awakens the blade for a stronger Aether.
 - Each element grows its own mastery, which teaches its second and third skills. Its orb and bracer, found far from
   its sigil, open charge levels 2 and 3.
 - One skill per mode on a single button: tap for level 1, hold (the world slows) for levels 2 and 3.
-- The Weave is a lattice of passives on a grid, themed by playstyle rather than element, unpicked for free at save
-  crystals.
+- The Weave is a lattice of about 180 passives on a grid, themed by playstyle rather than element, unpicked for free
+  at save crystals. A full playthrough fills only about 60% of it.
+- Slower levelling, tougher monsters and less life for the hero. Elites carry affixes, roam the world in packs and
+  bring escorts out of elite rifts.
+- Eight more zones; every act's dungeon now lies a journey away from its town.
 - Support gems socket into each mode's attack, ranged and special groups; they come from golden Trial Rifts.
 - The Hall of Echoes (an Echo Stone by the Leafhollow shrine) has training dummies that show damage per second.
 - The Memory Lens is gone: eras open at memory crystals, and crystals outside the Bastion need an Aether Mote.
 
 Map and dialogue data in `assets/data` started identical to the C# game's and now differs where the rework needed
-it (sigils, the trials, the training hall, orbs and bracers, the Weave and memory crystals).
+it (sigils, the trials, the training hall, orbs and bracers, the Weave, memory crystals and the new zones).
 
 ## Running
 
@@ -79,7 +83,7 @@ almost line for line. Bevy is the platform: window, input, audio, assets, GPU re
   mapping and scripts, synthesized sound effects and music control, settings and storage.
 - `world/` – map data, the per-pixel terrain baker, themes, water, chemistry, lighting, weather, camera.
 - `art/` – procedural sprites (props, combat effects, bosses) and the person rig used by the hero and villagers.
-- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Circuit, souls, pacts, and
+- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Weave, souls, pacts, and
   enemy and dialogue data.
 - `entities/` – the player, enemies and bosses, projectiles, effects, props, puzzles, rifts, souls. Entities are
   updated one at a time with exclusive access to the rest of the world; reactions to an entity mid-update (a parry,

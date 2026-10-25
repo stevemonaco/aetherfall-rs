@@ -73,7 +73,7 @@
       { "text": "Find the forge's anvil in the Fallen Bastion. (The city remembers what was done in its past.)", "done": "rift:ash_forge_anvil" },
       { "text": "Defeat the Concord Warden to free the forge's heart.", "done": "rift:ash_forge_heart" },
       { "text": "Ask Forgemaster Corvin to awaken your blade.", "done": "aether_awakened" },
-      { "text": "Return to the Sky Altar in Highcrag.", "done": "seen:citadel_1" }
+      { "text": "Climb Cloudstep Ascent above Highcrag to the Sky Altar.", "done": "seen:citadel_1" }
     ]
   },
   "ashford_rebuilt": {

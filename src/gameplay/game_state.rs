@@ -18,7 +18,9 @@ use super::weave::{self, WeaveMods, WeaveNode};
 use crate::core::direction::Direction;
 use crate::core::storage;
 
-pub const SAVE_VERSION: i32 = 3;
+pub const SAVE_VERSION: i32 = 4;
+/// The oldest save version that can still be migrated.
+const OLDEST_SAVE: i32 = 3;
 pub const SLOT_COUNT: i32 = 3;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -245,6 +247,18 @@ impl GameState {
         seconds.max(2.0)
     }
 
+    /// How much the Aether meter needs to fill: it grows with every sigil and the awakening, and each Aether Conduit
+    /// shrinks it.
+    pub fn aether_capacity(&self) -> f32 {
+        let base = 40.0 + 20.0 * self.sigils.len() as f32 + if self.aether_awakened() { 20.0 } else { 0.0 };
+        base * (1.0 - 0.08 * self.count("aether_conduit") as f32).max(0.5)
+    }
+
+    /// Seconds without being hit before Aether progress locks in.
+    pub fn aether_lock_delay(&self) -> f32 {
+        (4.0 - self.acc().aether_lock - if self.mods().has("anchor") { 1.0 } else { 0.0 }).max(1.0)
+    }
+
     /// The chance an Aether hit pierces to a foe's weakness of `element` instead of landing in the current mode's.
     pub fn pierce_chance(&self, element: Element) -> f32 {
         if self.mods().has("aether_bond") {
@@ -335,7 +349,7 @@ impl GameState {
     pub fn load(slot: i32) -> Option<GameState> {
         let text = storage::read(&slot_key(slot))?;
         let mut state: GameState = serde_json::from_str(&text).ok()?;
-        if state.version != SAVE_VERSION {
+        if !(OLDEST_SAVE..=SAVE_VERSION).contains(&state.version) {
             return None;
         }
         state.slot = slot;
@@ -345,8 +359,13 @@ impl GameState {
     }
 
     /// Brings a save from before the Weave and the Aether rework up to date: renamed items, rings turned into orbs,
-    /// the neutral mode and its skills gone, and skills matched to mastery.
+    /// the neutral mode and its skills gone, and skills matched to mastery. The Weave was rebuilt in version 4, so
+    /// older saves get every point back.
     fn migrate(&mut self) {
+        if self.version < 4 {
+            self.reset_weave();
+        }
+        self.version = SAVE_VERSION;
         for (old, new) in [
             ("circuit_shard", "weave_knot"),
             ("circuit_point", "insight_tome"),

@@ -17,6 +17,7 @@ use crate::core::input::{self, GameAction};
 use crate::core::rng::Rng;
 use crate::core::{font, palette, settings};
 use crate::entities::effects::{FloatingText, Particle, Puff};
+use crate::entities::enemy::Enemy;
 use crate::entities::entity::{Entity, EntityId, PLAYER_ID};
 use crate::entities::pickup::Pickup;
 use crate::entities::player::Player;
@@ -76,6 +77,7 @@ pub struct KillInfo {
     pub level: i32,
     pub pos: Vec2,
     pub boss: bool,
+    pub elite: bool,
     pub blighted: bool,
     /// Whether the killing blow struck a weakness, for mastery.
     pub weakness: bool,
@@ -415,6 +417,7 @@ impl World {
             .or(spawn_point)
             .unwrap_or(Vec2::new(self.map.pixel_width() as f32 / 2.0, self.map.pixel_height() as f32 / 2.0));
         let start = self.nearest_open(start);
+        self.spawn_elite_pack(start);
         let mut player = Player::new(start, facing);
         player.added(self);
         self.player = Some(Box::new(player));
@@ -703,6 +706,71 @@ impl World {
     }
 
     /// The given spot if the player can stand there, otherwise the nearest tile that is open.
+    /// Now and then a combat map holds a roaming pack: an elite of one of its kinds and a few of its foes, somewhere
+    /// the player can walk to but well away from where they came in.
+    fn spawn_elite_pack(&mut self, start: Vec2) {
+        let roster: Vec<&'static EnemyDef> = self
+            .data
+            .entities
+            .iter()
+            .filter(|e| e.kind == "enemy")
+            .filter_map(|e| e.str("kind").and_then(|k| data().enemies.get(k)))
+            .collect();
+        let arena = self.data.entities.iter().any(|e| matches!(e.kind.as_str(), "boss" | "trial"));
+        if roster.len() < 4 || arena || self.data.blight_area.is_some() || self.data.id.starts_with("trial_") {
+            return;
+        }
+        let chance = if pacts::active(&self.state, "swarm") { 0.6 } else { 0.3 };
+        if self.rng.next_f32() >= chance {
+            return;
+        }
+        let t = TILE as f32;
+        let origin = ((start.x / t).floor() as i32, ((start.y - 3.0) / t).floor() as i32);
+        let warps: Vec<(i32, i32)> = self.data.entities.iter().filter(|e| e.kind == "warp").map(|e| e.tile()).collect();
+        let (w, h) = (self.map.width, self.map.height);
+        let mut distance = vec![-1; (w * h) as usize];
+        let mut queue = VecDeque::from([origin]);
+        let mut spots = Vec::new();
+        if self.map.in_bounds(origin.0, origin.1) {
+            distance[(origin.1 * w + origin.0) as usize] = 0;
+        }
+        while let Some((x, y)) = queue.pop_front() {
+            let d = distance[(y * w + x) as usize];
+            let open_around =
+                [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().all(|(dx, dy)| !self.map.blocks_walking(x + dx, y + dy));
+            let clear_of_warps = warps.iter().all(|&(wx, wy)| (wx - x).abs() + (wy - y).abs() > 8);
+            if d >= 16 && open_around && clear_of_warps {
+                spots.push((x, y));
+            }
+            for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let (nx, ny) = (x + dx, y + dy);
+                if !self.map.in_bounds(nx, ny) || self.map.blocks_walking(nx, ny) {
+                    continue;
+                }
+                let slot = (ny * w + nx) as usize;
+                if distance[slot] < 0 {
+                    distance[slot] = d + 1;
+                    queue.push_back((nx, ny));
+                }
+            }
+        }
+        if spots.is_empty() {
+            return;
+        }
+        let (x, y) = spots[self.rng.below(spots.len() as i32) as usize];
+        let at = tile_feet(x, y);
+        let level = self.data.level;
+        let leader = roster[self.rng.below(roster.len() as i32) as usize];
+        let elite = Enemy::elite(leader, at, Some(level), self);
+        self.add(elite);
+        for i in 0..2 + self.rng.below(3) {
+            let def = roster[self.rng.below(roster.len() as i32) as usize];
+            let angle = i as f32 * 1.9;
+            let spot = self.nearest_open(at + Vec2::new(angle.cos() * 20.0, angle.sin() * 14.0));
+            self.add(Enemy::new(def, spot, Some(level)));
+        }
+    }
+
     fn nearest_open(&self, pos: Vec2) -> Vec2 {
         let t = TILE as f32;
         let (x, y) = ((pos.x / t).floor() as i32, ((pos.y - 3.0) / t).floor() as i32);
@@ -1185,6 +1253,8 @@ impl World {
     pub fn reward_kill(&mut self, kill: KillInfo) {
         let weight = if kill.boss {
             5.0
+        } else if kill.elite {
+            3.0
         } else if kill.def.guard > 0.0 {
             1.5
         } else {
@@ -1195,8 +1265,10 @@ impl World {
         let mut multiplier = self.rank.multiplier();
         *self.state.kills.entry(kill.def.id.clone()).or_default() += 1;
         multiplier *= pacts::reward_multiplier(&self.state);
+        let elite = if kill.elite { 3.0 } else { 1.0 };
         let exp = (combat::enemy_exp(kill.level)
             * kill.def.exp
+            * elite
             * combat::exp_gap_factor(kill.level, self.state.level)
             * self.state.acc().exp
             * multiplier)
@@ -1218,8 +1290,11 @@ impl World {
             Particle::burst(self, self.hero.pos - Vec2::new(0.0, 8.0), palette::HIGHLIGHT, 24, 70.0, 0.8, true);
             self.toast(format!("Reached level {}!", self.state.level));
         }
-        let gold =
-            (2.0 + 1.6 * kill.level as f32) * kill.def.gold * self.state.acc().gold * (0.8 + self.rng.next_f32() * 0.4);
+        let gold = (2.0 + 1.6 * kill.level as f32)
+            * kill.def.gold
+            * self.state.acc().gold
+            * (0.8 + self.rng.next_f32() * 0.4)
+            * if kill.elite { 4.0 } else { 1.0 };
         if gold >= 1.0 {
             self.add(Pickup::gold(kill.pos, gold.round() as i32));
         }
@@ -1232,7 +1307,15 @@ impl World {
         if kill.blighted && self.rng.next_f32() < 0.04 * multiplier {
             self.add(Pickup::item(kill.pos + Vec2::new(-4.0, 0.0), "blight_core"));
         }
-        if self.rng.next_f32() < 0.1 && !kill.boss {
+        if kill.elite {
+            for (item, chance) in [("potion", 0.4), ("spirit_tonic", 0.25)] {
+                if self.rng.next_f32() < chance * multiplier {
+                    let offset = Vec2::new(self.rng.range(-8, 9) as f32, 4.0);
+                    self.add(Pickup::item(kill.pos + offset, item));
+                }
+            }
+        }
+        if (kill.elite || self.rng.next_f32() < 0.1) && !kill.boss {
             let amount = (self.state.max_hp() / 10).max(4);
             self.add(Pickup::heart(kill.pos + Vec2::new(4.0, 0.0), amount));
         }

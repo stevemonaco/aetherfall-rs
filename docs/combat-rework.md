@@ -1,6 +1,7 @@
 # Combat rework: skills, the Weave, supports and the Aether
 
-Design notes for the skill system rework. Saves from the earlier rework (save version 3) load and are migrated.
+Design notes for the skill system rework. Saves from the earlier rework (save version 3) load and are migrated;
+the Weave was rebuilt in version 4, so those saves get every Weave point back.
 
 ## The blade and the sigils
 
@@ -33,14 +34,23 @@ Design notes for the skill system rework. Saves from the earlier rework (save ve
 
 Overheat is gone. Its meter now builds the Aether instead.
 
-- Landing hits fills the Aether meter (melee 1.2, finisher 2.5, bolt 0.8, charged bolt 2.5, skill hit 1.5), 1.75x on
-  a weakness. Taking a hit drains 20. Accessories (Resonant Stone), Weave nodes, the Prism Band and gems scale it.
+- Landing hits fills the Aether meter (melee 1.2, finisher 3, bolt 0.6, charged bolt 2, skill hit 1.5), 1.75x on a
+  weakness. Ranged builds it more slowly to balance the safer distance. Accessories (Resonant Stone), Weave nodes, the
+  Prism Band and gems scale it.
+- The meter's size grows with the blade: 60 with one sigil, +20 per further sigil, 140 once awakened. Each Aether
+  Conduit (a key item, five in the world: Gullwing Shoals, Rimewater Gorge, Stormbreak Ridge, the Ashen Barrens and
+  Cloudstep Ascent) makes it 8% smaller.
+- Progress locks in after 4 seconds without being hit, and at once when a combo finisher lands. A hit drains up to
+  15% of the meter, but never below the locked part. The HUD shows the locked part solid and the loose part pale. The
+  Lodestone accessory (dug up in the Drowned Causeway) cuts the delay to 2 seconds; the Anchor notable cuts a second
+  and makes charged bolts lock it too; the Unbroken keystone locks everything at once but fills 25% slower.
 - When the meter is full, Aether wakes by itself for 6 seconds (8 once awakened). The equipped Aether form fires
-  once as it wakes. Taking a hit while it is awake costs a fifth of its duration. Mode switching stays open.
+  once as it wakes. While it is awake, hits never shorten it: the hero takes 30% less damage, isn't staggered and
+  builds ailments at half the rate. Mode switching stays open.
 - While awake, every hit may pierce to the target's weakness instead of landing in the current mode's element:
   25% + 15% per mastery level of that weakness element, +25% once awakened, +15% with the Prism Band, +20% with the
   Prism Lens, plus Weave nodes, capped at 100%. Hits that pierce a shield's emblem shatter it.
-- Afterwards the meter rests for 10 seconds before it fills again.
+- Afterwards the meter rests for 10 seconds before it fills again (6 with the Afterglow notable).
 - Aether hits open Concord seals once the blade has awakened, and are the only hits that reach Aether-sealed foes
   (the First Concord's Unbound phase, Sovereign Vael's aether form). Striking those foes with other hits feeds the
   meter instead.
@@ -72,16 +82,63 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
 
 ## The Weave
 
-- A lattice on a 13x13 grid: threads run along every even row and column inside a diamond, about 96 nodes. A node
-  can be woven once an orthogonal neighbour is; the cursor walks the threads cell by cell, and Q/E jump between the
-  regions' keystones.
+- A lattice on a 17x17 grid: threads run along every even row and column inside a diamond, 177 nodes. A node can be
+  woven once an orthogonal neighbour is; the cursor walks the threads cell by cell, Q/E jump between the keystones and
+  the skill button zooms out to the whole Weave.
 - Regions are themed by playstyle, not element: Might (north: ATK, FOC, finishers, kill rewards), Ward (south: life,
-  DEF, guard and parry), Swiftness (east: speed, dodges), Spirit (west: SP, ailments, skills) and Aether (the
-  diagonals: meter, pierce, duration).
-- Minor nodes give small stats (+2% ATK, +3% life and so on). Notables carry the triggers and passives (Riposte,
-  Phantom Step, Wildfire, Chain Shock, Flicker, True Sight...). Keystones sit at the tips and need a Weave Knot:
-  Overcharge, Stillwater, Tailwind, Blood Art and Aether Bond (Aether always pierces, but lasts half as long).
-- One point per level plus Tomes of Insight. Free unpicking at any save crystal.
+  DEF, regeneration, guard), Swiftness (east: speed, dodges), Spirit (west: SP, ailments, skills) and Aether (the
+  diagonal bands: meter, pierce, duration).
+- Minor nodes rotate three stats per region and grow with distance from the hub: +1% ATK near it, +2% in the middle
+  ring, +3% at the rim. Core stats also appear at half value in other regions (ATK in Swiftness and Aether, life in
+  Spirit), so no stat sits in a cheap cluster.
+- 46 notables carry the triggers and passives (Riposte, Phantom Step, Wildfire, Bloodlust, Battle Trance, Elite
+  Hunter, Last Stand, Iron Will, Acrobat, Slipstream, Echoing Arts, Anchor, Afterglow...). Eight keystones sit at the
+  tips and need a Weave Knot: Overcharge, Glass Edge, Stillwater, Bulwark, Tailwind, Blood Art, Aether Bond and
+  Unbroken.
+- One point per level plus Tomes of Insight: about 105 points by the end of the Hollow, so roughly 60% of the Weave.
+  Free unpicking at any save crystal.
+
+## Progression
+
+- Monsters have 25% more life and 12% more attack. The hero's base life is 25% lower (82 + 10.5 per level).
+- Kills give half the EXP they did. Fighting above your level gives up to 25% more (5% per level); fighting below it
+  costs 15% per level, so falling behind matters and farming easy areas does not pay.
+
+## Elites
+
+- Elites have three times a normal foe's life (down from four), two levels more and a break gauge. They roll
+  affixes: one below level 20, two below 50, three after. Their affixes show above the life bar, which stays up while
+  they are alert, and a golden outline marks them.
+- Affixes: Swift (faster movement and attacks), Blinking (teleports behind the hero), Frenzied (enrages at half
+  life), Vampiric (heals when it lands a hit), Shielded (a shield that regrows 8 seconds after breaking), Volatile
+  (bursts a moment after death), Noxious (trails poison clouds), Thorned (plain bolts glance off), Rallying (calls up
+  to four lesser kin), Aura-bound (the old elemental aura that only its opposite strips) and Hulking (40% more life,
+  never flinches).
+- An elite kill gives three times the EXP, four times the gold, a guaranteed heart and a chance at a potion or spirit
+  tonic.
+- Roaming packs: entering a combat map (not towns, boss rooms, trials or Blighted expeditions) has a 30% chance (60%
+  under the Swarm pact) to hold an elite of one of the map's kinds with two to four of its foes, somewhere reachable
+  but well away from the entrance and the exits.
+- Elite rifts pour out the elite first, then escorts from the rift's kinds (or the map's own foes when it lists
+  none) up to its count (3 by default). The rift wavers once the elite and the escorts are all down.
+
+## Zones
+
+Every act's dungeon now sits a journey away from its town, and new zones fill the level gaps:
+
+| Zone | Level | Where |
+|---|---|---|
+| Thornback Hills | 6 | Through the Fields' rockfall tunnel; the Mossy Grotto is at the top |
+| Drowned Causeway | 13 | Between Mistmoor Marsh and Brinewatch |
+| Gullwing Shoals | 15 | The skiff from Brinewatch's pier; the Sunken Temple is at the far end |
+| Rimewater Gorge | 19 | Between Brinewatch and Frostpeak Trail |
+| Stormbreak Ridge | 23 | North of Highcrag; the Storm Spire is at its end |
+| Ashen Barrens | 34 | Between the Ashen Rim and the Fallen Bastion |
+| Cloudstep Ascent | 38 | North-west of Highcrag (needs all three crystals); the Sky Altar is at the top |
+| The Hollow's Mouth | 68 | Stairs beneath the Sleeper's Vault after the game is cleared |
+
+Each has two plain rifts and an elite rift, side pockets with loot (Tomes of Insight, Weave Knots, Aether Conduits)
+and, for dungeon approaches, a save crystal by the entrance.
 
 ## Supports
 

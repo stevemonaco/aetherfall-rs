@@ -35,11 +35,11 @@
       "x": 13.0,
       "y": 23.0,
       "w": 2,
-      "tx": 28,
+      "tx": 19,
       "facing": "down",
-      "ty": 6,
+      "ty": 7,
       "sound": "door",
-      "to": "highcrag"
+      "to": "ridge"
     },
     {
       "type": "barrier",
