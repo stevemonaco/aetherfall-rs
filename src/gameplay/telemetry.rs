@@ -53,7 +53,10 @@ impl Telemetry {
 
     /// A new run id: the time the playthrough began, in seconds since 1970.
     pub fn new_run_id() -> String {
+        #[cfg(not(target_arch = "wasm32"))]
         let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+        #[cfg(target_arch = "wasm32")]
+        let now = (js_sys::Date::now() / 1000.0) as u64;
         now.to_string()
     }
     fn write(&self, event: &str, mut fields: Value) {
