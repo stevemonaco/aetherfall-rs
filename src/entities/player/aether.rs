@@ -28,10 +28,28 @@ const HURT_DRAIN: f32 = 15.0;
 pub const AWAKE_DAMAGE: f32 = 0.7;
 /// How far the opening forms reach.
 const REACH: f32 = 56.0;
+/// Seconds between Sanctum's cleansing pulses while Aether is awake.
+const SANCTUM_PULSE: f32 = 2.0;
 
 impl Player {
     pub fn aether_active(&self) -> bool {
         self.aether_time > 0.0
+    }
+
+    /// Sanctum's level while its aura holds: Aether awake with Sanctum as the form.
+    pub(super) fn sanctum_level(&self, world: &World) -> Option<i32> {
+        let sanctum = world.state.equipped_skill(Element::Aether).is_some_and(|s| s.id == "sanctum");
+        (self.aether_active() && sanctum).then(|| world.state.aether_level())
+    }
+
+    /// The share of damage Sanctum's aura lets through.
+    pub(super) fn sanctum_shield(&self, world: &World) -> f32 {
+        match self.sanctum_level(world) {
+            Some(1) => 0.7,
+            Some(2) => 0.6,
+            Some(_) => 0.5,
+            None => 1.0,
+        }
     }
 
     /// The meter as a fraction: filling while building, draining while awake.
@@ -106,6 +124,13 @@ impl Player {
             self.add_aether(world, fed);
         }
         if self.aether_active() {
+            if self.sanctum_level(world).is_some() {
+                self.sanctum_pulse -= dt;
+                if self.sanctum_pulse <= 0.0 {
+                    self.sanctum_pulse = SANCTUM_PULSE;
+                    self.sanctum_cleanse(world, REACH * 0.7, 0.5);
+                }
+            }
             self.aether_time -= dt;
             self.aether = (100.0 * self.aether_time / world.state.aether_duration()).clamp(0.0, 100.0);
             if self.aether_time <= 0.0 {
@@ -237,24 +262,29 @@ impl Player {
         world.add(Beam::new(start, end, Element::Aether.glow()));
     }
 
-    /// Sanctum: a pulse that cleanses ailments and blight and wards the hero briefly.
+    /// Sanctum's wake: a heal and a cleansing pulse, then an aura for as long as Aether lasts (see `sanctum_shield`)
+    /// that pulses again every couple of seconds.
     fn sanctum(&mut self, world: &mut World, level: i32, reach: f32) {
+        let share = match level {
+            1 => 0.06,
+            2 => 0.10,
+            _ => 0.15,
+        };
+        let amount = (world.state.max_hp() as f32 * share) as i32;
+        world.heal_player(amount);
+        world.add(DamageNumber::heal(self.center(), amount));
+        audio::sfx(Sound::Heal);
+        self.sanctum_pulse = SANCTUM_PULSE;
+        self.sanctum_cleanse(world, reach * 0.7, 0.8);
+    }
+
+    /// Cures ailments and blight and strikes the foes around the hero.
+    fn sanctum_cleanse(&mut self, world: &mut World, radius: f32, power: f32) {
         let center = self.center();
-        self.strike_area(world, center, reach * 0.7, None, |p, w| p.form_hit(w, 0.8, 2.0, 220.0));
+        self.strike_area(world, center, radius, None, |p, w| p.form_hit(w, power, 2.0, 160.0));
         self.cure_ailments();
         world.state.corruption = 0.0;
-        self.ward(match level {
-            1 => 0.6,
-            2 => 0.9,
-            _ => 1.3,
-        });
-        if level >= 3 {
-            let amount = (world.state.max_hp() as f32 * 0.06) as i32;
-            world.heal_player(amount);
-            world.add(DamageNumber::heal(center, amount));
-            audio::sfx(Sound::Heal);
-        }
-        world.add(Shockwave::new(self.base.pos, reach * 0.7, Element::Aether.glow()));
-        Particle::burst(world, center, Rgba::rgb(255, 220, 255), 18, 60.0, 0.6, true);
+        world.add(Shockwave::new(self.base.pos, radius, Element::Aether.glow()));
+        Particle::burst(world, center, Rgba::rgb(255, 220, 255), 12, 50.0, 0.5, true);
     }
 }

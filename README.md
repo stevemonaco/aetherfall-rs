@@ -31,7 +31,9 @@ Since the port, the combat systems have been reworked here (the C# game stays at
   holding one great breach of escalating waves, rolled hardships and a Rift Champion.
 - Rifts are breaches: come near and a fixed swarm pours out; beat it, stand in the rift to seal it, and watch the town
   piece come back in a short cutscene.
-- Gemcutter's Prisms hone support gems through Cut and Flawless tiers.
+- Gemcutter's Prisms hone support gems through Cut, Polished, Flawless and Perfect tiers.
+- The pause menu pages through each element's skills and sockets, sums up each mode's build on the Status tab, keeps
+  a bestiary of weaknesses and drops under Foes, and tracks every region's chests, Prisms and rifts in the Atlas.
 - Dungeons have signature puzzle mechanics (wind, water, conduction, past and present), plus element crystals and toggle
   switches; the map screen charts the current area.
 - A guardian spirit fights beside the hero and learns beast forms (Hound, Hawk, Lantern Wisp, Ember Sprite), each with
@@ -83,6 +85,14 @@ trunk build --release              # static site in dist/
 ```
 
 `dist/` contains the licensed sprites and music, so it must not be published anywhere public.
+
+### Balancing log
+
+Normal play appends events to one log per playthrough, `%APPDATA%\Aetherfall\rs\telemetry\slotN_RUN.jsonl`, each line
+stamped with the game version and the commit it was built from (`+dirty` for uncommitted builds): the hero's level on
+first entering each zone and on beating each rift, golden rift and boss (with how long it took), and per-visit zone
+summaries of XP and gold gained, damage by element and attack kind, kills, deaths and Aether uptime. Test runs log
+nothing. Summarise with `pwsh tools/telemetry-report.ps1` (`-Slot n`, `-Commit abc123`).
 
 ## How the port is organised
 

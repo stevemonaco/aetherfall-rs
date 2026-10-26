@@ -1,7 +1,7 @@
 {
   "name": "Trial of Rime",
   "theme": "snow",
-  "level": 25,
+  "level": 26,
   "music": "Retro-Battleground",
   "rows": [
     "##############################################",
@@ -39,7 +39,7 @@
     
     
     {"type": "trial", "x": 23.0, "y": 26.0, "name": "Trial of Rime", "exit": true, "to": "frostpeak", "tx": 20, "ty": 34},
-    {"type": "golden", "x": 23.0, "y": 13.0, "id": "trial_frost", "kinds": "brute,glacimp,rimeogre,weaver,crag,rime", "level": 27, "champion": "rimeogre"},
+    {"type": "golden", "x": 23.0, "y": 13.0, "id": "trial_frost", "kinds": "brute,glacimp,rimeogre,weaver,crag,rime", "level": 28, "champion": "rimeogre"},
     {"type": "chest", "x": 19.0, "y": 10.0, "item": "multishot_gem", "if": "golden_heat:trial_frost", "style": 3},
     {"type": "chest", "x": 22.0, "y": 10.0, "item": "leech_gem", "if": "golden:trial_frost", "style": 3},
     {"type": "chest", "x": 25.0, "y": 10.0, "item": "sunder_gem", "if": "golden:trial_frost", "style": 3}

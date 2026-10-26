@@ -103,6 +103,10 @@ pub struct Player {
     /// Seconds spent whirling, or negative when not (the Whirlwind gem).
     whirl_time: f32,
     whirl_beat: f32,
+    /// The way the hero faced before the whirl spun them, restored when it ends.
+    whirl_facing: Direction,
+    /// Seconds to Sanctum's next cleansing pulse while its aura holds.
+    sanctum_pulse: f32,
     attack_time: f32,
     combo_reset: f32,
     throw_held: f32,
@@ -206,6 +210,8 @@ impl Player {
             lunged: false,
             whirl_time: -1.0,
             whirl_beat: 0.0,
+            whirl_facing: Direction::Down,
+            sanctum_pulse: 0.0,
             attack_time: -1.0,
             combo_reset: 0.0,
             throw_held: -1.0,
@@ -501,7 +507,10 @@ impl Player {
             self.start_fall(world);
             return;
         }
-        if !self.airborne() && !self.dodging {
+        // Frozen water melts back, so only ground that stays put counts as somewhere to climb back out to.
+        let t = TILE as f32;
+        let feet = ((self.base.pos.x / t).floor() as i32, ((self.base.pos.y - 3.0) / t).floor() as i32);
+        if !self.airborne() && !self.dodging && !world.chem.is_frozen(feet.0, feet.1) {
             self.last_safe = self.base.pos;
         }
         self.update_heat(world, self.frame_dt);
@@ -571,7 +580,8 @@ impl Player {
             world.state.corruption = 0.0;
             return;
         }
-        if self.terrain_underfoot(world) == Terrain::Blight && !self.airborne() && !self.is_dead() {
+        let warded = self.sanctum_level(world).is_some();
+        if self.terrain_underfoot(world) == Terrain::Blight && !self.airborne() && !self.is_dead() && !warded {
             world.state.corruption = (world.state.corruption + 5.0 * world.state.acc().blight_taken * dt).min(50.0);
             self.blight_tick -= dt;
             if self.blight_tick <= 0.0 {
@@ -601,15 +611,18 @@ impl Player {
         }
         self.fall_time = -1.0;
         self.base.pos = self.last_safe;
+        if self.terrain_underfoot(world).is_hazard() {
+            self.base.pos = world.nearest_open(self.base.pos);
+            self.last_safe = self.base.pos;
+        }
         self.invulnerable = 1.0;
         if world.state.acc().safe_falls {
             return;
         }
         let max = world.state.max_hp();
         let damage = (if world.lava_pits() { max / 4 } else { max / 12 }).max(2);
-        world.state.hp = (world.state.hp - damage).max(1);
         audio::sfx(Sound::PlayerHurt);
-        world.add(DamageNumber::hurt(self.center(), damage, Element::None, false));
+        self.apply_damage(world, damage, Element::None, false);
     }
 
     fn update_status(&mut self, world: &mut World, dt: f32) {
@@ -638,7 +651,8 @@ impl Player {
             || self.zipping
             || self.ward_time > 0.0
         {
-            if self.dodging && !self.near_missed && hit.kind != HitKind::Environment {
+            // Only a dodged attack counts; brushing a foe's body mid-dash is not a close call.
+            if self.dodging && !self.near_missed && !matches!(hit.kind, HitKind::Environment | HitKind::Contact) {
                 self.near_miss(world);
             }
             return false;
@@ -694,7 +708,8 @@ impl Player {
         let taken = glass
             * if awake { aether::AWAKE_DAMAGE } else { 1.0 }
             * if last_stand { 0.75 } else { 1.0 }
-            * if vanguard && hit.kind == HitKind::Contact { 0.25 } else { 1.0 };
+            * if vanguard && hit.kind == HitKind::Contact { 0.25 } else { 1.0 }
+            * self.sanctum_shield(world);
         let result = combat::resolve(hit, stats, element_mod, taken, &world.rng);
         hit.result = result;
         self.apply_damage(world, result.amount, hit.element, result.crit);
@@ -704,6 +719,7 @@ impl Player {
             * (1.0 + hit.attacker.foc / 150.0)
             * element_mod
             * if awake { 0.5 } else { 1.0 }
+            * if self.sanctum_level(world).is_some() { 0.0 } else { 1.0 }
             * resolve;
         let ailment = self.status.add(hit.element, buildup, hit.attacker, false);
         if ailment == Ailment::Gust {
@@ -933,7 +949,8 @@ impl Player {
 
         if input::pressed(GameAction::Tether) && world.state.has_tether() && !self.airborne() {
             self.cancel_actions();
-            self.hook = Some(world.add(TetherHook::new(self.center(), self.aim)));
+            let aim = self.tether_aim(world);
+            self.hook = Some(world.add(TetherHook::new(self.center(), aim)));
             audio::play(Sound::ShootWind, 0.6, 0.6);
             return true;
         }
@@ -950,13 +967,12 @@ impl Player {
             }
             if self.attack_time >= 0.0 {
                 self.combo_buffered = true;
-            } else if !self.guarding() {
-                self.start_swing(world);
+            } else if !self.guarding() && !self.whirling() {
+                if Self::whirl_ready(world) { self.start_whirl() } else { self.start_swing(world) }
             }
         }
 
         self.guard_cancels();
-        self.try_whirl(world);
         if self.whirling() {
             self.update_whirl(world, dt);
             return false;
@@ -1305,8 +1321,8 @@ impl Player {
         let mode = Self::mode(world);
         let (speed, power, poise, status, knock, life, bounces, size) = match tier {
             BoltTier::Plain => (280.0, 0.6, 0.5, 0.6, 60.0, 0.55, 1, 7.0),
-            BoltTier::Charged => (320.0, 1.4, 2.0, 1.6, 160.0, 0.75, 2, 10.0),
-            BoltTier::Tempest => (340.0, 2.3, 3.5, 2.4, 220.0, 0.9, 3, 14.0),
+            BoltTier::Charged => (320.0, 1.4, 2.0, 1.6, 160.0, 0.75, 1, 10.0),
+            BoltTier::Tempest => (340.0, 2.3, 3.5, 2.4, 220.0, 0.9, 1, 14.0),
         };
         let charged = tier != BoltTier::Plain;
         let mut bolt = Projectile::new(
@@ -1326,7 +1342,7 @@ impl Player {
         bolt.z = 7.0;
         bolt.lifetime = life;
         bolt.piercing = charged || gems.pierce;
-        bolt.bounces = bounces + world.state.mods().bounces;
+        bolt.bounces = bounces;
         bolt.paints_path = charged && matches!(mode, Element::Water | Element::Fire);
         bolt.size = size;
         bolt.texture = art::bolt(mode, charged);
@@ -1349,6 +1365,35 @@ impl Player {
         shot.poise *= gems.poise;
         shot.status_power *= gems.status;
         shot.paints_path |= gems.linger;
+    }
+
+    /// Where the tether flies: straight at an anchor or foe close to the aim, otherwise the nearest of the four
+    /// cardinal directions so puzzle lines are easy to hit, unless a foe lies roughly that way.
+    fn tether_aim(&self, world: &World) -> Vec2 {
+        let me = self.center();
+        let range = 168.0 * (1.0 + world.state.mods().tether_range);
+        let near = |dir: Vec2, cone: f32| {
+            world
+                .entities()
+                .filter(|e| e.base().id != self.base.id)
+                .filter_map(|e| e.tether_box().map(|b| (b.center(), e.faction() == Some(Faction::Enemy))))
+                .filter(move |&(c, _)| c.distance(me) <= range && (c - me).normalize_or_zero().dot(dir) >= cone)
+        };
+        let target = near(self.aim, 30f32.to_radians().cos()).max_by(|a, b| {
+            (a.0 - me).normalize_or_zero().dot(self.aim).total_cmp(&(b.0 - me).normalize_or_zero().dot(self.aim))
+        });
+        if let Some((center, _)) = target {
+            return safe_dir(center - me, self.aim);
+        }
+        let foe_ahead = near(self.aim, 60f32.to_radians().cos()).any(|(_, enemy)| enemy);
+        if foe_ahead {
+            return self.aim;
+        }
+        if self.aim.x.abs() >= self.aim.y.abs() {
+            Vec2::new(self.aim.x.signum(), 0.0)
+        } else {
+            Vec2::new(0.0, self.aim.y.signum())
+        }
     }
 
     // ---- Dodging ------------------------------------------------------------------------------------------------

@@ -995,6 +995,10 @@ impl Enemy {
         self.last_weak = hit.is_player() && element_mod > 1.0;
         self.last_skill = hit.kind == HitKind::Skill;
         self.damage(world, resolved.amount, element, resolved.crit, if element_mod > 1.0 { "!" } else { "" });
+        if hit.is_player() {
+            let source = if hit.aether { "aether" } else { element.name() };
+            world.telemetry.damage(source, &format!("{:?}", hit.kind).to_lowercase(), resolved.amount);
+        }
         self.flash = 0.12;
         audio::play(Sound::Hit, 1.0, if resolved.crit { -0.2 } else { 0.0 });
         world.hit_stop(if self.hp <= 0 {

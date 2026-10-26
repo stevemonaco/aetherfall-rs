@@ -134,7 +134,6 @@ pub struct WeaveMods {
     pub sp_gain: f32,
     pub dodge_recharge: f32,
     pub dodge_charges: i32,
-    pub bounces: i32,
     pub perfect_window: f32,
     pub tether_range: f32,
     /// Share of max life regenerated each second.
@@ -167,7 +166,6 @@ impl Default for WeaveMods {
             sp_gain: 1.0,
             dodge_recharge: 1.0,
             dodge_charges: 0,
-            bounces: 0,
             perfect_window: 0.0,
             tether_range: 0.0,
             regen: 0.0,
@@ -208,7 +206,7 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
     (0, 0, NodeKind::Hub, HUB, "The Weave", "Where every thread begins.", ""),
     // Might
     (0, -4, Notable, "executioner", "Executioner", "Combo finishers deal 25% more damage.", "finisher:0.25"),
-    (-2, -4, Notable, "ricochet", "Ricochet", "Bolts bounce one extra time.", "bounce:1"),
+    (-2, -4, Notable, "steady_aim", "Steady Aim", "Bolts are 10% more likely to fly one tier stronger.", "surge:0.1"),
     (2, -4, Notable, "spirit_tap", "Spirit Tap", "Defeating a foe restores 15 SP.", "on:kill:spirit_tap"),
     (
         0,
@@ -256,8 +254,8 @@ const NAMED: &[(i32, i32, NodeKind, &str, &str, &str, &str)] = &[
         Notable,
         "tempest_quiver",
         "Tempest Quiver",
-        "Bolts surge 10% more often and bounce once more.",
-        "surge:0.1,bounce:1",
+        "Bolts are 20% more likely to fly one tier stronger.",
+        "surge:0.2",
     ),
     (2, -5, Notable, "long_reach", "Long Reach", "Melee swings reach 15% further.", "reach:0.15"),
     (
@@ -658,7 +656,6 @@ pub fn compute<'a>(taken: impl Iterator<Item = &'a String>) -> WeaveMods {
                 "sp" => mods.sp_gain *= value(1),
                 "dodge_recharge" => mods.dodge_recharge *= value(1),
                 "dodges" => mods.dodge_charges += value(1) as i32,
-                "bounce" => mods.bounces += value(1) as i32,
                 "perfect" => mods.perfect_window += value(1),
                 "tether" => mods.tether_range += value(1),
                 "regen" => mods.regen += value(1),

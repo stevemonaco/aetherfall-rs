@@ -14,11 +14,13 @@ use crate::core::geom::IRect;
 use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
+use crate::gameplay::element::{Element, MODES};
 use crate::gameplay::game_state::{GameState, SLOT_COUNT};
 use crate::scene_any;
+use crate::ui::widgets;
 
-/// Height of one slot in the list: its name and a summary line.
-const ROW: i32 = 25;
+/// Height of one slot in the list: a framed card with two lines of summary.
+const ROW: i32 = 28;
 const PROMPT_BOX: IRect = IRect::new(40, SCREEN_HEIGHT - 62, SCREEN_WIDTH - 80, 50);
 
 /// The overwrite question, drawn like a dialogue box. There is no world beneath the title for a DialogueScene.
@@ -89,6 +91,56 @@ impl SlotScene {
         }
     }
 
+    fn draw_slot(
+        batch: &mut Batch,
+        frame: IRect,
+        number: usize,
+        state: Option<&GameState>,
+        area: &str,
+        selected: bool,
+    ) {
+        let shadow = Some(palette::TEXT_SHADOW);
+        let (fill, border) = match (state.is_some(), selected) {
+            (_, true) => (palette::WINDOW_FILL_LIGHT.mul(0.7), palette::HIGHLIGHT.mul(0.8)),
+            (true, false) => (palette::WINDOW_FILL_LIGHT.mul(0.35), palette::WINDOW_BORDER.mul(0.45)),
+            (false, false) => (Rgba::BLACK.mul(0.2), palette::WINDOW_BORDER.mul(0.2)),
+        };
+        batch.fill(frame, fill);
+        batch.draw_rect(frame, border);
+        let (x, y, right) = (frame.x as f32, frame.y as f32, frame.right() as f32);
+        let badge = Vec2::new(x + 4.0, y + 4.0);
+        widgets::slot(batch, badge, selected.then_some(palette::HIGHLIGHT), state.is_none());
+        let number_color = if state.is_some() { palette::TEXT } else { palette::TEXT_DIM };
+        font::draw_centered(batch, &number.to_string(), badge + Vec2::new(9.0, 5.0), number_color, None);
+
+        let Some(s) = state else {
+            font::draw(batch, "Empty", Vec2::new(x + 28.0, y + 9.0), palette::TEXT_DIM, None);
+            return;
+        };
+        let level = format!("Lv {}", s.level);
+        font::draw(batch, &level, Vec2::new(x + 28.0, y + 4.0), palette::HIGHLIGHT, shadow);
+        let area_x = x + 28.0 + font::measure(&level) as f32 + 8.0;
+        font::draw(batch, area, Vec2::new(area_x, y + 4.0), palette::TEXT, shadow);
+        let seconds = s.play_time as i64;
+        let time = format!("{}h {:02}m", seconds / 3600, seconds / 60 % 60);
+        widgets::right_text(batch, &time, right - 6.0, y + 4.0, palette::TEXT_DIM);
+        font::draw(batch, &format!("{} G", s.gold), Vec2::new(x + 28.0, y + 15.0), palette::GOLD, shadow);
+
+        let mut elements: Vec<Element> = MODES.to_vec();
+        if s.aether_awakened() {
+            elements.push(Element::Aether);
+        }
+        for (n, &element) in elements.iter().rev().enumerate() {
+            let pip = IRect::new(frame.right() - 13 - n as i32 * 9, frame.y + 15, 7, 7);
+            if s.has_sigil(element) || element == Element::Aether {
+                batch.fill(pip, element.glow());
+                batch.draw_rect(pip, element.dark());
+            } else {
+                batch.fill(pip, Rgba::BLACK.mul(0.35));
+                batch.draw_rect(pip, palette::WINDOW_BORDER.mul(0.3));
+            }
+        }
+    }
     fn draw_prompt(prompt: &Prompt, batch: &mut Batch) {
         let rect = PROMPT_BOX;
         batch.draw_window(rect);
@@ -124,15 +176,11 @@ impl Scene for SlotScene {
         self.slots = (1..=SLOT_COUNT)
             .map(|slot| {
                 let state = GameState::load(slot);
-                let summary = match &state {
-                    Some(s) => {
-                        let area = map_scene::map_name(&s.map_id).unwrap_or_else(|| s.map_id.clone());
-                        let seconds = s.play_time as i64;
-                        format!("Lv {}  {}  {}:{:02}", s.level, area, seconds / 3600, seconds / 60 % 60)
-                    }
-                    None => "Empty".to_string(),
-                };
-                (state, summary)
+                let area = state
+                    .as_ref()
+                    .map(|s| map_scene::map_name(&s.map_id).unwrap_or_else(|| s.map_id.clone()))
+                    .unwrap_or_default();
+                (state, area)
             })
             .collect();
         if !self.new_game {
@@ -191,20 +239,18 @@ impl Scene for SlotScene {
     fn draw(&self, _below: &[Box<dyn Scene>], batch: &mut Batch) {
         batch.begin_screen();
         batch.fill(IRect::new(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), Rgba::BLACK.mul(0.55));
-        let rect = IRect::new(SCREEN_WIDTH / 2 - 140, 18, 280, 28 + self.slots.len() as i32 * ROW);
+        let rect = IRect::new(SCREEN_WIDTH / 2 - 160, 6, 320, 24 + self.slots.len() as i32 * ROW);
         batch.draw_window(rect);
         let heading = if self.new_game { "Start a new journey in..." } else { "Continue which journey?" };
         let heading_pos = Vec2::new((rect.x + 10) as f32, (rect.y + 6) as f32);
         font::draw(batch, heading, heading_pos, palette::HIGHLIGHT, Some(palette::TEXT_SHADOW));
-        for (i, (state, summary)) in self.slots.iter().enumerate() {
-            let y = (rect.y + 22 + i as i32 * ROW) as f32;
-            let x = (rect.x + 24) as f32;
-            let color = if i == self.row { palette::HIGHLIGHT } else { palette::TEXT };
-            font::draw(batch, &format!("Slot {}", i + 1), Vec2::new(x, y), color, Some(palette::TEXT_SHADOW));
-            let summary_color = if state.is_none() { palette::TEXT_DIM } else { palette::TEXT };
-            font::draw(batch, summary, Vec2::new(x, y + 11.0), summary_color, Some(palette::TEXT_SHADOW));
-            if i == self.row {
-                font::draw(batch, &CURSOR.to_string(), Vec2::new((rect.x + 10) as f32, y), palette::HIGHLIGHT, None);
+        for (i, (state, area)) in self.slots.iter().enumerate() {
+            let frame = IRect::new(rect.x + 20, rect.y + 20 + i as i32 * ROW, rect.w - 30, ROW - 2);
+            let selected = i == self.row;
+            SlotScene::draw_slot(batch, frame, i + 1, state.as_ref(), area, selected);
+            if selected {
+                let at = Vec2::new((rect.x + 8) as f32, (frame.y + 9) as f32);
+                font::draw(batch, &CURSOR.to_string(), at, palette::HIGHLIGHT, None);
             }
         }
         if let Some(prompt) = &self.prompt {

@@ -149,6 +149,7 @@ impl GoldenBreach {
     }
 
     fn open(&mut self, world: &mut World) {
+        world.telemetry.start(&format!("{}:{}", self.encounter(), self.id));
         self.state = State::Active;
         self.wave = 0;
         self.outside = 0.0;
@@ -218,8 +219,16 @@ impl GoldenBreach {
         world.resume_music();
     }
 
+    /// The encounter kind the balancing log files this run under.
+    fn encounter(&self) -> &'static str {
+        if self.heat { "golden_heat" } else { "golden" }
+    }
+
     fn finish(&mut self, world: &mut World) {
         self.state = State::Done;
+        let mods: Vec<&str> = world.trial_mods.iter().map(|m| m.label()).collect();
+        let extra = serde_json::json!({ "foe_level": self.level, "mods": mods });
+        world.telemetry.beaten(self.encounter(), &self.id, extra);
         world.state.flags.insert(if self.heat { self.heat_flag() } else { self.flag() });
         world.resume_music();
         world.flash(GOLD, 0.5);

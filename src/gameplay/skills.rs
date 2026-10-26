@@ -148,8 +148,8 @@ pub const ALL: [SkillDef; 15] = [
         "sanctum",
         "Sanctum",
         E::Aether,
-        "When Aether wakes, a pulse cleanses ailments and blight and wards you for a moment.",
-        ["A brief ward.", "A longer ward.", "A long ward that also heals 6% of your life."],
+        "When Aether wakes you heal, and while it lasts an aura softens blows, keeps ailments and blight off you, and pulses every 2s to cleanse you and strike nearby foes.",
+        ["Heals 6%; blows land at 70%.", "Heals 10%; blows land at 60%.", "Heals 15%; blows land at 50%."],
     ),
 ];
 

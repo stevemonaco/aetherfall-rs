@@ -217,6 +217,7 @@ pub fn added(enemy: &mut Enemy, world: &mut World) {
         return;
     }
     world.boss = Some(enemy.base.id);
+    world.telemetry.start(&format!("boss:{}", boss.flag));
     audio::sfx(Sound::BossRoar);
     let echo = if boss.echo { 1.6 } else { 1.0 };
     enemy.max_hp = ((enemy.max_hp as f32 * echo * debug_hp_scale()) as i32).max(1);

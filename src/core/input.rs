@@ -272,6 +272,28 @@ pub fn consume() {
     s.previous = s.current;
 }
 
+/// Which way the menus' page buttons turned this frame: LB and RB on a pad (bound to mode cycling and the skill
+/// button in play), Q and E on the keyboard.
+pub fn page_turn() -> i32 {
+    let (back, forward) = if gamepad_active() {
+        (GameAction::NextMode, GameAction::Skill)
+    } else {
+        (GameAction::PrevMode, GameAction::NextMode)
+    };
+    if pressed(back) {
+        -1
+    } else if pressed(forward) {
+        1
+    } else {
+        0
+    }
+}
+
+/// The labels of the page buttons, for menu hints.
+pub fn page_glyphs() -> (&'static str, &'static str) {
+    if gamepad_active() { ("LB", "RB") } else { ("Q", "E") }
+}
+
 pub fn glyph(action: GameAction) -> String {
     use GameAction::*;
     let pad = gamepad_active();

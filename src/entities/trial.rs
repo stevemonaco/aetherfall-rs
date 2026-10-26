@@ -47,8 +47,15 @@ impl TrialGate {
         }
     }
 
-    fn finished(&self, world: &World) -> bool {
+    /// Cleared once: the first run's gems are taken and the last one waits for a Heat run.
+    fn cleared(&self, world: &World) -> bool {
         self.done.as_deref().is_some_and(|c| world.state.check(Some(c)))
+    }
+
+    /// Cleared at Heat as well, so nothing is left inside.
+    fn finished(&self, world: &World) -> bool {
+        self.cleared(world)
+            && self.done.as_deref().is_some_and(|c| world.state.check(Some(&c.replacen("golden:", "golden_heat:", 1))))
     }
 }
 
@@ -79,6 +86,14 @@ impl Entity for TrialGate {
             world.run_actions(&[warp]);
         } else if self.finished(world) {
             world.show_message(&format!("The {} lies quiet. Its gems are already yours.", self.name));
+        } else if self.cleared(world) {
+            world.confirm(
+                format!(
+                    "The {} smoulders. Its last gem waits for whoever rekindles it at Heat. Step through?",
+                    self.name
+                ),
+                vec![warp],
+            );
         } else {
             world.confirm(
                 format!("A golden rift hums here: the {}. Its foes are fierce. Step through?", self.name),

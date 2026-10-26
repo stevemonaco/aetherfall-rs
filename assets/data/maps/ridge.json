@@ -70,7 +70,7 @@
     {"type": "rift", "x": 14.0, "y": 33.0, "id": "crag_hearth", "kinds": "stormeye,acolyte,harpy,stormcaller,runetotem,stormwraith", "count": 6, "alive": 3, "restores": "the great hearth of Highcrag"},
     {"type": "rift", "x": 24.0, "y": 45.0, "id": "crag_apprentice", "kinds": "crag,glacimp,harpy,stormcaller,runetotem,stormwraith", "count": 6, "alive": 3, "restores": "Sage Ilda's apprentice"},
     {"type": "rift", "x": 27.0, "y": 4.0, "id": "ridge_elite", "elite": "boneknight", "kinds": "acolyte,stormeye,harpy,stormcaller,runetotem,stormwraith", "count": 4, "alive": 2},
-    {"type": "chest", "x": 33.0, "y": 30.0, "item": "aether_conduit", "style": 3},
+    {"type": "chest", "x": 31.0, "y": 30.0, "item": "aether_conduit", "style": 3},
     {"type": "chest", "x": 34.0, "y": 20.0, "item": "weave_knot", "style": 3},
     {"type": "chest", "x": 4.0, "y": 41.0, "item": "storm_glass", "count": 2, "style": 0},
     {"type": "dig", "x": 23.0, "y": 15.0, "item": "storm_glass", "count": 2},

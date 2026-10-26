@@ -244,6 +244,8 @@ impl Entity for SaveCrystal {
     fn interact(&mut self, world: &mut World) {
         audio::play(Sound::ChargeLevel, 0.7, 0.3);
         world.state.flags.insert(self.flag(world));
+        let (tx, ty) = self.base.tile_pos();
+        world.state.last_crystal = Some((world.map_id().to_string(), tx, ty));
         world.save_game();
         world.queue(Box::new(|_| Box::new(crate::scenes::crystal::CrystalScene::new())));
     }

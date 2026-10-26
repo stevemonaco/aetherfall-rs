@@ -15,7 +15,7 @@ use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
 use crate::core::direction::Direction;
 use crate::core::geom::{IRect, safe_normalize, snap};
-use crate::core::gfx::{self, Batch};
+use crate::core::gfx::{self, Batch, TexId};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
 use crate::entity_base;
@@ -38,6 +38,38 @@ const HOUND: AnimalSheet =
     AnimalSheet { path: "external/Animals/animals1.png", frame_width: 26, frame_height: 36, index: 1 };
 const HAWK: AnimalSheet =
     AnimalSheet { path: "external/Animals/birds2.png", frame_width: 42, frame_height: 36, index: 0 };
+
+/// A form's picture for menus: the beast's first frame facing down, or the spirit sprite's first frame.
+pub fn form_icon(id: &str, glow: Rgba) -> (TexId, IRect) {
+    let sheet = match id {
+        "hound" => HOUND,
+        "hawk" => HAWK,
+        _ => {
+            let size = art_combat::SPIRIT_SIZE;
+            return (art_combat::spirit(id, glow), IRect::new(0, 0, size, size));
+        }
+    };
+    let block_x = sheet.index % 4 * 3 * sheet.frame_width;
+    let block_y = sheet.index / 4 * 4 * sheet.frame_height;
+    let texture = gfx::external(sheet.path);
+    let frame = IRect::new(block_x + sheet.frame_width, block_y, sheet.frame_width, sheet.frame_height);
+    (texture, opaque_bounds(texture, frame))
+}
+
+/// The part of `frame` that holds visible pixels, so a small creature in a roomy cell fills its icon.
+fn opaque_bounds(texture: TexId, frame: IRect) -> IRect {
+    let Some(pixels) = gfx::pixels(texture) else { return frame };
+    let (width, _) = gfx::size(texture);
+    let (mut x0, mut y0, mut x1, mut y1) = (i32::MAX, i32::MAX, i32::MIN, i32::MIN);
+    for y in frame.y..frame.bottom() {
+        for x in frame.x..frame.right() {
+            if pixels.get((y * width + x) as usize).is_some_and(|p| p.a > 0) {
+                (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x), y1.max(y));
+            }
+        }
+    }
+    if x0 > x1 { frame } else { IRect::new(x0, y0, x1 - x0 + 1, y1 - y0 + 1) }
+}
 
 fn draw_animal(batch: &mut Batch, sheet: AnimalSheet, feet: Vec2, facing: Direction, frame: i32) {
     let texture = gfx::external(sheet.path);
@@ -273,7 +305,7 @@ impl Entity for Companion {
     entity_base!();
 
     fn light(&self, _world: &World) -> Option<(f32, Rgba)> {
-        Some(if self.soul.id == "lantern" { (90.0, Rgba::rgb(255, 230, 160)) } else { (28.0, self.soul.glow) })
+        Some(if self.soul.id == "lantern" { (170.0, Rgba::rgb(255, 230, 160)) } else { (28.0, self.soul.glow) })
     }
 
     fn update(&mut self, world: &mut World, dt: f32) {
@@ -332,7 +364,9 @@ impl Entity for Companion {
             }
             "hawk" => draw_animal(batch, HAWK, feet + Vec2::new(0.0, 8.0), self.facing, (self.time * 6.0) as i32 % 3),
             _ => {
-                let src = IRect::new((self.time * 6.0) as i32 % 2 * 12, 0, 12, 14);
+                let size = art_combat::SPIRIT_SIZE;
+                let frame = (self.time * 7.0) as i32 % art_combat::SPIRIT_FRAMES;
+                let src = IRect::new(frame * size, 0, size, size);
                 let tex = art_combat::spirit(self.soul.id, self.soul.glow);
                 batch.draw_ex(
                     tex,
@@ -340,7 +374,7 @@ impl Entity for Companion {
                     Some(src),
                     Rgba::WHITE,
                     0.0,
-                    Vec2::new(6.0, 13.0),
+                    Vec2::new(size as f32 / 2.0, size as f32 - 1.0),
                     Vec2::ONE,
                     false,
                     false,

@@ -62,7 +62,7 @@ Overheat is gone. Its meter now builds the Aether instead.
 |---|---|---|---|---|
 | Prism Edge | First sigil | 3 blades at the nearest foes | 4 blades | 6 blades and an Aether burst |
 | Prism Ray | Third sigil | One beam along the aim | A wider, stronger beam | Three beams |
-| Sanctum | Awakening | Pulse, cleanse, brief ward | Longer ward | Long ward and 6% heal |
+| Sanctum | Awakening | Heal 6%; aura for all of Aether: blows at 70%, no ailments or blight, cleansing pulse every 2s | Heal 10%; blows at 60% | Heal 15%; blows at 50% |
 
 The form's level is 1 with one or two sigils, 2 with three or four, 3 once awakened.
 
@@ -116,7 +116,7 @@ The old elemental rings became the orbs (saves convert them). The Prism Band sta
   the guard weakens. Guard strength drops with each block and slowly while held, and recovers once the guard is
   lowered; at zero the guard breaks, stunning the hero and letting most of the hit through. A bar under the hero
   shows it.
-- Bolts come in three tiers: plain, charged and tempest (bigger, piercing, three bounces, 2.3 power). A bolt can
+- Bolts come in three tiers: plain, charged and tempest (bigger, piercing, 2.3 power); every bolt bounces off a wall at most once. A bolt can
   surge one tier stronger: Surging Shots (15%), Tempest Quiver (10%), Surge minors (1-3% each) and the Surging gem
   (25%) all stack.
 

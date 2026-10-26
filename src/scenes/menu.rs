@@ -7,12 +7,12 @@ use std::sync::LazyLock;
 use bevy::math::Vec2;
 
 use super::dialogue::DialogueScene;
+use super::menu_pages;
 use super::options::OptionsScene;
 use super::scene::{Scene, SceneCtx, world_below};
 use super::title::TitleScene;
 use super::weave::WeaveScene;
 use super::world::{SCREEN_HEIGHT, SCREEN_WIDTH, World};
-use crate::art::hero::{HeroPose, hero_sprite};
 use crate::art::{combat as combat_art, props};
 use crate::core::audio::{self, Sound};
 use crate::core::color::Rgba;
@@ -22,18 +22,22 @@ use crate::core::geom::IRect;
 use crate::core::gfx::{Batch, TexId};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
-use crate::gameplay::combat;
+use crate::entities::entity::Entity;
+use crate::entities::puzzles::SaveCrystal;
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{self, EnemyDef, QuestDef, data};
 use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::mastery;
 use crate::gameplay::supports::{self, Group};
-use crate::gameplay::{pacts, souls};
+use crate::gameplay::{collection, pacts, souls};
 use crate::scene_any;
+use crate::ui::widgets;
 
-const TABS: [&str; 9] = ["Items", "Gear", "Skills", "Spirit", "Weave", "Quests", "Foes", "Status", "System"];
-const TAB_BOX: IRect = IRect::new(12, 12, 92, 120);
+const TABS: [&str; 10] = ["Items", "Gear", "Skills", "Spirit", "Weave", "Quests", "Atlas", "Foes", "Status", "System"];
+const TAB_BOX: IRect = IRect::new(12, 12, 92, 132);
+/// Where the split tabs (Quests, Atlas, Foes) put their list and their detail panel.
+const LIST_W: i32 = 150;
 const CONTENT_BOX: IRect = IRect::new(110, 12, 358, 246);
 const VISIBLE_ROWS: usize = 14;
 /// Leaves room under the picker for a three-line description inside the content window.
@@ -60,6 +64,31 @@ struct Row {
     /// The socket this row fills, and whether it is still locked.
     socket: Option<(Element, Group, i32)>,
     locked: bool,
+    /// The colour of this row's icon frame (an item's kind, a form's glow).
+    accent: Option<Rgba>,
+    /// The part of `icon` to show, for icons cut from a sprite strip.
+    icon_src: Option<IRect>,
+}
+
+fn crystal_map_name(map: &str) -> String {
+    super::map_scene::map_name(map).unwrap_or_default()
+}
+
+/// Whether the hero stands at a save crystal, where Weave nodes can be unpicked.
+fn at_save_crystal(world: &World) -> bool {
+    world.entities_of::<SaveCrystal>().any(|c| c.base().pos.distance(world.hero.pos) < 48.0)
+}
+
+/// Cuts `text` with an ellipsis so it fits in `width` pixels.
+fn fit(text: &str, width: i32) -> String {
+    if font::measure(text) <= width {
+        return text.to_string();
+    }
+    let mut cut: String = text.to_string();
+    while !cut.is_empty() && font::measure(&format!("{cut}...")) > width {
+        cut.pop();
+    }
+    format!("{cut}...")
 }
 
 impl Row {
@@ -116,6 +145,7 @@ pub struct MenuScene {
     page: usize,
     time: f32,
     to_title: Rc<Cell<bool>>,
+    to_crystal: Rc<Cell<bool>>,
 }
 
 impl MenuScene {
@@ -132,6 +162,7 @@ impl MenuScene {
             page: 0,
             time: 0.0,
             to_title: Rc::new(Cell::new(false)),
+            to_crystal: Rc::new(Cell::new(false)),
         }
     }
 
@@ -144,16 +175,39 @@ impl MenuScene {
         pages.get(self.page.min(pages.len().saturating_sub(1))).copied().unwrap_or(Element::Wind)
     }
 
-    /// L and R (or left and right) turn the Skills tab's pages.
+    fn page_count(&self, state: &GameState) -> usize {
+        match self.tab_name() {
+            "Skills" => state.blade_pages().len(),
+            "Status" => menu_pages::status_pages(state).len(),
+            _ => 0,
+        }
+    }
+
+    fn split(&self) -> bool {
+        matches!(self.tab_name(), "Quests" | "Atlas" | "Foes")
+    }
+
+    fn visible_rows(&self) -> usize {
+        match self.tab_name() {
+            "Skills" => 9,
+            "Items" | "Spirit" | "Gear" => 9,
+            _ if self.split() => 13,
+            _ => VISIBLE_ROWS,
+        }
+    }
+
+    /// L and R (or left and right) turn the pages of the Skills and Status tabs.
     fn turn_page(&mut self, state: &GameState) {
-        let step = if input::pressed(GameAction::PrevMode) || input::pressed(GameAction::Left) {
-            -1
-        } else if input::pressed(GameAction::NextMode) || input::pressed(GameAction::Right) {
-            1
-        } else {
+        if self.page_count(state) == 0 {
             return;
+        }
+        let step = match input::page_turn() {
+            0 if input::pressed(GameAction::Left) => -1,
+            0 if input::pressed(GameAction::Right) => 1,
+            0 => return,
+            turn => turn,
         };
-        let count = state.blade_pages().len().max(1) as i32;
+        let count = self.page_count(state).max(1) as i32;
         self.page = (self.page.min(count as usize - 1) as i32 + step).rem_euclid(count) as usize;
         self.row = 0;
         self.scroll = 0;
@@ -166,8 +220,15 @@ impl MenuScene {
             "Gear" => gear_rows(state),
             "Skills" => skill_rows(state, self.page_mode(state)),
             "Spirit" => spirit_rows(state),
-            "Weave" => vec![Row::new("weave", "Open the Weave", format!("{} pts", state.weave_points()))],
+            "Weave" => Vec::new(),
             "Quests" => quest_rows(state),
+            "Atlas" => collection::regions(state)
+                .into_iter()
+                .map(|n| {
+                    let done = (collection::region_tally(state, n).progress() * 100.0).round() as i32;
+                    Row::new(n.id.clone(), n.name.clone(), format!("{done}%"))
+                })
+                .collect(),
             "Foes" => {
                 let mut foes: Vec<&EnemyDef> = state.kills.keys().filter_map(|id| data().enemies.get(id)).collect();
                 foes.sort_by_key(|d| d.level);
@@ -175,7 +236,14 @@ impl MenuScene {
                     .map(|d| Row::new(d.id.clone(), d.name.clone(), format!("x{}", state.kills[&d.id])))
                     .collect()
             }
-            "System" => vec![Row::new("options", "Options", ""), Row::new("title", "Return to title", "")],
+            "System" => {
+                let mut rows = vec![Row::new("options", "Options", "")];
+                if let Some((map, _, _)) = &state.last_crystal {
+                    rows.push(Row::new("crystal", "Return to last crystal", crystal_map_name(map)));
+                }
+                rows.push(Row::new("title", "Return to title", ""));
+                rows
+            }
             _ => Vec::new(),
         }
     }
@@ -252,10 +320,7 @@ impl MenuScene {
                 }
                 audio::sfx(Sound::MenuSelect);
             }
-            "Weave" => {
-                audio::sfx(Sound::MenuSelect);
-                return Some(Box::new(WeaveScene::new()));
-            }
+
             "Quests" => {
                 if let Some(quest) = data().quests.get(&row.id).filter(|q| !complete(state, q)) {
                     let tracked = state.tracked_quest.as_deref() == Some(quest.id.as_str());
@@ -266,6 +331,19 @@ impl MenuScene {
             "System" if row.id == "options" => {
                 audio::sfx(Sound::MenuSelect);
                 return Some(Box::new(OptionsScene::new()));
+            }
+            "System" if row.id == "crystal" => {
+                if world.boss.is_some() {
+                    audio::sfx(Sound::MenuCancel);
+                    return None;
+                }
+                audio::sfx(Sound::MenuSelect);
+                let to_crystal = self.to_crystal.clone();
+                return Some(Box::new(DialogueScene::ask(
+                    "Return to the last save crystal you used? You keep everything you carry.".into(),
+                    String::new(),
+                    Box::new(move |_, yes| to_crystal.set(yes)),
+                )));
             }
             "System" => {
                 audio::sfx(Sound::MenuSelect);
@@ -380,7 +458,6 @@ impl MenuScene {
                 None => String::new(),
             },
             "Foes" => data().enemies.get(&row.id).map(|foe| describe_foe(state, foe)).unwrap_or_default(),
-            "Weave" => "Spend Weave points on stats and passives.".into(),
             "Skills" if row.socket.is_some() => match state.sockets.get(row.id.trim_start_matches("socket|")) {
                 Some(id) if !row.locked => {
                     format!("{} Confirm to change.", state.item_description(id))
@@ -446,18 +523,17 @@ impl MenuScene {
             batch.draw(combat_art::emblem(page), Vec2::new(x + 2.0, cy + 8.0), tint);
         }
         if pages.len() > 1 {
-            let prev = input::glyph(GameAction::PrevMode);
-            let next = input::glyph(GameAction::NextMode);
+            let (prev, next) = input::page_glyphs();
             font::draw(
                 batch,
-                &prev,
-                Vec2::new(start - 8.0 - font::measure(&prev) as f32, cy + 13.0),
+                prev,
+                Vec2::new(start - 8.0 - font::measure(prev) as f32, cy + 13.0),
                 palette::TEXT_DIM,
                 None,
             );
             font::draw(
                 batch,
-                &next,
+                next,
                 Vec2::new(start + pages.len() as f32 * spacing + 4.0, cy + 13.0),
                 palette::TEXT_DIM,
                 None,
@@ -491,69 +567,122 @@ impl MenuScene {
         let rows = self.rows(state);
         let content = CONTENT_BOX;
         let (cx, cy) = (content.x as f32, content.y as f32);
-        let skills = self.tab_name() == "Skills";
-        let (top, spacing) = if skills { (60.0, 21.0) } else { (10.0, 14.0) };
         let shadow = Some(palette::TEXT_SHADOW);
+        let skills = self.tab_name() == "Skills";
+        let slots = matches!(self.tab_name(), "Skills" | "Items" | "Spirit" | "Gear");
+        let split = self.split();
+        let (top, spacing) = if skills {
+            (60.0, 21.0)
+        } else if slots {
+            (12.0, 21.0)
+        } else {
+            (10.0, 14.0)
+        };
+        let right = if split { content.x + LIST_W } else { content.right() - 12 };
         if rows.is_empty() {
             font::draw(batch, "Nothing here yet.", Vec2::new(cx + 12.0, cy + 10.0), palette::TEXT_DIM, None);
             return;
         }
-        for (i, row) in rows.iter().enumerate().skip(self.scroll).take(VISIBLE_ROWS) {
+        for (i, row) in rows.iter().enumerate().skip(self.scroll).take(self.visible_rows()) {
             let y = cy + top + (i - self.scroll) as f32 * spacing;
             if row.header {
-                if let Some(icon) = row.icon {
-                    let pos = Vec2::new(cx + 10.0, y - 3.0);
-                    batch.draw_ex(icon, pos, None, Rgba::WHITE, 0.0, Vec2::ZERO, Vec2::splat(0.7), false, false);
+                if i + 1 < self.scroll + self.visible_rows() {
+                    widgets::section(batch, &row.label, Vec2::new(cx + 10.0, y), right);
                 }
-                let x = cx + if row.icon.is_some() { 26.0 } else { 12.0 };
-                font::draw(batch, &row.label, Vec2::new(x, y), palette::TEXT_DIM, shadow);
                 continue;
             }
-            if skills {
-                // Each socket is a small frame holding its gem; locked ones stay dark.
-                let frame = IRect::new(cx as i32 + 18, y as i32 - 5, 18, 18);
-                let mode = self.page_mode(state);
-                let border = if row.locked { palette::WINDOW_BORDER.mul(0.3) } else { mode.glow().mul(0.7) };
-                batch.fill(frame, if row.locked { Rgba::BLACK.mul(0.35) } else { palette::WINDOW_FILL_LIGHT.mul(0.4) });
-                batch.draw_rect(frame, border);
-                if row.locked {
+            let selected = self.in_list && i == self.row;
+            if selected {
+                let band = IRect::new(
+                    content.x + 6,
+                    y as i32 - if slots { 6 } else { 2 },
+                    right - content.x - 4,
+                    if slots { 20 } else { 12 },
+                );
+                batch.fill(band, palette::WINDOW_FILL_LIGHT.mul(0.8));
+            }
+            let mut text_x = cx + 20.0;
+            if slots {
+                let accent = row.accent.or_else(|| skills.then(|| self.page_mode(state).glow()));
+                widgets::icon_slot(batch, Vec2::new(cx + 18.0, y - 5.0), None, accent, row.locked);
+                if row.locked && skills {
                     font::draw(batch, "x", Vec2::new(cx + 25.0, y), palette::TEXT_DIM, None);
                 }
-            }
-            if let Some(icon) = row.icon {
-                let at = if skills { Vec2::new(cx + 19.0, y - 4.0) } else { Vec2::new(cx + 20.0, y - 2.0) };
-                let scale = if skills && row.mode.is_some() { 16.0 / 18.0 } else { 1.0 };
-                batch.draw_ex(icon, at, None, Rgba::WHITE, 0.0, Vec2::ZERO, Vec2::splat(scale), false, false);
+                if let Some(icon) = row.icon {
+                    let (w, h) = crate::core::gfx::size(icon);
+                    let src = row.icon_src.unwrap_or(IRect::new(0, 0, w, h));
+                    let scale = (16.0 / src.w.max(src.h) as f32).min(1.0);
+                    let at = Vec2::new(
+                        cx + 18.0 + (18.0 - src.w as f32 * scale) / 2.0,
+                        y - 5.0 + (18.0 - src.h as f32 * scale) / 2.0,
+                    );
+                    batch.draw_ex(icon, at, Some(src), Rgba::WHITE, 0.0, Vec2::ZERO, Vec2::splat(scale), false, false);
+                }
+                text_x = cx + 44.0;
+            } else if self.tab_name() == "Foes"
+                && let Some(foe) = data().enemies.get(&row.id)
+            {
+                menu_pages::foe_icon(batch, foe, Vec2::new(cx + 16.0, y - 4.0));
+                text_x = cx + 36.0;
+            } else if self.tab_name() == "Atlas"
+                && let Some(node) = menu_pages::region_by_id(&row.id)
+            {
+                batch.fill(IRect::new(cx as i32 + 18, y as i32 + 1, 5, 5), menu_pages::kind_color(&node.kind));
+                text_x = cx + 28.0;
+            } else if self.tab_name() == "Quests" && row.marked {
+                font::draw(batch, "*", Vec2::new(cx + 18.0, y), palette::HIGHLIGHT, None);
+                text_x = cx + 28.0;
             }
             let color = if row.marked { palette::HIGHLIGHT } else { palette::TEXT };
-            let label_x = if skills { cx + 44.0 } else { cx + 36.0 };
-            font::draw(batch, &row.label, Vec2::new(label_x, y), color, shadow);
+            let room = right - text_x as i32 - if row.detail.is_empty() { 0 } else { font::measure(&row.detail) + 6 };
+            let label = fit(&row.label, room);
+            font::draw(batch, &label, Vec2::new(text_x, y), color, shadow);
             if !row.detail.is_empty() {
-                let pos = Vec2::new((content.right() - 12 - font::measure(&row.detail)) as f32, y);
-                let color = if self.tab_name() == "Items" || row.locked || row.detail == "empty" {
+                let color = if matches!(self.tab_name(), "Items" | "Foes" | "Atlas" | "Quests")
+                    || row.locked
+                    || row.detail == "empty"
+                {
                     palette::TEXT_DIM
                 } else {
                     palette::HIGHLIGHT
                 };
-                font::draw(batch, &row.detail, pos, color, None);
+                widgets::right_text(batch, &row.detail, right as f32, y, color);
             }
-            if self.in_list && i == self.row {
-                font::draw(batch, &CURSOR.to_string(), Vec2::new(cx + 10.0, y), palette::HIGHLIGHT, None);
+            if selected {
+                font::draw(batch, &CURSOR.to_string(), Vec2::new(cx + 8.0, y), palette::HIGHLIGHT, None);
             }
         }
-        let arrow_x = (content.right() - 12) as f32;
+        let arrow_x = (right - 4) as f32;
         if self.scroll > 0 {
             font::draw(batch, "^", Vec2::new(arrow_x, cy + 3.0), palette::TEXT_DIM, None);
         }
-        if self.scroll + VISIBLE_ROWS < rows.len() {
+        if self.scroll + self.visible_rows() < rows.len() {
             font::draw(batch, "v", Vec2::new(arrow_x, (content.bottom() - 12) as f32), palette::TEXT_DIM, None);
         }
 
-        if self.in_list && self.row < rows.len() {
-            let lines = font::wrap(&self.describe(state, &rows[self.row]), content.w - 20);
+        let current = rows.get(self.row).filter(|r| !r.header && (self.in_list || split));
+        if split {
+            batch.fill(
+                IRect::new(content.x + LIST_W + 8, content.y + 8, 1, content.h - 16),
+                palette::WINDOW_BORDER.mul(0.4),
+            );
+            let area = IRect::new(
+                content.x + LIST_W + 18,
+                content.y + 10,
+                content.right() - 10 - (content.x + LIST_W + 18),
+                content.h - 20,
+            );
+            let row = current.or_else(|| rows.iter().find(|r| !r.header));
+            if let Some(row) = row {
+                self.draw_detail(batch, state, row, area);
+            }
+            return;
+        }
+        if let Some(row) = current {
+            let lines = font::wrap(&self.describe(state, row), content.w - 20);
             let count = lines.len() as i32;
-            let rule = IRect::new(content.x + 6, content.bottom() - 10 - count * 11, content.w - 12, 1);
-            batch.fill(rule, palette::WINDOW_BORDER.mul(0.4));
+            let rule = content.bottom() - 10 - count * 11;
+            widgets::rule(batch, content.x + 6, rule, content.w - 12);
             for (i, line) in lines.iter().enumerate() {
                 let y = (content.bottom() - 6 - (count - i as i32) * 11) as f32;
                 font::draw(batch, line, Vec2::new(cx + 10.0, y), palette::TEXT_DIM, None);
@@ -561,6 +690,66 @@ impl MenuScene {
         }
     }
 
+    /// The right-hand panel of the split tabs: a foe's bestiary page, a region's atlas page or a quest's stages.
+    fn draw_detail(&self, batch: &mut Batch, state: &GameState, row: &Row, area: IRect) {
+        match self.tab_name() {
+            "Foes" => {
+                if let Some(foe) = data().enemies.get(&row.id) {
+                    menu_pages::draw_foe(batch, state, foe, area, self.time);
+                }
+            }
+            "Atlas" => {
+                if let Some(node) = menu_pages::region_by_id(&row.id) {
+                    menu_pages::draw_region(batch, state, node, area);
+                }
+            }
+            "Quests" => {
+                let Some(quest) = data().quests.get(&row.id) else { return };
+                let (x, mut y) = (area.x as f32, area.y as f32);
+                for line in font::wrap(&quest.title, area.w).iter().take(2) {
+                    font::draw(batch, line, Vec2::new(x, y), palette::HIGHLIGHT, Some(palette::TEXT_SHADOW));
+                    y += 11.0;
+                }
+                font::draw(
+                    batch,
+                    &format!("{}  -  {}", quest.giver, quest.region),
+                    Vec2::new(x, y),
+                    palette::TEXT_DIM,
+                    None,
+                );
+                y += 16.0;
+                let mut reached = true;
+                for stage in &quest.stages {
+                    if !reached {
+                        break;
+                    }
+                    let done = state.check(stage.done.as_deref());
+                    reached = done;
+                    let mark = IRect::new(area.x, y as i32 + 1, 6, 6);
+                    batch.fill(mark, if done { palette::EXPERIENCE } else { Rgba::BLACK.mul(0.4) });
+                    batch.draw_rect(mark, palette::WINDOW_BORDER.mul(0.6));
+                    let color = if done { palette::TEXT_DIM } else { palette::TEXT };
+                    for line in font::wrap(&stage.text, area.w - 12) {
+                        font::draw(batch, &line, Vec2::new(x + 12.0, y), color, None);
+                        y += 11.0;
+                    }
+                    y += 3.0;
+                }
+                if !quest.reward.is_empty() {
+                    widgets::section(batch, "Reward", Vec2::new(x, y + 4.0), area.right());
+                    for (i, line) in font::wrap(&quest.reward, area.w).iter().enumerate() {
+                        font::draw(batch, line, Vec2::new(x, y + 17.0 + i as f32 * 11.0), palette::GOLD, None);
+                    }
+                }
+                if !complete(state, quest) {
+                    let tracked = state.tracked_quest.as_deref() == Some(quest.id.as_str());
+                    let hint = if tracked { "Tracked".to_string() } else { "Confirm to track".to_string() };
+                    font::draw(batch, &hint, Vec2::new(x, (area.bottom() - 10) as f32), palette::TEXT_DIM, None);
+                }
+            }
+            _ => {}
+        }
+    }
     fn draw_choices(&self, state: &GameState, batch: &mut Batch) {
         let shown = self.pick_choices.len().min(VISIBLE_CHOICES);
         let rect = IRect::new(CONTENT_BOX.x + 40, CONTENT_BOX.y + 70, 280, 24 + shown as i32 * 13);
@@ -592,56 +781,6 @@ impl MenuScene {
             }
         }
     }
-
-    fn draw_status(&self, batch: &mut Batch, s: &GameState) {
-        let mode = s.mode;
-        let (x, y) = ((CONTENT_BOX.x + 14) as f32, (CONTENT_BOX.y + 10) as f32);
-        let crystals: Vec<&str> = [("ember_crystal", "Ember"), ("tide_crystal", "Tide"), ("storm_crystal", "Storm")]
-            .into_iter()
-            .filter(|c| s.has(c.0))
-            .map(|c| c.1)
-            .collect();
-        let movement: Vec<&str> = [
-            s.can_jump().then_some("Rabbit Boots"),
-            s.has_tether().then_some("Tether"),
-            s.has("gale_dash").then_some("Gale Boots"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
-        let foc = s.foc(mode);
-        let rows: [(&str, String, Rgba); 13] = [
-            ("Level", s.level.to_string(), palette::TEXT),
-            (
-                "Experience",
-                if s.level >= combat::MAX_LEVEL { "MAX".into() } else { format!("{} / {}", s.exp, s.exp_to_next()) },
-                palette::EXPERIENCE,
-            ),
-            ("Life", format!("{} / {}", s.hp, s.max_hp()), palette::LIFE),
-            ("SP", format!("{} / {}", s.sp as i32, s.max_sp() as i32), Rgba::rgb(120, 220, 255)),
-            ("Mode", format!("{}  (mastery {})", mode.mode_label(), s.mastery_level(mode)), mode.glow()),
-            ("Attack", format!("{}", s.atk(mode).round()), palette::TEXT),
-            ("Defense", format!("{}", s.def(mode).round()), palette::TEXT),
-            (
-                "Focus",
-                format!("{}  ({}% crit)", foc.round(), (combat::crit_chance(foc) * 100.0).round()),
-                palette::TEXT,
-            ),
-            ("Dodges", s.dodge_charges().to_string(), palette::TEXT),
-            ("Blade", if s.smith_level > 0 { format!("+{}", s.smith_level) } else { "Unforged".into() }, palette::TEXT),
-            ("Movement", if movement.is_empty() { "-".into() } else { movement.join(", ") }, palette::TEXT),
-            ("Life Shards", format!("{} / 4", s.life_shards() % 4), palette::LIFE),
-            ("Crystals", if crystals.is_empty() { "None".into() } else { crystals.join(", ") }, palette::HIGHLIGHT),
-        ];
-        for (i, (label, value, color)) in rows.iter().enumerate() {
-            let row_y = y + i as f32 * 13.0;
-            font::draw(batch, label, Vec2::new(x, row_y), palette::TEXT_DIM, None);
-            font::draw(batch, value, Vec2::new(x + 90.0, row_y), *color, Some(palette::TEXT_SHADOW));
-        }
-        let feet = Vec2::new((CONTENT_BOX.right() - 50) as f32, (CONTENT_BOX.y + 80) as f32);
-        let frame = (self.time / 0.6) as i32 % 2;
-        hero_sprite::draw(batch, feet, Direction::Down, HeroPose::Idle, frame, Rgba::WHITE, false, 3.0, 0.0);
-    }
 }
 
 fn item_rows(state: &GameState) -> Vec<Row> {
@@ -660,11 +799,22 @@ fn item_rows(state: &GameState) -> Vec<Row> {
             }));
         }
         let counted = matches!(item.kind, ItemKind::Consumable | ItemKind::Material)
-            || item.id == "life_shard"
-            || item.id == "weave_knot"
-            || item.id == "aether_mote";
+            || matches!(
+                item.id,
+                "life_shard" | "weave_knot" | "aether_mote" | "aether_conduit" | "insight_tome" | "spirit_pip"
+            );
         let detail = if counted { format!("x{}", state.count(item.id)) } else { String::new() };
-        rows.push(Row { icon: Some(props::icon(item.id)), ..Row::new(item.id, item.name, detail) });
+        let accent = match item.kind {
+            ItemKind::Consumable => Rgba::rgb(120, 220, 120),
+            ItemKind::Material => Rgba::rgb(120, 200, 230),
+            ItemKind::Powerup => Rgba::rgb(210, 150, 255),
+            _ => palette::GOLD,
+        };
+        rows.push(Row {
+            icon: Some(props::icon(item.id)),
+            accent: Some(accent),
+            ..Row::new(item.id, item.name, detail)
+        });
     }
     rows
 }
@@ -758,12 +908,12 @@ fn quest_rows(state: &GameState) -> Vec<Row> {
     }
     rows.extend(active.iter().map(|q| Row {
         marked: state.tracked_quest.as_deref() == Some(q.id.as_str()),
-        ..Row::new(q.id.clone(), q.title.clone(), q.region.clone())
+        ..Row::new(q.id.clone(), q.title.clone(), "")
     }));
     if !done.is_empty() {
         rows.push(Row::header("Completed"));
     }
-    rows.extend(done.iter().map(|q| Row::new(q.id.clone(), q.title.clone(), "Done")));
+    rows.extend(done.iter().map(|q| Row::new(q.id.clone(), q.title.clone(), "")));
     rows
 }
 
@@ -833,6 +983,15 @@ impl Scene for MenuScene {
             ctx.replace(TitleScene::new());
             return;
         }
+        if self.to_crystal.take() {
+            close(ctx);
+            if let Some(world) = ctx.world()
+                && let Some((map, x, y)) = world.state.last_crystal.clone()
+            {
+                world.begin_warp(&map, (x, y + 1), Direction::Down, true);
+            }
+            return;
+        }
         let Some(world) = ctx.world() else { return };
         if self.pick_slot.is_some() {
             self.update_choice(&mut world.state);
@@ -844,15 +1003,20 @@ impl Scene for MenuScene {
             return;
         }
 
-        if self.tab_name() == "Skills" {
-            self.turn_page(&world.state);
-        }
+        self.turn_page(&world.state);
         if !self.in_list {
             if move_index(&mut self.tab, TABS.len()) {
                 self.row = 0;
                 self.scroll = 0;
+                self.page = 0;
             }
             let rows = self.rows(&world.state);
+            if self.tab_name() == "Weave" && input::pressed(GameAction::Confirm) {
+                audio::sfx(Sound::MenuSelect);
+                let scene = if at_save_crystal(world) { WeaveScene::at_crystal() } else { WeaveScene::new() };
+                ctx.push(scene);
+                return;
+            }
             if input::pressed(GameAction::Confirm) && rows.iter().any(|r| !r.header) {
                 self.in_list = true;
                 self.row = rows.iter().position(|r| !r.header).unwrap_or(0);
@@ -878,7 +1042,7 @@ impl Scene for MenuScene {
                 self.row = if forward { (self.row + 1) % count } else { (self.row + count - 1) % count };
             }
         }
-        self.scroll = self.scroll.clamp((self.row + 1).saturating_sub(VISIBLE_ROWS), self.row);
+        self.scroll = self.scroll.clamp((self.row + 1).saturating_sub(self.visible_rows()), self.row);
         if input::pressed(GameAction::Cancel) {
             self.in_list = false;
             audio::sfx(Sound::MenuCancel);
@@ -905,7 +1069,7 @@ impl Scene for MenuScene {
             font::draw(batch, &CURSOR.to_string(), Vec2::new(tx + 7.0, ty + 7.0 + self.tab as f32 * 12.0), color, None);
         }
 
-        let info = IRect::new(12, 138, 92, 70);
+        let info = IRect::new(12, 150, 92, 70);
         batch.draw_window(info);
         let ix = (info.x + 6) as f32;
         for (i, line) in font::wrap(world.map_name(), info.w - 12).iter().take(2).enumerate() {
@@ -917,12 +1081,31 @@ impl Scene for MenuScene {
 
         batch.draw_window(CONTENT_BOX);
         if self.tab_name() == "Status" {
-            self.draw_status(batch, state);
+            let pages = menu_pages::status_pages(state);
+            let page = self.page.min(pages.len() - 1);
+            menu_pages::page_strip(
+                batch,
+                (CONTENT_BOX.x + CONTENT_BOX.w / 2) as f32,
+                (CONTENT_BOX.y + 6) as f32,
+                &pages,
+                page,
+            );
+            widgets::rule(batch, CONTENT_BOX.x + 6, CONTENT_BOX.y + 34, CONTENT_BOX.w - 12);
+            let area = IRect::new(CONTENT_BOX.x + 4, CONTENT_BOX.y + 42, CONTENT_BOX.w - 8, CONTENT_BOX.h - 48);
+            match page.checked_sub(1).and_then(|i| state.owned_modes().get(i).copied()) {
+                Some(mode) => menu_pages::draw_build(batch, state, mode, area),
+                None => menu_pages::draw_hero(batch, state, area, self.time),
+            }
         } else {
             if self.tab_name() == "Skills" {
                 self.draw_skill_page(batch, state);
             }
-            self.draw_list(batch, state);
+            if self.tab_name() == "Weave" {
+                let area = IRect::new(CONTENT_BOX.x + 4, CONTENT_BOX.y + 8, CONTENT_BOX.w - 8, CONTENT_BOX.h - 14);
+                menu_pages::draw_weave(batch, state, area, at_save_crystal(world));
+            } else {
+                self.draw_list(batch, state);
+            }
         }
         if self.pick_slot.is_some() {
             self.draw_choices(state, batch);
@@ -934,11 +1117,29 @@ impl Scene for MenuScene {
 fn spirit_rows(state: &GameState) -> Vec<Row> {
     let current = state.soul.as_deref().unwrap_or(souls::SPIRIT.id);
     let forms = std::iter::once(&souls::SPIRIT).chain(state.souls_owned.iter().filter_map(|id| souls::get(id)));
-    let mut rows: Vec<Row> =
-        forms.map(|form| Row { marked: form.id == current, ..Row::new(form.id, form.name, "Form") }).collect();
+    let mut rows = vec![Row::header("Forms")];
+    rows.extend(
+        forms
+            .map(|form| {
+                let (icon, src) = crate::entities::companion::form_icon(form.id, form.glow);
+                (form, icon, src)
+            })
+            .map(|(form, icon, src)| Row {
+                marked: form.id == current,
+                icon: Some(icon),
+                icon_src: Some(src),
+                accent: Some(form.glow),
+                ..Row::new(form.id, form.name, if form.id == current { "Active" } else { "" })
+            }),
+    );
+    rows.push(Row::header("Charms"));
     for (slot, charm) in state.spirit_charms.iter().enumerate() {
-        let name = charm.as_deref().map_or("(empty)".to_string(), items::name_of);
-        rows.push(Row::new(format!("charm{slot}"), format!("Charm {}", ["I", "II"][slot]), name));
+        let name = charm.as_deref().map_or("empty".to_string(), items::name_of);
+        rows.push(Row {
+            icon: charm.as_deref().map(props::icon),
+            accent: Some(palette::GOLD),
+            ..Row::new(format!("charm{slot}"), format!("Charm {}", ["I", "II"][slot]), name)
+        });
     }
     rows
 }

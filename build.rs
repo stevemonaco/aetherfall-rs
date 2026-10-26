@@ -43,4 +43,21 @@ fn main() {
 
     let out = Path::new(&std::env::var("OUT_DIR").unwrap()).join("content.rs");
     std::fs::write(out, code).unwrap();
+
+    // The commit the game was built from, for the balancing log; "+dirty" when there were uncommitted changes.
+    println!("cargo:rerun-if-changed=.git/HEAD");
+    println!("cargo:rerun-if-changed=.git/index");
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .args(args)
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+    };
+    let mut commit = git(&["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "unknown".into());
+    if git(&["status", "--porcelain", "--untracked-files=no"]).is_some_and(|s| !s.is_empty()) {
+        commit.push_str("+dirty");
+    }
+    println!("cargo:rustc-env=GAME_COMMIT={commit}");
 }

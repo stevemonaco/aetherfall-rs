@@ -23,6 +23,23 @@ pub fn write(key: &str, text: &str) {
     let _ = std::fs::write(p, text);
 }
 
+/// Appends one line to a `.jsonl` log beside the saves.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn append_line(name: &str, line: &str) {
+    use std::io::Write;
+    let p = path(name).with_extension("jsonl");
+    if let Some(dir) = p.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(p) {
+        let _ = writeln!(file, "{line}");
+    }
+}
+
+/// The web build keeps no logs.
+#[cfg(target_arch = "wasm32")]
+pub fn append_line(_name: &str, _line: &str) {}
+
 #[cfg(target_arch = "wasm32")]
 fn local_storage() -> Option<web_sys::Storage> {
     web_sys::window()?.local_storage().ok()?

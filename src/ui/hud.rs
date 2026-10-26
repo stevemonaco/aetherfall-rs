@@ -198,7 +198,9 @@ fn draw_soul(batch: &mut Batch, world: &World) {
         false,
     );
     let soul = companion.soul();
-    batch.draw_src(art::spirit(soul.id, soul.glow), at, Some(IRect::new(0, 0, 12, 14)), Rgba::WHITE);
+    let (icon, src) = crate::entities::companion::form_icon(soul.id, soul.glow);
+    let scale = 14.0 / src.w.max(src.h) as f32;
+    batch.draw_ex(icon, at, Some(src), Rgba::WHITE, 0.0, Vec2::ZERO, Vec2::splat(scale), false, false);
     bar(batch, at.x as i32, at.y as i32 + 16, 13, 1, companion.readiness(world), soul.glow);
     if !world.state.souls_owned.is_empty() {
         font::draw(
@@ -368,7 +370,7 @@ pub fn draw_aim(batch: &mut Batch, world: &World, player: &Player) {
     let mut pos = player.center() + player.aim * 6.0;
     let mut dir = player.aim;
     let charged = player.throw_charge() >= 1.0;
-    let mut bounces = if charged { 2 } else { 1 };
+    let mut bounces = 1;
     let range = if charged { 240.0 } else { 150.0 };
     let color = world.state.mode.light().mul(0.45 + player.throw_charge() * 0.4);
     let t = TILE as f32;

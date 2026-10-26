@@ -282,18 +282,7 @@ impl Entity for TileObstacle {
                 }
                 self.resist()
             }
-            ObstacleKind::ShockLock => {
-                if matches!(hit.element, Element::Thunder | Element::Aether) {
-                    self.charge += 1.0;
-                    self.shake = 0.15;
-                    Particle::burst(world, self.area().center(), Element::Thunder.glow(), 6, 40.0, 0.3, true);
-                    if self.charge >= 1.0 {
-                        self.clear(world, Sound::Break, Rgba::rgb(255, 240, 140));
-                    }
-                    return true;
-                }
-                self.resist()
-            }
+            ObstacleKind::ShockLock => self.resist(),
             ObstacleKind::Rock => {
                 let windy = matches!(hit.element, Element::Wind | Element::Aether);
                 if (windy && charged) || (hit.kind == HitKind::Environment && hit.power >= 1.0) {

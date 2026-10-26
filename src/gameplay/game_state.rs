@@ -28,6 +28,10 @@ pub const SLOT_COUNT: i32 = 8;
 pub struct GameState {
     pub version: i32,
     pub slot: i32,
+    /// Set when a game begins, so each playthrough (even one that later overwrites its slot) keeps its own log.
+    pub run_id: String,
+    /// The save crystal last used, as (map, tile x, tile y), for the menu's way back to it.
+    pub last_crystal: Option<(String, i32, i32)>,
     pub map_id: String,
     pub x: Option<f32>,
     pub y: Option<f32>,
@@ -78,6 +82,8 @@ impl Default for GameState {
         GameState {
             version: SAVE_VERSION,
             slot: 1,
+            run_id: String::new(),
+            last_crystal: None,
             map_id: "vault".into(),
             x: None,
             y: None,
@@ -702,11 +708,15 @@ impl GameState {
             || id.strip_prefix("soul_").is_some_and(|s| self.souls_owned.iter().any(|o| o == s))
     }
 
-    /// Evaluates a condition such as `"met_elder,!has:wind_sigil"`: comma-separated terms that must all hold. A bare word is a
+    /// Evaluates a condition such as `"met_elder,!has:wind_sigil"`: comma-separated terms that must all hold, or several such
+    /// groups split by `|`, any of which may hold. A bare word is a
     /// story flag; `has:` checks the inventory, `level:` a minimum level, `gold:` a minimum purse and `crystals:` how
     /// many great crystals are held.
     pub fn check(&self, condition: Option<&str>) -> bool {
         let Some(condition) = condition.filter(|c| !c.trim().is_empty()) else { return true };
+        if condition.contains('|') {
+            return condition.split('|').any(|alternative| self.check(Some(alternative)));
+        }
         for raw in condition.split(',').map(str::trim).filter(|t| !t.is_empty()) {
             let (negate, term) = match raw.strip_prefix('!') {
                 Some(t) => (true, t),

@@ -141,6 +141,11 @@ pub fn exp_to_next(level: i32) -> i32 {
     (((50.0 + 30.0 * (level as f32).powf(1.8)) / 10.0).round() * 10.0) as i32
 }
 
+/// All the experience earned to reach `level` with `exp` toward the next.
+pub fn total_exp(level: i32, exp: i32) -> i64 {
+    (1..level).map(|l| exp_to_next(l) as i64).sum::<i64>() + exp as i64
+}
+
 pub fn player_base_hp(level: i32) -> f32 {
     82.0 + 10.5 * level as f32
 }
@@ -174,7 +179,7 @@ pub fn enemy_foc(level: i32) -> f32 {
 }
 
 pub fn enemy_exp(level: i32) -> f32 {
-    1.6 * (level as f32).powf(1.5)
+    1.85 * (level as f32).powf(1.5)
 }
 
 /// Over-levelled players earn much less and under-levelled ones a little more, so farming weak areas fades quickly.

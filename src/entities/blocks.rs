@@ -125,17 +125,10 @@ impl Entity for IceBlock {
     }
 
     fn added(&mut self, world: &mut World) {
+        // Only a block lost down a pit is remembered; any other block is back at its start whenever the room reloads.
         let Some(prefix) = self.prefix() else { return };
         if world.state.flags.contains(&format!("{prefix}gone")) {
             self.base.removed = true;
-            return;
-        }
-        let saved = world.state.flags.iter().find(|f| f.starts_with(&prefix)).cloned();
-        if let Some(place) =
-            saved.and_then(|s| s[prefix.len()..].split_once('_').map(|(x, y)| (x.parse().ok(), y.parse().ok())))
-            && let (Some(x), Some(y)) = place
-        {
-            self.base.pos = tile_center(x, y) + Vec2::new(0.0, 8.0);
         }
     }
 
@@ -193,8 +186,6 @@ impl Entity for IceBlock {
                 }
             }
             self.slide = Vec2::ZERO;
-            let rest = ((self.base.pos.x / T).floor() as i32, ((self.base.pos.y - 6.0) / T).floor() as i32);
-            self.remember(world, &format!("{}_{}", rest.0, rest.1));
         }
     }
 

@@ -11,7 +11,7 @@
     "#############__#############",
     "#############__#############",
     "#___#__________________#___#",
-    "#__________________________#",
+    "#___ __________________ ___#",
     "#___#__________________#___#",
     "#___#___ _mmmmmmmm_ ___#___#",
     "#####___ _mmmmmmmm_ ___#####",
@@ -19,9 +19,9 @@
     "#####__________________#####",
     "#####__________________#####",
     "#############__#############",
-    "#mmmmm#_#####__#############",
-    "#mmmmm__#__________#########",
-    "#~~~~~#_#__________#########",
+    "#######_#####__#############",
+    "#___~~#_#__________#########",
+    "####~~#_#__________#########",
     "#~~~~~#_#__________#########",
     "#~~~~~#_#__________#########",
     "#~~~~~#_#__________#########",
@@ -30,6 +30,10 @@
     "#############__#############"
   ],
   "entities": [
+    {"type": "turbine", "x": 2.0, "y": 7.0, "flag": "spire_dyn_w", "timer": 6},
+    {"type": "turbine", "x": 25.0, "y": 7.0, "flag": "spire_dyn_e", "timer": 6},
+    {"type": "switch", "x": 13.0, "y": 4.0, "flag": "spire_switch", "message": "The gate's chains lock in place."},
+    {"type": "shocklock", "x": 3.0, "y": 16.0, "flag": "spire_1_conductor"},
     {
       "type": "warp",
       "x": 13.0,
@@ -41,38 +45,12 @@
       "sound": "door",
       "to": "ridge"
     },
-    {
-      "type": "barrier",
-      "x": 4.0,
-      "y": 7.0,
-      "element": "water"
-    },
-    {"type": "chest", "x": 2.0, "y": 7.0, "item": "storm_glass", "count": 2, "style": 0},
-    {
-      "type": "barrier",
-      "x": 23.0,
-      "y": 7.0,
-      "element": "water"
-    },
-    {
-      "type": "switch",
-      "x": 25.0,
-      "y": 8.0,
-      "message": "Gears grind somewhere above.",
-      "flag": "spire_switch"
-    },
-    {
-      "type": "gate",
-      "x": 13.0,
-      "y": 5.0,
-      "open": "spire_switch"
-    },
-    {
-      "type": "gate",
-      "x": 14.0,
-      "y": 5.0,
-      "open": "spire_switch"
-    },
+    
+    {"type": "chest", "x": 1.0, "y": 8.0, "item": "storm_glass", "count": 2},
+    
+    
+    {"type": "gate", "x": 13.0, "y": 5.0, "open": "spire_dyn_w,spire_dyn_e|spire_switch"},
+    {"type": "gate", "x": 14.0, "y": 5.0, "open": "spire_dyn_w,spire_dyn_e|spire_switch"},
     {
       "type": "warp",
       "x": 13.0,
@@ -136,8 +114,8 @@
       "y": 12.0,
       "kind": "stormeye"
     },
-    {"type": "turbine", "x": 5.0, "y": 15.0, "flag": "spire_1_fan", "timer": 4},
-    {"type": "gate", "x": 6.0, "y": 16.0, "open": "spire_1_fan"},
-    {"type": "chest", "x": 2.0, "y": 16.0, "item": "gemcutter_prism"}
+    
+    
+    {"type": "chest", "x": 1.0, "y": 16.0, "item": "gemcutter_prism", "style": 2}
   ]
 }

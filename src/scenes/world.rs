@@ -32,6 +32,7 @@ use crate::gameplay::pacts;
 use crate::gameplay::rank::CombatRank;
 use crate::gameplay::skills;
 use crate::gameplay::souls;
+use crate::gameplay::telemetry::Telemetry;
 use crate::gameplay::trial_mods::{self, TrialMod};
 use crate::gameplay::weave::Trigger;
 use crate::world::ambience::Ambience;
@@ -79,6 +80,9 @@ pub enum WorldRequest {
 /// Builds an overlay scene once it is its turn to show.
 pub type Overlay = Box<dyn FnOnce(&mut World) -> Box<dyn Scene>>;
 
+/// The share of normal experience golden rift foes pay.
+const TRIAL_EXP: f32 = 0.25;
+
 /// What a defeated enemy leaves behind.
 pub struct KillInfo {
     pub def: &'static EnemyDef,
@@ -111,6 +115,7 @@ pub struct World {
     pub toasts: Vec<(String, f32)>,
     /// The hardships rolled for the Trial Rift the hero is in.
     pub trial_mods: Vec<TrialMod>,
+    pub telemetry: Telemetry,
 
     trial_tick: f32,
     pub requests: Vec<WorldRequest>,
@@ -149,7 +154,11 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(state: GameState, auto_save: bool) -> World {
+    pub fn new(mut state: GameState, auto_save: bool) -> World {
+        if state.run_id.is_empty() {
+            state.run_id = Telemetry::new_run_id();
+        }
+        let telemetry = Telemetry::new(auto_save, state.slot, &state.run_id);
         World {
             state,
             data: MapData::default(),
@@ -167,6 +176,7 @@ impl World {
             companion: None,
             toasts: Vec::new(),
             trial_mods: Vec::new(),
+            telemetry,
             trial_tick: 0.0,
             requests: Vec::new(),
             auto_save,
@@ -301,7 +311,7 @@ impl World {
     /// How far from the player foes can be seen on a cloaked map, or None when the map is not cloaked.
     pub fn cloak_radius(&self) -> Option<f32> {
         self.data.cloaked.then(|| {
-            56.0 + if self.state.soul.as_deref() == Some("lantern") { 44.0 } else { 0.0 }
+            56.0 + if self.state.soul.as_deref() == Some("lantern") { 88.0 } else { 0.0 }
                 + if self.state.accessories.iter().any(|a| a.as_deref() == Some("night_eye")) { 36.0 } else { 0.0 }
         })
     }
@@ -460,7 +470,8 @@ impl World {
             self.state.flags.insert(format!("visited:{id}"));
             self.state.flags.insert(format!("crystal:{id}:{cx}_{cy}"));
         }
-        self.state.flags.insert(format!("seen:{id}"));
+        let first = self.state.flags.insert(format!("seen:{id}"));
+        self.telemetry.enter(id, self.area_level(), first);
         match self.data.blight_area.clone() {
             None => self.run_area = None,
             Some(area) if self.run_area.as_ref() != Some(&area) => self.begin_run(&area, false),
@@ -607,6 +618,8 @@ impl World {
     pub fn update(&mut self, raw_dt: f32) {
         self.time += raw_dt as f64;
         self.state.play_time += raw_dt as f64;
+        let aether = self.player.as_ref().is_some_and(|p| p.aether_active());
+        self.telemetry.tick(&self.state, raw_dt, aether);
         self.banner_time = (self.banner_time - raw_dt).max(0.0);
         self.saved_flash = (self.saved_flash - raw_dt).max(0.0);
         self.flash_time = (self.flash_time - raw_dt).max(0.0);
@@ -1371,6 +1384,7 @@ impl World {
     }
 
     pub fn reward_kill(&mut self, kill: KillInfo) {
+        self.telemetry.kill();
         let weight = if kill.boss {
             5.0
         } else if kill.elite {
@@ -1387,10 +1401,15 @@ impl World {
         multiplier *= pacts::reward_multiplier(&self.state);
         multiplier *= trial_mods::reward_multiplier(&self.trial_mods);
         let elite = if kill.elite { 3.0 } else { 1.0 };
-        let exp = (combat::enemy_exp(kill.level)
+        // Golden rift waves climb above the arena's level (and far above it at Heat); they pay as foes of the arena's
+        // own level, with no under-level bonus, at a fraction of the usual rate so a run can't outpace whole acts.
+        let trial = self.data.id.starts_with("trial_");
+        let exp_level = if trial { kill.level.min(self.data.level) } else { kill.level };
+        let gap = combat::exp_gap_factor(exp_level, self.state.level);
+        let exp = (combat::enemy_exp(exp_level)
             * kill.def.exp
             * elite
-            * combat::exp_gap_factor(kill.level, self.state.level)
+            * if trial { gap.min(1.0) * TRIAL_EXP } else { gap }
             * self.state.acc().exp
             * multiplier)
             .round() as i32;
@@ -1447,12 +1466,16 @@ impl World {
             return;
         }
         self.game_over = true;
+        self.telemetry.death();
+        self.telemetry.leave();
         audio::play_music(None);
         let state = self.checkpoint.clone().unwrap_or_else(|| self.state.clone());
         self.requests.push(WorldRequest::GameOver(Box::new(state)));
     }
 
     pub fn on_boss_defeated(&mut self, boss_flag: &str) {
+        let area_level = self.area_level();
+        self.telemetry.beaten("boss", boss_flag, serde_json::json!({ "area_level": area_level }));
         let heat = pacts::heat(&self.state);
         if heat > 0 {
             let prefix = format!("heat:{boss_flag}=");

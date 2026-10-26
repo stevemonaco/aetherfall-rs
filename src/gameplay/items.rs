@@ -313,10 +313,10 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
         item(
             "aether_conduit",
             "Aether Conduit",
-            Key,
+            Powerup,
             0,
             0,
-            "A Concord conduit fitted to the blade's hilt. The Aether meter needs 8% less to fill.",
+            "A Concord conduit fitted to the blade's hilt. Each one makes the Aether meter need 8% less to fill.",
         ),
         item("grotto_key", "Grotto Key", Key, 0, 0, "Opens the sealed door in the Mossy Grotto."),
         item("temple_key", "Coral Key", Key, 0, 0, "Opens a sealed door in the Sunken Temple."),

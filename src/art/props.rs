@@ -10,8 +10,8 @@ use crate::core::color::{Rgba, c};
 use crate::core::gfx::{self, TexId};
 use crate::core::noise;
 use crate::core::palette;
-use crate::gameplay::items;
 use crate::gameplay::supports::{self, Group};
+use crate::gameplay::{items, souls};
 
 pub(crate) const LEAF: [Rgba; 5] = [c(0x0F2A1E), c(0x1E5130), c(0x2F7A3C), c(0x57A84A), c(0x9AD66A)];
 pub(crate) const STONE: [Rgba; 4] = [c(0x2A2630), c(0x56505E), c(0x837C8A), c(0xB4AEB8)];
@@ -553,6 +553,73 @@ pub fn npc_marker(gift: bool) -> TexId {
     })
 }
 
+fn misc_icon(cv: &mut Canvas, id: &str) {
+    let bottle = |cv: &mut Canvas, liquid: Rgba| {
+        cv.rect(5, 1, 2, 2, WOOD[2]).rect(4, 3, 4, 1, c(0xC8D0E0)).ellipse(6.0, 7.5, 4.0, 3.5, liquid);
+        cv.rect(4, 6, 2, 2, liquid.lerp(Rgba::WHITE, 0.6));
+    };
+    let shard = |cv: &mut Canvas, hi: Rgba, mid: Rgba, lo: Rgba| {
+        cv.pattern(
+            3,
+            1,
+            "..#...|.#h#..|#hmm#.|#mml#.|.#ml#.|..#l#.|...#..",
+            &[('#', lo.lerp(palette::OUTLINE, 0.5)), ('h', hi), ('m', mid), ('l', lo)],
+        );
+    };
+    match id {
+        "potion" => bottle(cv, c(0xE04050)),
+        "spirit_tonic" => bottle(cv, c(0x50B8F0)),
+        "cooling_salve" => bottle(cv, c(0x70E0C0)),
+        "life_shard" => shard(cv, c(0xFFC0C8), c(0xF04858), c(0x901828)),
+        "spirit_pip" => shard(cv, c(0xE0F8FF), c(0x70C8F8), c(0x2860A8)),
+        "ember_shard" => shard(cv, c(0xFFE080), c(0xF88830), c(0xA03010)),
+        "frost_core" => shard(cv, c(0xF0FCFF), c(0xA8E0F8), c(0x4888C0)),
+        "storm_glass" => shard(cv, c(0xFFFCD0), c(0xF8E060), c(0x907818)),
+        "gemcutter_prism" => {
+            cv.pattern(
+                2,
+                1,
+                "...##...|..#ww#..|..#wc#..|.#wwcc#.|.#wcyy#.|#wcyypp#|########",
+                &[('#', c(0x5A6080)), ('w', Rgba::WHITE), ('c', c(0x9AE8FF)), ('y', c(0xFFE878)), ('p', c(0xF896D8))],
+            );
+        }
+        "aether_conduit" => {
+            cv.circle(6.0, 6.0, 5.0, c(0x5A2E8A)).circle(6.0, 6.0, 3.0, c(0xC890FF));
+            cv.rect(5, 1, 2, 10, c(0xE8D0FF).mul(0.8));
+        }
+        "aether_tether" => {
+            cv.line(2, 10, 7, 5, c(0xC8B0FF)).line(3, 10, 8, 5, c(0x7A60C0));
+            cv.pattern(6, 1, "####.|...##|....#|#..##|.###.", &[('#', c(0xE0E0F0))]);
+        }
+        "gale_dash" => {
+            cv.rect(3, 2, 4, 7, c(0x58C890)).rect(3, 8, 8, 3, c(0x58C890)).rect(3, 2, 4, 1, c(0xB8F8D8));
+            cv.line(0, 4, 2, 4, c(0xD8FFF0)).line(0, 7, 2, 7, c(0xD8FFF0));
+        }
+        "gold" => {
+            cv.circle(6.0, 6.0, 4.5, c(0xB08A20)).circle(6.0, 6.0, 3.5, c(0xF8D040));
+            cv.rect(5, 4, 2, 4, c(0xFFF0A0));
+        }
+        "slime_gel" => {
+            cv.ellipse(6.0, 7.5, 5.0, 3.5, c(0x58D060)).ellipse(6.0, 6.0, 3.5, 3.0, c(0x88F088));
+            cv.set(4, 5, Rgba::WHITE);
+        }
+        "beast_fang" => {
+            cv.pattern(4, 1, "####|#ww#|#ww#|.#w#|.#w#|..##|..#.", &[('#', c(0x8A7A60)), ('w', c(0xF8F0D8))]);
+        }
+        "tide_pearl" => {
+            cv.circle(6.0, 6.5, 4.5, c(0xC8D8E8)).circle(6.0, 6.5, 3.5, c(0xF4F8FF));
+            cv.set(4, 4, Rgba::WHITE);
+            cv.set(5, 4, Rgba::WHITE);
+        }
+        "concord_alloy" => {
+            cv.rect(1, 5, 10, 5, c(0x7A8098)).rect(2, 4, 8, 1, c(0xB8C0D8)).rect(2, 5, 8, 1, c(0xD8E0F0));
+        }
+        _ => {
+            cv.circle(6.0, 6.0, 4.0, if id == "blight_core" { c(0x8030A0) } else { Rgba::GRAY });
+        }
+    }
+}
+
 pub fn cave_mouth() -> TexId {
     gfx::cached("cave_mouth", || {
         let mut cv = Canvas::new(32, 24);
@@ -1006,7 +1073,6 @@ pub fn icon(id: &str) -> TexId {
                     "..##....|.#oo#...|#yooo#..|#yoorr#.|.#orr#..|..#r#...|...#....",
                     &[('#', c(0x6A1A10)), ('o', c(0xFF8A30)), ('y', c(0xFFF0A0)), ('r', c(0xC83A20))],
                 );
-                cv.rect(4, 9, 6, 2, c(0xFF8A30).mul(0.5));
             }
             "gale_orb" | "flame_orb" | "tide_orb" | "storm_orb" => {
                 let gem = relic_color(id);
@@ -1078,10 +1144,12 @@ pub fn icon(id: &str) -> TexId {
                     &[('#', lo), ('m', mid), ('h', hi), ('l', lo)],
                 );
             }
-            "scale_armor" | "frost_plate" | "aether_mail" => {
+            "scale_armor" | "frost_plate" | "aether_mail" | "glass_mail" | "blight_plate" => {
                 let plate = match id {
                     "scale_armor" => c(0x2E8A8A),
                     "frost_plate" => c(0xA8D8F4),
+                    "glass_mail" => c(0xC8F0F8),
+                    "blight_plate" => c(0x7A3A9A),
                     _ => c(0xE8E0FF),
                 };
                 cv.rect(2, 2, 8, 9, plate)
@@ -1090,18 +1158,30 @@ pub fn icon(id: &str) -> TexId {
                     .rect(4, 2, 4, 2, palette::OUTLINE)
                     .rect(5, 5, 2, 5, plate.lerp(Rgba::WHITE, 0.4));
             }
-            "coral_shield" | "storm_shield" | "sacred_shield" => {
+            "coral_shield" | "storm_shield" | "sacred_shield" | "ember_shield" => {
                 let face = match id {
                     "coral_shield" => c(0xF07A6A),
                     "storm_shield" => c(0x6A70C0),
+                    "ember_shield" => c(0xE85A28),
                     _ => c(0xF0F0FF),
                 };
                 cv.rect(2, 1, 8, 6, face).ellipse(6.0, 7.0, 4.0, 4.0, face).rect(5, 2, 2, 8, c(0xE8C050));
             }
             "power_charm" | "guard_charm" | "swift_anklet" | "focus_band" | "fortune_coin" | "scholar_lens"
             | "sage_pendant" | "vampire_fang" | "feather_charm" | "salamander_scale" | "ember_crown"
-            | "tide_locket" | "night_eye" | "storm_greaves" | "corsair_coin" | "concord_core" => {
+            | "tide_locket" | "night_eye" | "storm_greaves" | "corsair_coin" | "concord_core" | "verdant_charm"
+            | "mentor_ribbon" | "cool_stone" | "lodestone" | "wind_feather" | "parry_ring" | "phoenix_plume"
+            | "guardian_charm" | "storm_charm" => {
                 let accent = match id {
+                    "verdant_charm" => c(0x58C850),
+                    "mentor_ribbon" => c(0xE8C050),
+                    "cool_stone" => c(0x88D8F0),
+                    "lodestone" => c(0x707888),
+                    "wind_feather" => c(0xB8F0D0),
+                    "parry_ring" => c(0xD0D8E8),
+                    "phoenix_plume" => c(0xFF7838),
+                    "guardian_charm" => c(0x9AB8FF),
+                    "storm_charm" => c(0xF8E878),
                     "power_charm" => c(0xE84040),
                     "guard_charm" => c(0x4A80E8),
                     "swift_anklet" => c(0x6AE0A0),
@@ -1148,8 +1228,11 @@ pub fn icon(id: &str) -> TexId {
                     cv.circle(6.0, 6.0, 5.0, dark).circle(6.0, 6.0, 3.5, glow);
                     cv.line(6, 3, 6, 9, glow.lerp(Rgba::WHITE, 0.6)).line(3, 6, 9, 6, glow.lerp(Rgba::WHITE, 0.6));
                     cv.set(6, 6, Rgba::WHITE);
+                } else if let Some(form) = id.strip_prefix("soul_").and_then(souls::get) {
+                    cv.circle(6.0, 6.0, 5.0, form.glow.mul(0.6)).circle(6.0, 5.5, 3.5, form.glow);
+                    cv.circle(6.0, 5.0, 1.5, form.glow.lerp(Rgba::WHITE, 0.7));
                 } else {
-                    cv.circle(6.0, 6.0, 4.0, if id == "blight_core" { c(0x8030A0) } else { Rgba::GRAY });
+                    misc_icon(&mut cv, id);
                 }
             }
         }

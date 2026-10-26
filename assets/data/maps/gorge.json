@@ -2,7 +2,7 @@
   "name": "Rimewater Gorge",
   "theme": "snow",
   "music": "Action-ChallengeFate",
-  "level": 19,
+  "level": 21,
   "rows": [
     "###################::###################",
     "###################::###################",
@@ -116,7 +116,7 @@
     {"type":"decor","x":15.0,"y":25.0,"kind":"tree"},
     {"type":"decor","x":25.0,"y":27.0,"kind":"boulder"},
     {"type":"decor","x":20.0,"y":15.0,"kind":"boulder"},
-    {"type":"decor","x":6.0,"y":15.0,"kind":"tree"},
+    
     {"type":"decor","x":27.0,"y":16.0,"kind":"tree"},
     {"type":"decor","x":7.0,"y":3.0,"kind":"tree"},
     {"type":"decor","x":25.0,"y":2.0,"kind":"boulder"},

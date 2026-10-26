@@ -78,13 +78,6 @@
       "style": 3
     },
     {
-      "type": "barrier",
-      "x": 13.0,
-      "y": 7.0,
-      "charge": 2,
-      "element": "wind"
-    },
-    {
       "type": "warp",
       "x": 13.0,
       "y": 1.0,

@@ -14,6 +14,11 @@ mod content {
 pub use content::IMAGE_FILES;
 
 /// The text of an embedded data file, e.g. `data/maps/fields.json`.
+/// Every embedded data file as (path, text).
+pub fn files() -> impl Iterator<Item = (&'static str, &'static str)> {
+    content::DATA_FILES.iter().copied()
+}
+
 pub fn file(path: &str) -> Option<&'static str> {
     content::DATA_FILES.iter().find(|(p, _)| *p == path).map(|(_, text)| *text)
 }

@@ -170,61 +170,91 @@ fn portal(key: &str, ramp: [Rgba; 4], core: Rgba) -> TexId {
     })
 }
 
-/// A small glowing spirit in two frames of 12x14, shaped for each soul.
+/// Frames in each spirit sprite strip, and their size.
+pub const SPIRIT_FRAMES: i32 = 4;
+pub const SPIRIT_SIZE: i32 = 16;
+
+/// The guardian spirit's own shapes in four 16x16 frames: a tailed wisp, a lantern with a living flame, an ember imp,
+/// and simple orbs for the charm spirits.
 pub fn spirit(id: &str, glow: Rgba) -> TexId {
     gfx::cached(&format!("spirit_{id}"), || {
-        let mut cv = Canvas::new(24, 14);
+        let s = SPIRIT_SIZE;
+        let mut cv = Canvas::new(s * SPIRIT_FRAMES, s);
         let light = glow.lerp(Rgba::WHITE, 0.6);
         let dark = glow.lerp(palette::OUTLINE, 0.5);
-        for f in 0..2 {
-            let ox = f * 12;
+        for f in 0..SPIRIT_FRAMES {
+            let ox = f * s;
+            let phase = f as f32 * std::f32::consts::FRAC_PI_2;
             match id {
                 "lantern" => {
-                    cv.rect(ox + 4, 2, 4, 1, dark).rect(ox + 3, 3, 6, 7, glow).rect(ox + 4, 4, 4, 5, light).rect(
-                        ox + 4,
-                        10,
-                        4,
+                    let bronze = c(0x8A5A2A);
+                    let brass = c(0xD8A050);
+                    let glass = c(0xFFD070).mul(0.85);
+                    let swing = if f % 2 == 0 { 0 } else { 1 };
+                    cv.rect(ox + 6 + swing, 0, 4, 1, brass).rect(ox + 5 + swing, 1, 1, 2, brass).rect(
+                        ox + 10 + swing,
                         1,
-                        dark,
+                        1,
+                        2,
+                        brass,
                     );
-                    cv.set(ox + 5, 1 - f, dark);
+                    cv.rect(ox + 4, 3, 8, 2, bronze).rect(ox + 5, 3, 6, 1, brass);
+                    cv.rect(ox + 4, 5, 8, 7, glass).rect(ox + 5, 6, 6, 5, c(0xFFE8A8));
+                    let flicker = [0.0, 0.6, -0.3, 0.4][f as usize];
+                    cv.ellipse(ox as f32 + 8.0 + flicker * 0.5, 8.5, 1.8, 2.6 + flicker * 0.4, c(0xFF9A30));
+                    cv.ellipse(ox as f32 + 8.0 + flicker * 0.5, 9.0, 0.9, 1.5, Rgba::WHITE);
+                    cv.rect(ox + 4, 5, 1, 7, bronze).rect(ox + 11, 5, 1, 7, bronze).rect(ox + 7, 5, 2, 1, bronze);
+                    cv.rect(ox + 5, 12, 6, 2, bronze).rect(ox + 6, 14, 4, 1, brass);
                 }
                 "ember" => {
-                    for y in 1..13 {
-                        let half = ((y - 1) / 3 - if y > 9 { y - 9 } else { 0 }).max(0);
-                        cv.rect(
-                            ox + 6 - half + if y < 4 { f } else { 0 },
-                            y,
-                            half * 2 + 1,
-                            1,
-                            if y < 6 { light } else { glow },
-                        );
+                    let deep = c(0xC02810);
+                    let fire = c(0xFF7020);
+                    let hot = c(0xFFD050);
+                    let tongues = [[3, 6, 4], [5, 3, 6], [4, 5, 3], [6, 4, 5]][f as usize];
+                    for (i, h) in tongues.iter().enumerate() {
+                        let x = ox + 4 + i as i32 * 3;
+                        cv.rect(x, 9 - h, 2, *h, if i == 1 { hot } else { fire });
+                        cv.set(x + (f + i as i32) % 2, 8 - h, fire.mul(0.7));
                     }
+                    cv.ellipse(ox as f32 + 8.0, 10.5, 4.5, 4.0, deep).ellipse(ox as f32 + 8.0, 10.0, 3.5, 3.0, fire);
+                    cv.ellipse(ox as f32 + 8.0, 10.5, 2.0, 1.8, hot);
+                    cv.set(ox + 6, 10, palette::OUTLINE);
+                    cv.set(ox + 10, 10, palette::OUTLINE);
+                    cv.set(ox + 2 + (f * 3) % 12, 1 + f % 3, hot);
                 }
-                "guardian" => {
-                    cv.ellipse((ox + 6) as f32, 7.0, 5.0, 5.5, glow)
-                        .ellipse((ox + 6) as f32, 7.0, 3.0, 3.5, light)
-                        .rect(ox + 5, 4, 2, 6, Rgba::WHITE);
-                }
-                "stormling" => {
-                    cv.circle((ox + 6) as f32, 7.0, 4.5, glow).circle((ox + 6) as f32, 7.0, 2.5, light);
-                    for (dx, dy) in [(-5, -1), (5, 1), (0, -6), (-1, 6)] {
-                        cv.set(ox + 6 + dx + f, 7 + dy, light);
+                "guardian" | "stormling" => {
+                    let r = 4.5 + if f % 2 == 0 { 0.0 } else { 0.5 };
+                    cv.circle(ox as f32 + 8.0, 8.0, r, glow).circle(ox as f32 + 8.0, 8.0, r - 2.0, light);
+                    for k in 0..4 {
+                        let a = phase + k as f32 * std::f32::consts::FRAC_PI_2;
+                        cv.set(ox + 8 + (a.cos() * 7.0) as i32, 8 + (a.sin() * 7.0) as i32, light);
                     }
                 }
                 _ => {
-                    cv.ellipse((ox + 6) as f32, 6.0, 4.5, 5.0, glow).ellipse((ox + 6) as f32, 5.0, 3.0, 3.5, light);
-                    cv.rect(ox + 3 + f, 10, 2, 3, glow).rect(ox + 7 - f, 10, 2, 2, glow);
+                    for i in 0..4 {
+                        let t = i as f32;
+                        let sway = (phase + t * 0.9).sin() * (1.0 + t * 0.6);
+                        cv.ellipse(
+                            ox as f32 + 8.0 + sway,
+                            9.0 + t * 1.8,
+                            3.6 - t * 0.8,
+                            2.2,
+                            if i == 0 { glow } else { glow.mul(0.85) },
+                        );
+                    }
+                    cv.ellipse(ox as f32 + 8.0, 6.0, 5.0, 4.8, glow).ellipse(ox as f32 + 7.0, 5.0, 3.0, 2.8, light);
+                    cv.set(ox + 5, 4, Rgba::WHITE);
+                    cv.set(ox + 6, 6, palette::OUTLINE);
+                    cv.set(ox + 10, 6, palette::OUTLINE);
+                    cv.set(ox + 6, 5, dark);
+                    cv.set(ox + 10, 5, dark);
                 }
             }
-            cv.set(ox + 7, 6, palette::OUTLINE);
-            cv.set(ox + 5, 6, palette::OUTLINE);
         }
         cv.outline_with(glow.lerp(palette::OUTLINE, 0.75));
         cv
     })
 }
-
 /// A rock tile matching a theme's cliffs, for hidden walls.
 pub fn secret_rock(theme: &str) -> TexId {
     gfx::cached(&format!("secret_{theme}"), || {

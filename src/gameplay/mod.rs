@@ -1,4 +1,5 @@
 pub mod blight_areas;
+pub mod collection;
 pub mod combat;
 pub mod element;
 pub mod game_data;
@@ -11,5 +12,6 @@ pub mod skills;
 pub mod souls;
 pub mod status;
 pub mod supports;
+pub mod telemetry;
 pub mod trial_mods;
 pub mod weave;
