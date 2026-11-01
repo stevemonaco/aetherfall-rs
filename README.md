@@ -1,51 +1,67 @@
-# Aetherfall (Rust / Bevy)
+# Aetherfall
 
-A port of [Aetherfall](https://github.com/stevemonaco/aetherfall) from C# / MonoGame to Rust and Bevy 0.20, with one
-codebase that runs natively and in the browser. Content tooling stays in the C# repository: its PowerShell map
-scripts write the JSON copied under `assets/data`, and `assets/external` is the private `aetherfall-resources`
-submodule (licensed sprites and music; keep this repository private).
+An action RPG of crystals, storms and sky-cities. Wake the dormant Aether Blade, master four elements, and restore the
+towns the rifts tore apart. Built in Rust with [Bevy](https://bevyengine.org/).
 
-## Status
+## Play
 
-The whole game is ported: all acts and side zones, all seven bosses (including the Echo remixes), the Bastion's
-eras, the Aether Tether puzzles, the Blighted expeditions with their grades, and the Hollow Below.
+- **In your browser:** [stevemonaco.github.io/aetherfall-rs](https://stevemonaco.github.io/aetherfall-rs/)
+- **Windows:** download the latest `win-x64` zip from [Releases](https://github.com/stevemonaco/aetherfall-rs/releases),
+  extract it anywhere and run `aetherfall.exe`.
 
-Since the port, the combat systems have been reworked here (the C# game stays at 2.0); see
-[docs/combat-rework.md](docs/combat-rework.md):
+Saves and settings are kept in `%APPDATA%\Aetherfall\rs` on Windows and in browser storage on the web.
 
-- The hero wakes with the dormant Aether Blade and can't attack until the first sigil wakes it. Each sigil unlocks
-  one of four element modes (there is no neutral mode); holding the mode key opens a quick-change wheel.
-- Landing hits fills the Aether meter, which grows with every sigil. Taking hits drains progress until it locks in
-  (after a few seconds unhurt, or at once on a finisher). When it brims, Aether wakes for a few seconds: hits may
-  pierce to the target's weakness and the hero is hard to hurt. Corvin's forge awakens the blade for a stronger Aether.
-- Each element grows its own mastery, which teaches its second and third skills. Its orb and bracer, found far from
-  its sigil, open charge levels 2 and 3.
-- One skill per mode on a single button: tap for level 1, hold (the world slows) for levels 2 and 3.
-- The Weave is a lattice of about 180 passives on a grid, themed by playstyle rather than element, unpicked for free
-  at save crystals. A full playthrough fills only about 60% of it.
-- Slower levelling, tougher monsters and less life for the hero. Elites carry affixes, roam the world in packs and
-  bring escorts out of elite rifts.
-- Eight more zones; every act's dungeon now lies a journey away from its town.
-- 34 new foes and nine new enemy attacks (mortars, hooks, whirls, healers and warders among them).
-- Support gems socket into each mode's attack, ranged and special groups; they come from golden rifts: themed arenas
-  holding one great breach of escalating waves, rolled hardships and a Rift Champion.
-- Rifts are breaches: come near and a fixed swarm pours out; beat it, stand in the rift to seal it, and watch the town
-  piece come back in a short cutscene.
-- Gemcutter's Prisms hone support gems through Cut, Polished, Flawless and Perfect tiers.
-- The pause menu pages through each element's skills and sockets, sums up each mode's build on the Status tab, keeps
-  a bestiary of weaknesses and drops under Foes, and tracks every region's chests, Prisms and rifts in the Atlas.
-- Dungeons have signature puzzle mechanics (wind, water, conduction, past and present), plus element crystals and toggle
-  switches; the map screen charts the current area.
-- A guardian spirit fights beside the hero and learns beast forms (Hound, Hawk, Lantern Wisp, Ember Sprite), each with
-  an auto-attack and an exploration perk; charms change every form.
-- Guarding wears down and lets damage through unless it is timed; bolts can surge into stronger tiers.
-- The Hall of Echoes (an Echo Stone by the Leafhollow shrine) has training dummies that show damage per second.
-- The Memory Lens is gone: eras open at memory crystals, and crystals outside the Bastion need an Aether Mote.
+## Controls
 
-Map and dialogue data in `assets/data` started identical to the C# game's and now differs where the rework needed
-it (sigils, the trials, the training hall, orbs and bracers, the Weave, memory crystals and the new zones).
+| Action                     | Keyboard and mouse  | Gamepad             |
+| -------------------------- | ------------------- | ------------------- |
+| Move                       | WASD / arrows       | Left stick          |
+| Aim                        | Mouse               | Right stick         |
+| Melee (and talk)           | J or right click    | A                   |
+| Throw (hold to charge)     | K or left click     | RT                  |
+| Dodge                      | Space               | B                   |
+| Guard (tap early to parry) | Shift               | LT                  |
+| Jump                       | C or L              | Y                   |
+| Tether                     | F or I              | X                   |
+| Skill (hold to charge)     | R                   | RB                  |
+| Element mode               | Q / E, wheel, 1-4   | LB                  |
+| Map                        | M                   | Back                |
+| Menu                       | Esc / Tab           | Start               |
 
-## Running
+F11 toggles fullscreen.
+
+## Features
+
+- **The Aether Blade.** The hero wakes with a dormant blade that each sigil awakens a little further. Every sigil
+  unlocks an element mode, and holding the mode key opens a quick-change wheel.
+- **Aether.** Landing hits fills the Aether meter; taking hits drains it until the progress locks in. When it brims,
+  Aether wakes for a few seconds: hits pierce to the target's weakness and the hero is hard to hurt.
+- **Elemental mastery.** Each element grows its own mastery and teaches new skills. Tap the skill button for level 1,
+  or hold it while the world slows to charge levels 2 and 3, unlocked by orbs and bracers hidden far from each sigil.
+- **The Weave.** A lattice of about 180 passives themed by playstyle, free to re-pick at any save crystal. A full
+  playthrough fills only about 60% of it.
+- **Support gems.** Socket gems into each mode's attack, ranged and special groups, and hone them through Cut,
+  Polished, Flawless and Perfect tiers with Gemcutter's Prisms.
+- **Rifts.** Come near a rift and a swarm pours out. Beat it, seal the rift, and watch a piece of the town come back.
+  Golden rifts are themed arenas of escalating waves, rolled hardships and a Rift Champion.
+- **Elites and bosses.** Elites carry affixes and roam in packs, and seven bosses wait at the ends of the acts, with
+  Echo remixes to face later.
+- **A guardian spirit** fights beside the hero and learns beast forms (Hound, Hawk, Lantern Wisp, Ember Sprite), each
+  with its own attack and an exploration perk.
+- **Dungeons** each have a signature puzzle mechanic: wind, water, conduction, or past and present.
+- **Beyond the main story:** side zones, the Bastion's eras, Aether Tether puzzles, Blighted expeditions, the Hollow
+  Below, and the Hall of Echoes for testing builds on training dummies.
+- **The pause menu** pages through each element's skills and sockets, keeps a bestiary of weaknesses and drops, and
+  tracks every region's chests, Prisms and rifts in the Atlas.
+
+## Building from source
+
+The source is public, but the game can't be built in full from this repository. Its sprites and music are licensed
+third-party assets that can't be redistributed, so they live in a private submodule (`assets/external`) and ship only
+inside the official releases. The web and Windows builds are produced by `.github/workflows/release.yml` whenever a
+`v*` tag is pushed.
+
+With access to the assets:
 
 ```powershell
 git clone --recursive https://github.com/stevemonaco/aetherfall-rs.git
@@ -54,7 +70,21 @@ cargo run
 
 Running the built exe directly needs `BEVY_ASSET_ROOT` set to the project folder (`cargo run` sets it).
 
-Test switches (native only), matching the C# game:
+For the web build:
+
+```powershell
+rustup target add wasm32-unknown-unknown
+cargo install --locked trunk
+trunk serve                        # http://127.0.0.1:8080
+trunk build --release              # static site in dist/
+```
+
+Releases copy the licensed files in scrambled (`tools/pack-assets.ps1`, which needs `pwsh`) and enable the
+`packed-assets` feature, which unscrambles them as they load. The assets are never shipped as standalone files.
+
+### Test switches
+
+Native builds accept these switches for testing:
 
 ```text
 --map <id> [--at x,y]        start on a map, optionally at a tile
@@ -72,42 +102,43 @@ Test switches (native only), matching the C# game:
 --mute
 ```
 
-F1 toggles hitboxes, F2 gains a level, F3 refills SP, F5 reloads the map, F11 toggles fullscreen and F12 saves a
-screenshot.
-
-### Web
-
-```powershell
-rustup target add wasm32-unknown-unknown
-cargo install --locked trunk
-trunk serve                        # http://127.0.0.1:8080
-trunk build --release              # static site in dist/
-```
-
-`dist/` contains the licensed sprites and music, so it must not be published anywhere public.
+In game, F1 toggles hitboxes, F2 gains a level, F3 refills SP, F5 reloads the map and F12 saves a screenshot.
 
 ### Balancing log
 
 Normal play appends events to one log per playthrough, `%APPDATA%\Aetherfall\rs\telemetry\slotN_RUN.jsonl`, each line
-stamped with the game version and the commit it was built from (`+dirty` for uncommitted builds): the hero's level on
-first entering each zone and on beating each rift, golden rift and boss (with how long it took), and per-visit zone
-summaries of XP and gold gained, damage by element and attack kind, kills, deaths and Aether uptime. Test runs log
-nothing. Summarise with `pwsh tools/telemetry-report.ps1` (`-Slot n`, `-Commit abc123`).
+stamped with the game version and the commit it was built from (`+dirty` for uncommitted builds). It records the hero's
+level on first entering each zone and on beating each rift, golden rift and boss (with how long it took), plus
+per-visit zone summaries of XP and gold gained, damage by element and attack kind, kills, deaths and Aether uptime. Test
+runs log nothing. Summarise with `pwsh tools/telemetry-report.ps1` (`-Slot n`, `-Commit abc123`).
 
-## How the port is organised
+## Code layout
 
-The C# game is an object model drawn through MonoGame's SpriteBatch, and the port keeps that shape so the code ports
-almost line for line. Bevy is the platform: window, input, audio, assets, GPU rendering and the web target.
+The game is an object model that records each frame into a draw list; Bevy is the platform underneath, providing the
+window, input, audio, assets, GPU rendering and the web target. One codebase runs natively and in the browser.
 
-- `core/` – colours, the pixel canvas, textures and the `Batch` draw list (SpriteBatch), the bitmap font, input
-  mapping and scripts, synthesized sound effects and music control, settings and storage.
+- `core/` – colours, the pixel canvas, textures and the `Batch` draw list, the bitmap font, input mapping and scripts,
+  synthesized sound effects and music control, settings and storage.
 - `world/` – map data, the per-pixel terrain baker, themes, water, chemistry, lighting, weather, camera.
 - `art/` – procedural sprites (props, combat effects, bosses) and the person rig used by the hero and villagers.
-- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Weave, the guardian spirit's forms, pacts, and
-  enemy and dialogue data.
-- `entities/` – the player, enemies and bosses, projectiles, effects, props, puzzles, rifts, the guardian spirit. Entities are
-  updated one at a time with exclusive access to the rest of the world; reactions to an entity mid-update (a parry,
-  a reflected shot) travel back through the `Hit` it passed.
+- `gameplay/` – the save state, combat formulas, items, skills, supports, mastery, the Weave, the guardian spirit's
+  forms, pacts, and enemy and dialogue data.
+- `entities/` – the player, enemies and bosses, projectiles, effects, props, puzzles, rifts, the guardian spirit.
+  Entities are updated one at a time with exclusive access to the rest of the world; reactions to an entity mid-update
+  (a parry, a reflected shot) travel back through the `Hit` it passed.
 - `scenes/` – the world, dialogue, menus, shops, the title screen and the rest of the scene stack.
 - `platform.rs` – the Bevy app: asset preloading, turning each frame's draw list into sprites, the multiplied light
   map, device input, audio playback and the command-line switches.
+- `packed_assets.rs` – the asset reader that unscrambles the licensed files in release builds.
+
+Map, dialogue, enemy and quest data live as JSON in `assets/data` and are compiled into the game.
+
+## Credits
+
+- Monsters and objects: "RPG Graphics - Sprites Pack" by Henrique Lazarini (7Soul), licensed
+  [CC BY-ND 4.0](https://creativecommons.org/licenses/by-nd/4.0/)
+- Animals: "Animals RPG Sprites" (GameDev Market)
+- Music: "16-Bit Fantasy Action Music Pack" by Joel Steudler; "Retro Music Pack" by JDB
+- Engine: [Bevy](https://bevyengine.org/)
+
+Everything else (the hero, terrain, effects, bosses and sound effects) is generated procedurally in code.
