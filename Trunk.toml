@@ -1,0 +1,4 @@
+[[hooks]]
+stage = "post_build"
+command = "pwsh"
+command_arguments = ["-NoProfile", "-File", "tools/pack-assets.ps1"]

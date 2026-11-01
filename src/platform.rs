@@ -226,44 +226,46 @@ pub fn run() {
     }
 
     let fullscreen = settings::current().fullscreen && options.shot.is_none();
-    App::new()
-        .add_plugins((
-            DefaultPlugins
-                .set(ImagePlugin::default_nearest())
-                .set(AssetPlugin { meta_check: AssetMetaCheck::Never, ..default() })
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Aetherfall".into(),
-                        resolution: WindowResolution::new(SCREEN_WIDTH as u32 * 3, SCREEN_HEIGHT as u32 * 3),
-                        canvas: Some("#aetherfall".into()),
-                        fit_canvas_to_parent: true,
-                        prevent_default_event_handling: true,
-                        mode: if fullscreen {
-                            WindowMode::BorderlessFullscreen(MonitorSelection::Current)
-                        } else {
-                            WindowMode::Windowed
-                        },
-                        ..default()
-                    }),
+    let mut app = App::new();
+    #[cfg(feature = "packed-assets")]
+    crate::packed_assets::register(&mut app);
+    app.add_plugins((
+        DefaultPlugins
+            .set(ImagePlugin::default_nearest())
+            .set(AssetPlugin { meta_check: AssetMetaCheck::Never, ..default() })
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Aetherfall".into(),
+                    resolution: WindowResolution::new(SCREEN_WIDTH as u32 * 3, SCREEN_HEIGHT as u32 * 3),
+                    canvas: Some("#aetherfall".into()),
+                    fit_canvas_to_parent: true,
+                    prevent_default_event_handling: true,
+                    mode: if fullscreen {
+                        WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+                    } else {
+                        WindowMode::Windowed
+                    },
                     ..default()
                 }),
-            Material2dPlugin::<LightMaterial>::default(),
-        ))
-        .insert_resource(options)
-        .insert_resource(ClearColor(Color::BLACK))
-        .init_state::<Phase>()
-        .init_resource::<Textures>()
-        .init_resource::<SpritePool>()
-        .add_systems(Startup, setup)
-        .add_systems(Update, finish_loading.run_if(in_state(Phase::Loading)))
-        .add_systems(
-            Update,
-            (run_game, sync_textures, draw_frame, play_audio, update_lights, take_shot)
-                .chain()
-                .run_if(in_state(Phase::Running)),
-        )
-        .add_systems(Update, (fit_screen, window_keys))
-        .run();
+                ..default()
+            }),
+        Material2dPlugin::<LightMaterial>::default(),
+    ))
+    .insert_resource(options)
+    .insert_resource(ClearColor(Color::BLACK))
+    .init_state::<Phase>()
+    .init_resource::<Textures>()
+    .init_resource::<SpritePool>()
+    .add_systems(Startup, setup)
+    .add_systems(Update, finish_loading.run_if(in_state(Phase::Loading)))
+    .add_systems(
+        Update,
+        (run_game, sync_textures, draw_frame, play_audio, update_lights, take_shot)
+            .chain()
+            .run_if(in_state(Phase::Running)),
+    )
+    .add_systems(Update, (fit_screen, window_keys))
+    .run();
 }
 
 fn setup(

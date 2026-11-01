@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      # The resources repo is private, so it is checked out with a token at the commit the submodule pins.
+      - name: Find pinned resources commit
+        id: resources
+        run: echo "sha=$(git ls-tree HEAD assets/external | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: stevemonaco/aetherfall-resources
+          ref: ${{ steps.resources.outputs.sha }}
+          token: ${{ secrets.RESOURCES_TOKEN }}
+          path: assets/external
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
+
+      - name: Build
+        run: trunk build --release --public-url "/${{ github.event.repository.name }}/"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-web:
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find pinned resources commit
+        id: resources
+        shell: bash
+        run: echo "sha=$(git ls-tree HEAD assets/external | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: stevemonaco/aetherfall-resources
+          ref: ${{ steps.resources.outputs.sha }}
+          token: ${{ secrets.RESOURCES_TOKEN }}
+          path: assets/external
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --features packed-assets
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $name = "aetherfall-${{ github.ref_name }}-win-x64"
+          $stage = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Force "$stage/assets" | Out-Null
+          Copy-Item target/release/aetherfall.exe $stage
+          Copy-Item -Recurse assets/shaders "$stage/assets/shaders"
+          Copy-Item assets/external/CREDITS.txt $stage
+          ./tools/pack-assets.ps1 -Source assets/external -Target "$stage/assets/external"
+          Compress-Archive -Path "$stage/*" -DestinationPath "$name.zip"
+          "zip=$name.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "${{ steps.package.outputs.zip }}" --generate-notes
+      - name: Upload build
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: aetherfall-win-x64
+          path: ${{ steps.package.outputs.zip }}

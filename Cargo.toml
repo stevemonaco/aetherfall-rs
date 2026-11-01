@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.97"
 
+[features]
+# Reads the licensed files from assets/external scrambled by tools/pack-assets.ps1; used by release builds.
+packed-assets = []
+
 [dependencies]
 bevy = { version = "0.20.0", default-features = false, features = ["2d", "ui", "audio", "wav"] }
 serde = { version = "1", features = ["derive"] }
