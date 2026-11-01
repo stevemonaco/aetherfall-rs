@@ -61,7 +61,10 @@ impl Scene for StoryScene {
 
     fn update(&mut self, ctx: &mut SceneCtx, dt: f32) {
         self.time += dt;
-        if self.time < 0.4 || !(input::pressed(GameAction::Confirm) || input::pressed(GameAction::Cancel)) {
+        let advance = input::pressed(GameAction::Confirm)
+            || input::pressed(GameAction::Cancel)
+            || input::pressed(GameAction::Click);
+        if self.time < 0.4 || !advance {
             return;
         }
         audio::sfx(Sound::MenuMove);

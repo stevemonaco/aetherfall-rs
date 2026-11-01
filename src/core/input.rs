@@ -30,9 +30,11 @@ pub enum GameAction {
     Menu,
     Map,
     Soul,
+    /// Either mouse button, for advancing text.
+    Click,
 }
 
-pub const ACTION_COUNT: usize = 22;
+pub const ACTION_COUNT: usize = 23;
 
 impl GameAction {
     pub const ALL: [GameAction; ACTION_COUNT] = [
@@ -58,6 +60,7 @@ impl GameAction {
         GameAction::Menu,
         GameAction::Map,
         GameAction::Soul,
+        GameAction::Click,
     ];
 
     pub fn parse(s: &str) -> Option<GameAction> {
@@ -73,6 +76,8 @@ pub struct RawInput {
     pub right_stick: Vec2,
     pub gamepad_connected: bool,
     pub gamepad_used: bool,
+    pub gamepad_names: Vec<String>,
+    pub gamepad_in_use: Option<String>,
     pub keyboard_used: bool,
     pub mouse_screen: Option<Vec2>,
     pub mouse_moved: bool,
@@ -132,8 +137,11 @@ pub fn load_script(script: &str) {
 /// Drives the game with random held actions and aims, for crash testing.
 pub fn load_fuzz(seed: u64, frames: i32) {
     let rng = super::rng::Rng::new(seed);
-    let actions: Vec<GameAction> =
-        GameAction::ALL.iter().copied().filter(|a| !matches!(a, GameAction::Menu | GameAction::Map)).collect();
+    let actions: Vec<GameAction> = GameAction::ALL
+        .iter()
+        .copied()
+        .filter(|a| !matches!(a, GameAction::Menu | GameAction::Map | GameAction::Click))
+        .collect();
     let mut parts = Vec::new();
     let mut total = 0;
     while total < frames {
@@ -264,6 +272,15 @@ pub fn direct_aim() -> Option<Vec2> {
 
 pub fn gamepad_active() -> bool {
     state().gamepad_active
+}
+
+pub fn gamepad_names() -> Vec<String> {
+    state().raw.gamepad_names.clone()
+}
+
+/// The connected gamepad currently being read, if any.
+pub fn gamepad_in_use() -> Option<String> {
+    state().raw.gamepad_in_use.clone()
 }
 
 /// Clears edge state so a press that closed one screen doesn't also trigger the next.

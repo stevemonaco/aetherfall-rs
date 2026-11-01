@@ -1,4 +1,4 @@
-//! Volume, screen shake, fullscreen and a controls reference.
+//! Volume, screen shake, fullscreen, melee aim, controller choice and a controls reference.
 
 use bevy::math::Vec2;
 
@@ -13,7 +13,17 @@ use crate::core::input::{self, GameAction};
 use crate::core::{palette, settings};
 use crate::scene_any;
 
-const ROWS: [&str; 7] = ["Music", "Sound effects", "Screen shake", "Damage numbers", "Fullscreen", "Controls", "Back"];
+const ROWS: [&str; 9] = [
+    "Music",
+    "Sound effects",
+    "Screen shake",
+    "Damage numbers",
+    "Fullscreen",
+    "Melee aim",
+    "Controller",
+    "Controls",
+    "Back",
+];
 
 const CONTROLS: [(&str, &str, &str); 11] = [
     ("Move", "WASD / arrows", "Left stick"),
@@ -62,6 +72,11 @@ impl OptionsScene {
                 "Screen shake" => on_off(s.screen_shake),
                 "Damage numbers" => on_off(s.damage_numbers),
                 "Fullscreen" => on_off(s.fullscreen),
+                "Melee aim" => (if s.melee_toward_cursor { "Cursor" } else { "Facing" }).to_string(),
+                "Controller" => {
+                    let label_end = rect.x + 24 + font::measure(row) + 12;
+                    fit(if s.controller.is_empty() { "Auto" } else { &s.controller }, rect.right() - 12 - label_end)
+                }
                 _ => String::new(),
             };
             let value_pos = Vec2::new((rect.right() - 12 - font::measure(&value)) as f32, y);
@@ -69,6 +84,15 @@ impl OptionsScene {
             if i == self.row {
                 font::draw(batch, &CURSOR.to_string(), Vec2::new((rect.x + 10) as f32, y), palette::HIGHLIGHT, None);
             }
+        }
+        if ROWS[self.row] == "Controller" {
+            let note = match input::gamepad_in_use() {
+                Some(name) => format!("Using: {name}"),
+                None => "No controller connected".to_string(),
+            };
+            let note = fit(&note, SCREEN_WIDTH - 20);
+            let pos = Vec2::new(((SCREEN_WIDTH - font::measure(&note)) / 2) as f32, (rect.bottom() + 6) as f32);
+            font::draw(batch, &note, pos, palette::TEXT_DIM, Some(palette::TEXT_SHADOW));
         }
     }
 
@@ -86,6 +110,30 @@ impl OptionsScene {
             font::draw(batch, pad, Vec2::new(x + 320.0, y), palette::TEXT, Some(palette::TEXT_SHADOW));
         }
     }
+}
+
+/// Trims `text` with an ellipsis until it fits in `width` pixels.
+fn fit(text: &str, width: i32) -> String {
+    let mut chars: Vec<char> = text.chars().collect();
+    let mut out = text.to_string();
+    while font::measure(&out) > width && !chars.is_empty() {
+        chars.pop();
+        out = format!("{}...", chars.iter().collect::<String>().trim_end());
+    }
+    out
+}
+
+/// Steps through Auto and the connected pads; a saved pad that's unplugged restarts the cycle from Auto.
+fn cycle_controller(current: &str, step: i32) -> String {
+    let mut choices = vec![String::new()];
+    for name in input::gamepad_names() {
+        if !choices.contains(&name) {
+            choices.push(name);
+        }
+    }
+    let len = choices.len() as i32;
+    let index = choices.iter().position(|c| c == current).unwrap_or(0) as i32;
+    choices.swap_remove(((index + step).rem_euclid(len)) as usize)
 }
 
 fn meter(v: f32) -> String {
@@ -164,6 +212,18 @@ impl Scene for OptionsScene {
                 s.fullscreen = !s.fullscreen;
                 settings::set(s);
                 settings::save();
+            }
+            "Melee aim" if toggle => {
+                s.melee_toward_cursor = !s.melee_toward_cursor;
+                settings::set(s);
+                settings::save();
+                audio::sfx(Sound::MenuSelect);
+            }
+            "Controller" if toggle => {
+                s.controller = cycle_controller(&s.controller, if step == 0 { 1 } else { step });
+                settings::set(s);
+                settings::save();
+                audio::sfx(Sound::MenuSelect);
             }
             "Controls" if confirm => {
                 self.controls = true;

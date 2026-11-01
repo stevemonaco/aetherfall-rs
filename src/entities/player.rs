@@ -24,7 +24,7 @@ use crate::core::direction::Direction;
 use crate::core::geom::{Box2, safe_dir, snap};
 use crate::core::gfx::Batch;
 use crate::core::input::{self, GameAction};
-use crate::core::palette;
+use crate::core::{palette, settings};
 use crate::entity_base;
 use crate::gameplay::combat::{self, CombatStats, Faction, Hit, HitKind};
 use crate::gameplay::element::{Element, MODES};
@@ -92,6 +92,8 @@ pub struct Player {
     pub heat: f32,
     pub z: f32,
     pub aim: Vec2,
+    /// A facing-aimed swing's direction while the mouse aims, held so the cursor can't drag the blade around.
+    swing_aim: Option<Vec2>,
     /// The Aether meter, 0 to 100: filling from hits, then draining while Aether is awake.
     aether: f32,
 
@@ -204,6 +206,7 @@ impl Player {
             heat: 0.0,
             z: 0.0,
             aim: Vec2::Y,
+            swing_aim: None,
             aether: 0.0,
             swing_hit: Vec::new(),
             lunge_target: None,
@@ -840,6 +843,12 @@ impl Player {
     }
 
     fn update_aim(&mut self, world: &World) {
+        if self.attack_time >= 0.0
+            && let Some(dir) = self.swing_aim
+        {
+            self.aim = dir;
+            return;
+        }
         if let Some(direct) = input::direct_aim() {
             self.aim = direct;
         } else if input::mouse_aiming() {
@@ -1094,12 +1103,18 @@ impl Player {
         self.combo_buffered = false;
         self.swing_hit.clear();
         self.combo_reset = 0.0;
+        let by_facing = input::mouse_aiming() && !settings::current().melee_toward_cursor;
+        if by_facing {
+            let basis = if input::movement() != Vec2::ZERO { input::movement().normalize() } else { self.move_dir };
+            self.aim = self.assist_aim(world, basis);
+        }
         let gems = Self::supports(world, Group::Attack);
         self.lunge_target = if gems.lunge { self.lunge_toward(world) } else { None };
         self.lunged = self.lunge_target.is_some();
         if let Some((target, _)) = self.lunge_target {
             self.aim = safe_dir(target - self.center(), self.aim);
         }
+        self.swing_aim = by_facing.then_some(self.aim);
         self.facing = Direction::from_vec(self.aim, self.facing);
         audio::play(Sound::Swing, 1.0, self.combo_step as f32 * 0.12);
         let finisher = self.combo_step == 2;

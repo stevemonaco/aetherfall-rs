@@ -443,7 +443,8 @@ fn gather_input(
     keys: &ButtonInput<KeyCode>,
     mouse: &ButtonInput<MouseButton>,
     wheel: &mut MessageReader<MouseWheel>,
-    gamepads: &Query<&Gamepad>,
+    gamepads: &Query<(Entity, &Name, &Gamepad)>,
+    active_pad: &mut Option<Entity>,
     window: &Window,
 ) -> RawInput {
     use GameAction::*;
@@ -470,6 +471,7 @@ fn gather_input(
         (Menu, &[KeyCode::Enter, KeyCode::Escape, KeyCode::Tab]),
         (Map, &[KeyCode::KeyM]),
         (Soul, &[KeyCode::KeyV]),
+        (Click, &[]),
     ];
     let pad_map: [(GameAction, &[GamepadButton]); 16] = [
         (Up, &[GamepadButton::DPadUp]),
@@ -496,8 +498,12 @@ fn gather_input(
     raw.keyboard_used = keys.get_pressed().next().is_some();
     raw.keys_pressed = keys.get_just_pressed().map(|k| format!("{k:?}")).collect();
 
-    if let Some(pad) = gamepads.iter().next() {
+    let mut pads: Vec<_> = gamepads.iter().collect();
+    pads.sort_by_key(|(entity, ..)| *entity);
+    raw.gamepad_names = pads.iter().map(|(_, name, _)| name.to_string()).collect();
+    if let Some((name, pad)) = pick_gamepad(&pads, &settings::current().controller, active_pad) {
         raw.gamepad_connected = true;
+        raw.gamepad_in_use = Some(name.to_string());
         for (action, buttons) in pad_map {
             if buttons.iter().any(|b| pad.pressed(*b)) {
                 raw.actions[action as usize] = true;
@@ -530,6 +536,7 @@ fn gather_input(
         raw.actions[Attack as usize] |= mouse.pressed(MouseButton::Right);
         raw.actions[Skill as usize] |= mouse.pressed(MouseButton::Middle);
         raw.mouse_buttons = mouse.pressed(MouseButton::Left) || mouse.pressed(MouseButton::Right);
+        raw.actions[Click as usize] = raw.mouse_buttons;
         let steps: f32 = wheel.read().map(|w| w.y).sum();
         raw.wheel = if steps > 0.0 {
             -1
@@ -551,6 +558,34 @@ fn gather_input(
     raw
 }
 
+/// The pad chosen in options if it's connected, otherwise whichever last had a mapped button pressed or a stick
+/// pushed, so an emulator's virtual pad takes over from the raw device it wraps.
+fn pick_gamepad<'a>(
+    pads: &[(Entity, &'a Name, &'a Gamepad)],
+    preferred: &str,
+    active: &mut Option<Entity>,
+) -> Option<(&'a Name, &'a Gamepad)> {
+    if !preferred.is_empty()
+        && let Some((_, name, pad)) = pads.iter().find(|(_, name, _)| name.as_str() == preferred)
+    {
+        return Some((name, pad));
+    }
+    let touched = |pad: &Gamepad| {
+        pad.get_just_pressed().any(|b| !matches!(b, GamepadButton::Other(_)))
+            || pad.left_stick().length_squared() > 0.25
+            || pad.right_stick().length_squared() > 0.25
+    };
+    let find = |entity: Option<Entity>| pads.iter().find(|(e, ..)| Some(*e) == entity);
+    if !find(*active).is_some_and(|(.., pad)| touched(pad)) {
+        if let Some((e, ..)) = pads.iter().find(|(.., pad)| touched(pad)) {
+            *active = Some(*e);
+        } else if find(*active).is_none() {
+            *active = pads.first().map(|(e, ..)| *e);
+        }
+    }
+    find(*active).map(|(_, name, pad)| (*name, *pad))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_game(
     mut game: NonSendMut<Game>,
@@ -559,11 +594,12 @@ fn run_game(
     mouse: Res<ButtonInput<MouseButton>>,
     mut wheel: MessageReader<MouseWheel>,
     mut cursor_moved: MessageReader<CursorMoved>,
-    gamepads: Query<&Gamepad>,
+    gamepads: Query<(Entity, &Name, &Gamepad)>,
+    mut active_pad: Local<Option<Entity>>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut exit: MessageWriter<AppExit>,
 ) {
-    let mut raw = gather_input(&keys, &mouse, &mut wheel, &gamepads, &window);
+    let mut raw = gather_input(&keys, &mouse, &mut wheel, &gamepads, &mut active_pad, &window);
     raw.mouse_moved = cursor_moved.read().count() > 0;
     let testing = input::scripted();
     game.accumulator += if testing { STEP } else { time.delta_secs().min(0.25) };

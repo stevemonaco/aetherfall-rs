@@ -15,11 +15,23 @@ pub struct Settings {
     pub screen_shake: bool,
     pub fullscreen: bool,
     pub damage_numbers: bool,
+    /// Name of the gamepad to read; empty picks whichever pad was used last.
+    pub controller: String,
+    /// With the mouse aiming, melee swings at the cursor instead of the way the hero last moved.
+    pub melee_toward_cursor: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { music_volume: 0.55, sfx_volume: 0.8, screen_shake: true, fullscreen: false, damage_numbers: true }
+        Settings {
+            music_volume: 0.55,
+            sfx_volume: 0.8,
+            screen_shake: true,
+            fullscreen: false,
+            damage_numbers: true,
+            controller: String::new(),
+            melee_toward_cursor: false,
+        }
     }
 }
 

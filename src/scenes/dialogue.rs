@@ -86,7 +86,7 @@ impl Scene for DialogueScene {
                 audio::sfx(Sound::TextBlip);
                 self.blip = 0.05;
             }
-            if input::pressed(GameAction::Confirm) {
+            if input::pressed(GameAction::Confirm) || input::pressed(GameAction::Click) {
                 self.shown = self.page_length() as f32;
             }
             return;
@@ -97,8 +97,9 @@ impl Scene for DialogueScene {
                 self.choice = 1 - self.choice;
                 audio::sfx(Sound::MenuMove);
             }
-            if input::pressed(GameAction::Confirm) || input::pressed(GameAction::Cancel) {
-                let yes = self.choice == 0 && input::pressed(GameAction::Confirm);
+            let confirm = input::pressed(GameAction::Confirm) || input::pressed(GameAction::Click);
+            if confirm || input::pressed(GameAction::Cancel) {
+                let yes = self.choice == 0 && confirm;
                 audio::sfx(if yes { Sound::MenuSelect } else { Sound::MenuCancel });
                 ctx.pop();
                 input::consume();
@@ -109,7 +110,10 @@ impl Scene for DialogueScene {
             return;
         }
 
-        if input::pressed(GameAction::Confirm) || input::pressed(GameAction::Cancel) {
+        if input::pressed(GameAction::Confirm)
+            || input::pressed(GameAction::Cancel)
+            || input::pressed(GameAction::Click)
+        {
             if self.page < self.pages.len() - 1 {
                 self.page += 1;
                 self.shown = 0.0;
