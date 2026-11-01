@@ -78,6 +78,7 @@ pub struct RawInput {
     pub gamepad_used: bool,
     pub gamepad_names: Vec<String>,
     pub gamepad_in_use: Option<String>,
+    pub gamepad_held: String,
     pub keyboard_used: bool,
     pub mouse_screen: Option<Vec2>,
     pub mouse_moved: bool,
@@ -281,6 +282,11 @@ pub fn gamepad_names() -> Vec<String> {
 /// The connected gamepad currently being read, if any.
 pub fn gamepad_in_use() -> Option<String> {
     state().raw.gamepad_in_use.clone()
+}
+
+/// The in-use pad's held buttons and pushed axes as the engine names them, for diagnosing unmapped pads.
+pub fn gamepad_held() -> String {
+    state().raw.gamepad_held.clone()
 }
 
 /// Clears edge state so a press that closed one screen doesn't also trigger the next.

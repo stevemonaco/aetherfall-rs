@@ -90,9 +90,14 @@ impl OptionsScene {
                 Some(name) => format!("Using: {name}"),
                 None => "No controller connected".to_string(),
             };
-            let note = fit(&note, SCREEN_WIDTH - 20);
-            let pos = Vec2::new(((SCREEN_WIDTH - font::measure(&note)) / 2) as f32, (rect.bottom() + 6) as f32);
-            font::draw(batch, &note, pos, palette::TEXT_DIM, Some(palette::TEXT_SHADOW));
+            let held = input::gamepad_held();
+            let held = if held.is_empty() { "Press buttons to test".to_string() } else { format!("Held: {held}") };
+            for (i, line) in [note, held].iter().enumerate() {
+                let line = fit(line, SCREEN_WIDTH - 20);
+                let y = rect.bottom() + 6 + i as i32 * 12;
+                let pos = Vec2::new(((SCREEN_WIDTH - font::measure(&line)) / 2) as f32, y as f32);
+                font::draw(batch, &line, pos, palette::TEXT_DIM, Some(palette::TEXT_SHADOW));
+            }
         }
     }
 
@@ -126,11 +131,7 @@ fn fit(text: &str, width: i32) -> String {
 /// Steps through Auto and the connected pads; a saved pad that's unplugged restarts the cycle from Auto.
 fn cycle_controller(current: &str, step: i32) -> String {
     let mut choices = vec![String::new()];
-    for name in input::gamepad_names() {
-        if !choices.contains(&name) {
-            choices.push(name);
-        }
-    }
+    choices.extend(input::gamepad_names());
     let len = choices.len() as i32;
     let index = choices.iter().position(|c| c == current).unwrap_or(0) as i32;
     choices.swap_remove(((index + step).rem_euclid(len)) as usize)

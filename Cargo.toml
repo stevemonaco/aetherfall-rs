@@ -31,7 +31,11 @@ lto = "fat"
 codegen-units = 1
 strip = "debuginfo"
 
+# gilrs-core 0.6.8 with a fix for browsers reusing a gamepad index: the new device kept the old one's name and mapping.
+[patch.crates-io]
+gilrs-core = { path = "patches/gilrs-core" }
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 bevy = { version = "0.20.0", default-features = false, features = ["2d", "ui", "audio", "wav", "web"] }
 js-sys = "0.3"
-web-sys = { version = "0.3", features = ["Window", "Storage"] }
+web-sys = { version = "0.3", features = ["Window", "Storage", "Navigator", "Gamepad", "GamepadMappingType"] }

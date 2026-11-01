@@ -9,7 +9,7 @@ use bevy::audio::{AudioPlayer, AudioSink, AudioSinkPlayback, AudioSource, Playba
 use bevy::camera::RenderTarget;
 use bevy::camera::visibility::RenderLayers;
 use bevy::image::{ImageSampler, ImageSamplerDescriptor};
-use bevy::input::gamepad::{Gamepad, GamepadButton};
+use bevy::input::gamepad::{Gamepad, GamepadButton, GamepadConnection, GamepadConnectionEvent, GamepadInput};
 use bevy::input::mouse::{MouseButton, MouseWheel};
 use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::prelude::*;
@@ -264,7 +264,7 @@ pub fn run() {
             .chain()
             .run_if(in_state(Phase::Running)),
     )
-    .add_systems(Update, (fit_screen, window_keys))
+    .add_systems(Update, (fit_screen, window_keys, log_gamepads))
     .run();
 }
 
@@ -500,10 +500,12 @@ fn gather_input(
 
     let mut pads: Vec<_> = gamepads.iter().collect();
     pads.sort_by_key(|(entity, ..)| *entity);
-    raw.gamepad_names = pads.iter().map(|(_, name, _)| name.to_string()).collect();
-    if let Some((name, pad)) = pick_gamepad(&pads, &settings::current().controller, active_pad) {
+    raw.gamepad_names = gamepad_labels(&pads);
+    if let Some(i) = pick_gamepad(&pads, &raw.gamepad_names, &settings::current().controller, active_pad) {
+        let pad = pads[i].2;
         raw.gamepad_connected = true;
-        raw.gamepad_in_use = Some(name.to_string());
+        raw.gamepad_in_use = Some(raw.gamepad_names[i].clone());
+        raw.gamepad_held = describe_held(pad);
         for (action, buttons) in pad_map {
             if buttons.iter().any(|b| pad.pressed(*b)) {
                 raw.actions[action as usize] = true;
@@ -558,17 +560,69 @@ fn gather_input(
     raw
 }
 
-/// The pad chosen in options if it's connected, otherwise whichever last had a mapped button pressed or a stick
-/// pushed, so an emulator's virtual pad takes over from the raw device it wraps.
-fn pick_gamepad<'a>(
-    pads: &[(Entity, &'a Name, &'a Gamepad)],
+fn describe_held(pad: &Gamepad) -> String {
+    let held = pad.analog().all_axes_and_values().filter_map(|(input, value)| match input {
+        GamepadInput::Button(b) if value > 0.5 => Some(format!("{b:?}")),
+        GamepadInput::Axis(a) if value.abs() > 0.5 => Some(format!("{a:?}{}", if value > 0.0 { "+" } else { "-" })),
+        _ => None,
+    });
+    held.collect::<Vec<_>>().join(" ")
+}
+
+/// Logs each controller as it connects; on web also what the browser reports, since only pads the browser maps to
+/// its "standard" layout get a correct button layout there.
+fn log_gamepads(mut events: MessageReader<GamepadConnectionEvent>) {
+    if events.is_empty() {
+        return;
+    }
+    for event in events.read() {
+        if let GamepadConnection::Connected { name, vendor_id, product_id } = &event.connection {
+            info!("Gamepad connected: {name} (vendor {vendor_id:04x?}, product {product_id:04x?})");
+        }
+    }
+    #[cfg(target_arch = "wasm32")]
+    if let Some(pads) = web_sys::window().and_then(|w| w.navigator().get_gamepads().ok()) {
+        for pad in pads.iter().filter(|p| !p.is_null() && !p.is_undefined()) {
+            let pad = web_sys::Gamepad::from(pad);
+            info!(
+                "Browser gamepad {}: \"{}\" mapping={:?} buttons={} axes={} connected={}",
+                pad.index(),
+                pad.id(),
+                pad.mapping(),
+                pad.buttons().length(),
+                pad.axes().length(),
+                pad.connected()
+            );
+        }
+    }
+}
+
+/// Each pad's name, numbered when several share one so each can be picked in options.
+fn gamepad_labels(pads: &[(Entity, &Name, &Gamepad)]) -> Vec<String> {
+    let names: Vec<&str> = pads.iter().map(|(_, name, _)| name.as_str()).collect();
+    names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let count = names.iter().filter(|n| *n == name).count();
+            let nth = names[..=i].iter().filter(|n| *n == name).count();
+            if count > 1 { format!("{name} #{nth}") } else { name.to_string() }
+        })
+        .collect()
+}
+
+/// The index of the pad chosen in options if it's connected, otherwise of whichever last had a mapped button pressed
+/// or a stick pushed, so an emulator's virtual pad takes over from the raw device it wraps.
+fn pick_gamepad(
+    pads: &[(Entity, &Name, &Gamepad)],
+    labels: &[String],
     preferred: &str,
     active: &mut Option<Entity>,
-) -> Option<(&'a Name, &'a Gamepad)> {
+) -> Option<usize> {
     if !preferred.is_empty()
-        && let Some((_, name, pad)) = pads.iter().find(|(_, name, _)| name.as_str() == preferred)
+        && let Some(i) = labels.iter().position(|label| label == preferred)
     {
-        return Some((name, pad));
+        return Some(i);
     }
     let touched = |pad: &Gamepad| {
         pad.get_just_pressed().any(|b| !matches!(b, GamepadButton::Other(_)))
@@ -583,7 +637,7 @@ fn pick_gamepad<'a>(
             *active = pads.first().map(|(e, ..)| *e);
         }
     }
-    find(*active).map(|(_, name, pad)| (*name, *pad))
+    pads.iter().position(|(e, ..)| Some(*e) == *active)
 }
 
 #[allow(clippy::too_many_arguments)]
