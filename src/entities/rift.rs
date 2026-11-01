@@ -252,7 +252,11 @@ impl Rift {
     fn seal(&mut self, world: &mut World) {
         self.state = RiftState::Sealed;
         let level = self.level.unwrap_or(world.area_level());
-        world.telemetry.beaten("rift", &self.id, serde_json::json!({ "foe_level": level, "elite": self.elite.is_some() }));
+        world.telemetry.beaten(
+            "rift",
+            &self.id,
+            serde_json::json!({ "foe_level": level, "elite": self.elite.is_some() }),
+        );
         world.state.flags.insert(self.flag());
         world.rank.style(3.0);
         world.hit_stop(0.12);

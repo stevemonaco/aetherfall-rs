@@ -69,4 +69,3 @@ pub fn get(id: &str) -> Option<&'static SoulDef> {
     }
     ALL.iter().find(|s| s.id == id)
 }
-

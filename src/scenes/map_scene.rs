@@ -1,5 +1,5 @@
-//! The world map: every region the player has seen, how they connect, towns' restoration and how many chests and
-//! rifts each region still hides. A second view charts the current area tile by tile with what is left to find there.
+//! The world map: every region the player has seen, how they connect, towns' restoration and how many chests,
+//! rifts and golden rifts each region still hides. A second view charts the current area tile by tile with what is left to find there.
 
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
@@ -23,7 +23,15 @@ use crate::scene_any;
 use crate::scenes::world::World;
 use crate::world::map::{MapData, Terrain};
 
-type Counts = (Vec<String>, Vec<String>);
+/// The flags of a map's chests, rifts and golden rifts.
+#[derive(Clone, Default)]
+struct Counts {
+    chests: Vec<String>,
+    rifts: Vec<String>,
+    golden: Vec<String>,
+}
+
+const GOLDEN: Rgba = Rgba::rgb(255, 150, 40);
 
 static COUNTS: LazyLock<Mutex<HashMap<String, Counts>>> = LazyLock::new(Default::default);
 static NAMES: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(Default::default);
@@ -42,30 +50,33 @@ pub fn map_name(id: &str) -> Option<String> {
     Some(name)
 }
 
-/// The flags of a map's chests and rifts.
 fn counts_for(map_id: &str) -> Counts {
     let mut counts = COUNTS.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(cached) = counts.get(map_id) {
         return cached.clone();
     }
-    let (mut chests, mut rifts) = (Vec::new(), Vec::new());
+    let mut found = Counts::default();
     if MapData::exists(map_id) {
         for e in MapData::load(map_id).entities {
             if e.kind == "chest" {
-                chests.push(
+                found.chests.push(
                     e.str("flag").map(str::to_string).unwrap_or_else(|| format!("chest:{map_id}:{}_{}", e.x, e.y)),
                 );
             }
             if e.kind == "rift" {
-                rifts.push(format!(
+                found.rifts.push(format!(
                     "rift:{}",
                     e.str("id").map(str::to_string).unwrap_or_else(|| format!("{}_{}", e.x, e.y))
                 ));
             }
+            // Golden rifts sit in trial arenas outside the world graph, so count them by their entrance gates.
+            if let Some(done) = e.str("done").filter(|_| e.kind == "trial") {
+                found.golden.push(done.to_string());
+            }
         }
     }
-    counts.insert(map_id.to_string(), (chests.clone(), rifts.clone()));
-    (chests, rifts)
+    counts.insert(map_id.to_string(), found.clone());
+    found
 }
 
 fn visible(state: &GameState, node: &WorldNode) -> bool {
@@ -87,19 +98,41 @@ impl MapScene {
         MapScene { nodes: Vec::new(), here: None, cursor: None, time: 0.0, area: false }
     }
 
-    fn draw_details(batch: &mut Batch, state: &GameState, node: &WorldNode) {
-        let rect = IRect::new(SCREEN_WIDTH - 150, 30, 138, 70);
+    /// The corner for the details panel that hides the fewest regions, and never the selected one.
+    fn details_rect(&self, cursor: &WorldNode) -> IRect {
+        let (w, h) = (138, 70);
+        let corners = [
+            IRect::new(SCREEN_WIDTH - w - 12, 30, w, h),
+            IRect::new(12, 30, w, h),
+            IRect::new(SCREEN_WIDTH - w - 12, SCREEN_HEIGHT - h - 22, w, h),
+            IRect::new(12, SCREEN_HEIGHT - h - 22, w, h),
+        ];
+        let hides = |rect: &IRect, n: &WorldNode| {
+            let half = (n.name.len() as i32 * 3).max(8);
+            n.x + half > rect.x && n.x - half < rect.x + rect.w && n.y + 18 > rect.y && n.y - 8 < rect.y + rect.h
+        };
+        let cost = |rect: &IRect| {
+            let covered = self.nodes.iter().filter(|n| hides(rect, n)).count();
+            covered + if hides(rect, cursor) { 100 } else { 0 }
+        };
+        corners.into_iter().min_by_key(cost).unwrap_or(corners[0])
+    }
+
+    fn draw_details(batch: &mut Batch, state: &GameState, node: &WorldNode, rect: IRect) {
         batch.draw_window(rect);
         let shadow = Some(palette::TEXT_SHADOW);
         let x = (rect.x + 8) as f32;
         font::draw(batch, &node.name, Vec2::new(x, (rect.y + 6) as f32), palette::HIGHLIGHT, shadow);
-        let (mut chests, mut opened, mut rifts, mut closed) = (0, 0, 0, 0);
+        let (mut chests, mut opened, mut rifts, mut closed, mut golden, mut cleared) = (0, 0, 0, 0, 0, 0);
+        let done = |flags: &[String]| flags.iter().filter(|f| state.flags.contains(*f)).count();
         for map in &node.maps {
-            let (c, r) = counts_for(map);
-            chests += c.len();
-            opened += c.iter().filter(|f| state.flags.contains(*f)).count();
-            rifts += r.len();
-            closed += r.iter().filter(|f| state.flags.contains(*f)).count();
+            let counts = counts_for(map);
+            chests += counts.chests.len();
+            opened += done(&counts.chests);
+            rifts += counts.rifts.len();
+            closed += done(&counts.rifts);
+            golden += counts.golden.len();
+            cleared += done(&counts.golden);
         }
         let mut y = (rect.y + 20) as f32;
         if let Some(town) = node.town.as_deref().filter(|t| data().towns.contains_key(*t)) {
@@ -113,6 +146,10 @@ impl MapScene {
         }
         if rifts > 0 {
             font::draw(batch, &format!("Rifts sealed {closed}/{rifts}"), Vec2::new(x, y), palette::TEXT, shadow);
+            y += 11.0;
+        }
+        if golden > 0 {
+            font::draw(batch, &format!("Golden rifts {cleared}/{golden}"), Vec2::new(x, y), GOLDEN, shadow);
         }
     }
 }
@@ -261,12 +298,13 @@ impl Scene for MapScene {
         }
 
         if let Some(cursor) = self.cursor {
-            MapScene::draw_details(batch, &world.state, cursor);
+            MapScene::draw_details(batch, &world.state, cursor, self.details_rect(cursor));
         }
     }
 }
 
-/// The current area, a few pixels per tile, with the hero, exits, rifts, locked doors and unopened chests marked.
+/// The current area, a few pixels per tile, with the hero, exits, rifts, golden rifts, locked doors and unopened
+/// chests marked.
 fn draw_area(batch: &mut Batch, world: &World, time: f32) {
     let map = &world.map;
     font::draw(batch, world.map_name(), Vec2::new(14.0, 10.0), Rgba::rgb(80, 50, 30), None);
@@ -303,6 +341,15 @@ fn draw_area(batch: &mut Batch, world: &World, time: f32) {
                 let sealed = flags.contains(&format!("rift:{id}"));
                 dot(batch, x, y, if sealed { Rgba::rgb(150, 140, 150) } else { Rgba::rgb(190, 90, 240) });
             }
+            "golden" => {
+                let cleared = flags.contains(&format!("golden:{}", e.str_or("id", "golden")));
+                dot(batch, x, y, if cleared { Rgba::rgb(150, 140, 150) } else { GOLDEN });
+            }
+            "trial" => {
+                if let Some(done) = e.str("done") {
+                    dot(batch, x, y, if flags.contains(done) { Rgba::rgb(150, 140, 150) } else { GOLDEN });
+                }
+            }
             "chest" => {
                 let id = e
                     .str("flag")
@@ -331,11 +378,12 @@ fn draw_area(batch: &mut Batch, world: &World, time: f32) {
     let legend = [
         ("You", Rgba::rgb(230, 60, 50)),
         ("Rift", Rgba::rgb(190, 90, 240)),
+        ("Golden", GOLDEN),
         ("Chest", Rgba::rgb(250, 210, 80)),
         ("Door", Rgba::rgb(170, 110, 60)),
         ("Exit", Rgba::rgb(250, 250, 240)),
     ];
-    let mut x = (SCREEN_WIDTH - 230) as f32;
+    let mut x = (SCREEN_WIDTH - 46 * legend.len() as i32) as f32;
     for (name, color) in legend {
         batch.fill_rect(x, 13.0, 4.0, 4.0, color);
         font::draw(batch, name, Vec2::new(x + 6.0, 10.0), Rgba::rgb(90, 60, 40), None);
