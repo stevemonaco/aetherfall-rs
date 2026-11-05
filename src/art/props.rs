@@ -583,6 +583,10 @@ fn misc_icon(cv: &mut Canvas, id: &str) {
                 &[('#', c(0x5A6080)), ('w', Rgba::WHITE), ('c', c(0x9AE8FF)), ('y', c(0xFFE878)), ('p', c(0xF896D8))],
             );
         }
+        "aether_glyph" => {
+            cv.circle(6.0, 6.0, 5.0, c(0x3A2060)).circle(6.0, 6.0, 4.0, c(0x6A40B0));
+            cv.line(6, 3, 6, 9, c(0xF0D8FF)).line(4, 5, 8, 5, c(0xF0D8FF)).line(4, 8, 8, 8, c(0xC8A8FF));
+        }
         "aether_conduit" => {
             cv.circle(6.0, 6.0, 5.0, c(0x5A2E8A)).circle(6.0, 6.0, 3.0, c(0xC890FF));
             cv.rect(5, 1, 2, 10, c(0xE8D0FF).mul(0.8));
@@ -1171,7 +1175,8 @@ pub fn icon(id: &str) -> TexId {
             | "sage_pendant" | "vampire_fang" | "feather_charm" | "salamander_scale" | "ember_crown"
             | "tide_locket" | "night_eye" | "storm_greaves" | "corsair_coin" | "concord_core" | "verdant_charm"
             | "mentor_ribbon" | "cool_stone" | "lodestone" | "wind_feather" | "parry_ring" | "phoenix_plume"
-            | "guardian_charm" | "storm_charm" => {
+            | "guardian_charm" | "storm_charm" | "mossheart_sigil" | "tidewarden_seal" | "stormcaller_band"
+            | "vael_signet" => {
                 let accent = match id {
                     "verdant_charm" => c(0x58C850),
                     "mentor_ribbon" => c(0xE8C050),
@@ -1197,6 +1202,10 @@ pub fn icon(id: &str) -> TexId {
                     "storm_greaves" => c(0xF8E060),
                     "corsair_coin" => c(0xB08A30),
                     "concord_core" => c(0xFFC8FF),
+                    "mossheart_sigil" => c(0x3C9A48),
+                    "tidewarden_seal" => c(0x2878D0),
+                    "stormcaller_band" => c(0xC8B8FF),
+                    "vael_signet" => c(0xF0E0A0),
                     _ => c(0xF07030),
                 };
                 cv.line(2, 1, 6, 5, c(0xC8A050)).line(10, 1, 6, 5, c(0xC8A050));

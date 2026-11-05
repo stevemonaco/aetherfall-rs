@@ -4,6 +4,7 @@ pub mod combat;
 pub mod element;
 pub mod game_data;
 pub mod game_state;
+pub mod gear_mods;
 pub mod items;
 pub mod mastery;
 pub mod pacts;

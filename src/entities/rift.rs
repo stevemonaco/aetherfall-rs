@@ -35,6 +35,9 @@ const WARNING: Rgba = Rgba::rgb(255, 100, 80);
 /// Seconds between foes as the swarm pours out.
 const SPAWN_GAP: f32 = 0.12;
 const PURPLE: Rgba = Rgba::rgb(200, 120, 255);
+/// Rift level at which the swarm doubles its authored count.
+const QUOTA_LEVELS: f32 = 50.0;
+const MAX_QUOTA: i32 = 18;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum RiftState {
@@ -165,9 +168,12 @@ impl Rift {
         world.toast("You left the breach: it collapsed, and its foes were drawn back in.");
     }
 
+    /// The authored count grows with the rift's level, up to [`MAX_QUOTA`] before pacts.
     fn quota(&self, world: &World) -> i32 {
+        let level = self.level.unwrap_or(world.area_level()).max(1);
+        let scaled = ((self.quota as f32 * (1.0 + level as f32 / QUOTA_LEVELS)) as i32).min(MAX_QUOTA.max(self.quota));
         let swarm = if pacts::active(&world.state, "swarm") { 1.5 } else { 1.0 };
-        (self.quota as f32 * swarm) as i32 + i32::from(self.elite.is_some())
+        (scaled as f32 * swarm) as i32 + i32::from(self.elite.is_some())
     }
 
     /// Foes still to beat before the rift seals: those yet to pour out and those still standing.
@@ -243,7 +249,7 @@ impl Rift {
             || (pacts::active(&world.state, "swarm") && self.spawn_count % 3 == 0)
             || (world.trial_mod(TrialMod::EliteTide) && self.spawn_count % 4 == 0);
         let enemy = if elite { Enemy::elite(def, at, Some(level), world) } else { Enemy::new(def, at, Some(level)) };
-        let id = world.add(enemy.hunting());
+        let id = world.add(enemy.hunting().from_rift());
         self.spawned.push(id);
         world.add(Puff::new(at - Vec2::new(0.0, 6.0), Rgba::rgb(200, 140, 255)));
         audio::play(Sound::Door, 0.4, 0.6);

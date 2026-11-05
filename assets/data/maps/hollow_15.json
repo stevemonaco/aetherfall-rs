@@ -82,7 +82,8 @@
       "kind": "sovereign",
       "defeat": [
         "unflag:run:arena:echo_sovereign",
-        "grade:hollow",
+        "leg:15",
+        "chance:20,give:aether_mote",
         "flag:hollow_cp:16"
       ],
       "unless": "run:echo_sovereign",

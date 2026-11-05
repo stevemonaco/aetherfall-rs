@@ -19,17 +19,17 @@ struct Entry {
     area: &'static BlightAreaDef,
     label: String,
     map: String,
-    checkpoint: bool,
+    checkpoint: Option<i32>,
 }
 
 fn open(state: &GameState) -> Vec<Entry> {
     let mut entries = Vec::new();
     for area in blight_areas::ALL.iter().filter(|a| state.check(Some(a.unlock))) {
-        entries.push(Entry { area, label: area.name.to_string(), map: area.map.to_string(), checkpoint: false });
+        entries.push(Entry { area, label: area.name.to_string(), map: area.map.to_string(), checkpoint: None });
         if area.id == "hollow" {
             for floor in blight_areas::hollow_checkpoints(state) {
                 let label = format!("{}, floor {floor}", area.name);
-                entries.push(Entry { area, label, map: format!("hollow_{floor}"), checkpoint: true });
+                entries.push(Entry { area, label, map: format!("hollow_{floor}"), checkpoint: Some(floor) });
             }
         }
     }
@@ -111,11 +111,15 @@ impl Scene for BlightGateScene {
             }
             let color = if selected { palette::HIGHLIGHT } else { palette::TEXT };
             font::draw(batch, &entry.label, Vec2::new((rect.x + 20) as f32, y), color, shadow);
-            let tag = if entry.checkpoint {
-                "ungraded".to_string()
-            } else {
-                let best = blight_areas::best_grade(&world.state, entry.area.id);
-                format!("Lv {}   Grade {}", entry.area.level, best.as_deref().unwrap_or("-"))
+            let tag = match entry.checkpoint {
+                Some(floor) => {
+                    let best = blight_areas::best_grade(&world.state, &blight_areas::hollow_leg_id(floor));
+                    format!("Leg grade {}", best.as_deref().unwrap_or("-"))
+                }
+                None => {
+                    let best = blight_areas::best_grade(&world.state, entry.area.id);
+                    format!("Lv {}   Grade {}", entry.area.level, best.as_deref().unwrap_or("-"))
+                }
             };
             let tag_at = Vec2::new((rect.right() - 10 - font::measure(&tag)) as f32, y);
             font::draw(batch, &tag, tag_at, palette::TEXT_DIM, None);

@@ -292,8 +292,24 @@ The Memory Lens item and its button (T / L3) are gone; L3 is unbound. Eras are r
 (`"type": "shard"` in map data). The Bastion's crystals are always awake. A crystal with a `"key"` (shared by the
 crystals of both eras) sleeps until the Bastion is restored (`rift:ash_forge_anvil`), then an Aether Mote wakes it
 for good (flag `crystal:<key>`). Motes are a stackable key item: two in the Bastion vault chest that used to hold
-the Lens, and Tinker Varro sells them for 400 G. Which zones get era maps and where else motes turn up is content
-still to place.
+the Lens, a 20% drop from each Blighted area boss and Hollow Echo boss, and a sure drop from the First Concord.
+
+Keyed crystals open the past of the Mossy Grotto (`grotto_then`), Sunken Temple (`temple_2_then`), Storm Spire
+(`spire_3_then`) and Sky Citadel (`citadel_2_then`). Each past holds a puzzle that sets `memory_<zone>_vault`, which
+opens a sealed vault of Blight Cores in the present, and a memory boss (`"memory": true` on the boss entry, named
+"Memory of ...") guarding a unique accessory. Each past sits above its Blighted counterpart: Grotto 50, Temple 55,
+Spire 64, Citadel 68. Memory arenas use `memory_arena:<zone>`,
+`memory_met:<zone>` and `memory:<zone>`, and reset like the others when left unfinished.
+
+## Post-act bosses and Aether Glyphs
+
+Bosses on post-act maps (any map with a `blightArea`, or `"era": "then"`) spawn at their area level +3, or their
+own level if higher, unless the entry sets `level`.
+
+After a post-act boss has been beaten once on a map (`cleared:<map>:<kind>`), each later kill may drop an Aether
+Glyph: 2% at level 60 rising to 20% at level 100 (at least 1%). Used from Items, a glyph etches one random mod onto
+an owned armor, shield or accessory, or rerolls the mod it has into a different one (`item_mods` in the save; mods
+are listed in `gear_mods.rs` and apply while the item is equipped).
 
 ## Combat rank
 

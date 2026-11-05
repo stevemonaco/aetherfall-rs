@@ -22,6 +22,7 @@ use crate::core::geom::IRect;
 use crate::core::gfx::{Batch, TexId};
 use crate::core::input::{self, GameAction};
 use crate::core::palette;
+use crate::core::rng::Rng;
 use crate::entities::entity::Entity;
 use crate::entities::puzzles::SaveCrystal;
 use crate::gameplay::element::Element;
@@ -30,7 +31,7 @@ use crate::gameplay::game_state::GameState;
 use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::mastery;
 use crate::gameplay::supports::{self, Group};
-use crate::gameplay::{collection, pacts, souls};
+use crate::gameplay::{collection, gear_mods, pacts, souls};
 use crate::scene_any;
 use crate::ui::widgets;
 
@@ -268,6 +269,13 @@ impl MenuScene {
                 self.pick_scroll = 0;
                 audio::sfx(Sound::MenuSelect);
             }
+            "Items" if row.id == gear_mods::GLYPH => {
+                self.pick_choices = etch_choices(state);
+                self.pick_slot = Some("etch".into());
+                self.pick_row = 0;
+                self.pick_scroll = 0;
+                audio::sfx(Sound::MenuSelect);
+            }
             "Items" => use_item(world, &row.id, &mut self.in_list),
             "Gear" => {
                 let kind = match row.id.as_str() {
@@ -371,6 +379,29 @@ impl MenuScene {
             return;
         }
         let id = if self.pick_row == 0 { None } else { Some(self.pick_choices[self.pick_row].0.clone()) };
+        if self.pick_slot.as_deref() == Some("etch") {
+            let Some(item) = id else {
+                self.pick_slot = None;
+                audio::sfx(Sound::MenuCancel);
+                return;
+            };
+            if !state.take(gear_mods::GLYPH, 1) {
+                self.pick_slot = None;
+                audio::sfx(Sound::MenuCancel);
+                return;
+            }
+            let rolled = gear_mods::roll(&Rng::from_time(), state.item_mods.get(&item).map(String::as_str));
+            state.item_mods.insert(item, rolled.id.to_string());
+            state.hp = state.hp.min(state.max_hp());
+            audio::sfx(Sound::LevelUp);
+            if state.count(gear_mods::GLYPH) > 0 {
+                self.pick_choices = etch_choices(state);
+            } else {
+                self.pick_slot = None;
+                self.in_list = false;
+            }
+            return;
+        }
         if self.pick_slot.as_deref() == Some("prism") {
             self.pick_slot = None;
             let Some(gem) = id else {
@@ -937,6 +968,20 @@ fn describe_foe(state: &GameState, foe: &EnemyDef) -> String {
         text.push_str(&format!(" Immune: {immune}."));
     }
     text
+}
+
+/// Gear a glyph can etch, each labelled with the mod it carries now.
+fn etch_choices(state: &GameState) -> Vec<(String, String)> {
+    let gear = state.equipment.iter().filter(|id| items::get(id).is_some_and(|i| gear_mods::can_etch(i.kind)));
+    std::iter::once(("".to_string(), "(cancel)".to_string()))
+        .chain(gear.map(|id| {
+            let label = match state.item_mods.get(id).and_then(|m| gear_mods::get(m)) {
+                Some(m) => format!("{}  [{}]", items::name_of(id), m.name),
+                None => items::name_of(id),
+            };
+            (id.clone(), label)
+        }))
+        .collect()
 }
 
 fn use_item(world: &mut World, id: &str, in_list: &mut bool) {

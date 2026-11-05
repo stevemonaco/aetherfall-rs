@@ -44,7 +44,8 @@
       "id": "run_bt_hold",
       "restores": "a captain's rest",
       "do": [
-        "grade:black_tide"
+        "grade:black_tide",
+        "chance:20,give:aether_mote"
       ],
       "elite": "boneknight"
     },

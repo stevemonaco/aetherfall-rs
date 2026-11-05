@@ -27,6 +27,7 @@ use crate::gameplay::combat::{self, Faction, Hit};
 use crate::gameplay::element::Element;
 use crate::gameplay::game_data::{EnemyDef, data};
 use crate::gameplay::game_state::GameState;
+use crate::gameplay::gear_mods;
 use crate::gameplay::items::{self, ItemKind};
 use crate::gameplay::pacts;
 use crate::gameplay::rank::CombatRank;
@@ -82,6 +83,8 @@ pub type Overlay = Box<dyn FnOnce(&mut World) -> Box<dyn Scene>>;
 
 /// The share of normal experience golden rift foes pay.
 const TRIAL_EXP: f32 = 0.25;
+/// The share of normal experience foes poured out of a rift pay.
+const RIFT_EXP: f32 = 0.6;
 
 /// What a defeated enemy leaves behind.
 pub struct KillInfo {
@@ -93,6 +96,7 @@ pub struct KillInfo {
     pub blighted: bool,
     /// Whether the killing blow struck a weakness, for mastery.
     pub weakness: bool,
+    pub from_rift: bool,
 }
 
 pub struct World {
@@ -151,6 +155,10 @@ pub struct World {
     run_area: Option<String>,
     run_damage: i32,
     run_graded: bool,
+    /// The first floor of the Hollow leg being graded, if the run entered it from its start.
+    run_leg: Option<i32>,
+    leg_start: f64,
+    leg_damage: i32,
 }
 
 impl World {
@@ -211,6 +219,9 @@ impl World {
             run_area: None,
             run_damage: 0,
             run_graded: false,
+            run_leg: None,
+            leg_start: 0.0,
+            leg_damage: 0,
         }
     }
 
@@ -238,6 +249,11 @@ impl World {
 
     pub fn map_heat(&self) -> f32 {
         self.data.heat
+    }
+
+    /// Blighted expeditions, the Hollow and memory-crystal pasts: content after the story, whose bosses match the area.
+    pub fn post_act_map(&self) -> bool {
+        self.data.blight_area.is_some() || self.data.era.as_deref() == Some("then")
     }
 
     pub fn map_blighted(&self) -> bool {
@@ -579,6 +595,14 @@ impl World {
             let boss = &arena["run:arena:".len()..];
             if !self.state.flags.contains(&format!("run:{boss}")) {
                 self.state.flags.remove(&format!("run:met:{boss}"));
+                self.state.flags.remove(&arena);
+            }
+        }
+        let arenas: Vec<String> = self.state.flags.iter().filter(|f| f.starts_with("memory_arena:")).cloned().collect();
+        for arena in arenas {
+            let boss = &arena["memory_arena:".len()..];
+            if !self.state.flags.contains(&format!("memory:{boss}")) {
+                self.state.flags.remove(&format!("memory_met:{boss}"));
                 self.state.flags.remove(&arena);
             }
         }
@@ -1079,6 +1103,7 @@ impl World {
     pub fn start_run(&mut self, area: &BlightAreaDef, map: &str, x: i32, y: i32) {
         self.state.flags.retain(|f| !f.starts_with("run:") && !f.starts_with("rift:run_"));
         self.begin_run(area.id, map == area.map);
+        self.run_leg = map.strip_prefix("hollow_").and_then(|n| n.parse().ok());
         self.run_actions(&[format!("warp:{map},{x},{y},up")]);
     }
 
@@ -1087,30 +1112,55 @@ impl World {
         self.run_start = self.state.play_time;
         self.run_damage = 0;
         self.run_graded = graded;
+        self.run_leg = None;
+        self.leg_start = self.run_start;
+        self.leg_damage = 0;
     }
 
     /// Damage taken during the current Blighted run, for its grade.
     pub fn player_hurt(&mut self, amount: i32) {
         self.run_damage += amount;
+        self.leg_damage += amount;
+    }
+
+    /// Grades the Hollow leg ending at `last_floor` without ending the run, so the Concord still grades the whole descent.
+    fn finish_leg(&mut self, last_floor: &str) {
+        let Ok(last) = last_floor.parse::<i32>() else { return };
+        let first = last - blight_areas::HOLLOW_LEG_FLOORS + 1;
+        if self.run_area.as_deref() != Some("hollow") || self.run_leg != Some(first) {
+            return;
+        }
+        let seconds = self.state.play_time - self.leg_start;
+        let name = format!("Hollow floors {first}-{last}");
+        let key = blight_areas::hollow_leg_id(first);
+        self.record_grade(&key, &name, blight_areas::HOLLOW_LEG_PAR, seconds, self.leg_damage);
+        self.run_leg = Some(last + 1);
+        self.leg_start = self.state.play_time;
+        self.leg_damage = 0;
     }
 
     fn finish_run(&mut self, area_id: &str) {
         let Some(area) = blight_areas::get(area_id) else { return };
-        if self.run_area.as_deref() != Some(area_id) || !self.run_graded {
+        let in_run = self.run_area.as_deref() == Some(area_id);
+        if in_run && self.run_graded {
+            let seconds = self.state.play_time - self.run_start;
+            self.record_grade(area_id, area.name, area.par_seconds, seconds, self.run_damage);
+        } else if !(in_run && self.run_leg.is_some()) {
             self.show_message(&format!(
                 "{} cleared! (Ungraded: a graded run starts at the Blight Gate and ends without falling or leaving.)",
                 area.name
             ));
-            self.run_area = None;
-            return;
         }
-        let seconds = self.state.play_time - self.run_start;
+        self.run_area = None;
+    }
+
+    fn record_grade(&mut self, key: &str, name: &str, par: i32, seconds: f64, damage: i32) {
         let heat = pacts::heat(&self.state);
-        let grade = blight_areas::grade(seconds as f32, area.par_seconds, self.run_damage, self.state.max_hp(), heat);
-        let best = blight_areas::best_grade(&self.state, area_id);
+        let grade = blight_areas::grade(seconds as f32, par, damage, self.state.max_hp(), heat);
+        let best = blight_areas::best_grade(&self.state, key);
         let cores = (blight_areas::rank(Some(grade)) - blight_areas::rank(best.as_deref())).max(0);
         if best.is_none() || cores > 0 {
-            let prefix = format!("grade:{area_id}=");
+            let prefix = format!("grade:{key}=");
             self.state.flags.retain(|f| !f.starts_with(&prefix));
             self.state.flags.insert(format!("{prefix}{grade}"));
         }
@@ -1124,13 +1174,10 @@ impl World {
             String::new()
         };
         self.show_message(&format!(
-            "{} cleared in {}:{:02}, taking {} damage. Grade: {grade}{reward}",
-            area.name,
+            "{name} cleared in {}:{:02}, taking {damage} damage. Grade: {grade}{reward}",
             total / 60,
-            total % 60,
-            self.run_damage
+            total % 60
         ));
-        self.run_area = None;
     }
 
     pub fn start_dialogue(&mut self, id: &str, speaker: &str) {
@@ -1237,6 +1284,13 @@ impl World {
                         audio::play(Sound::ChestOpen, 0.6, 0.0);
                     }
                 }
+                "chance" => {
+                    if let Some((percent, then)) = arg.split_once(',')
+                        && self.rng.next_f32() * 100.0 < percent.parse().unwrap_or(0.0)
+                    {
+                        self.run_actions(&[then.to_string()]);
+                    }
+                }
                 "say" => self.show_message(arg),
                 "era" => self.swap_era(),
                 "save" => self.save_game(),
@@ -1252,6 +1306,7 @@ impl World {
                     }
                 }
                 "grade" => self.finish_run(arg),
+                "leg" => self.finish_leg(arg),
                 "ending" => {
                     self.state.flags.insert("game_clear".into());
                     audio::play_music(Some("Menu-AdventuresAwait"));
@@ -1410,6 +1465,7 @@ impl World {
             * kill.def.exp
             * elite
             * if trial { gap.min(1.0) * TRIAL_EXP } else { gap }
+            * if kill.from_rift && !trial { RIFT_EXP } else { 1.0 }
             * self.state.acc().exp
             * multiplier)
             .round() as i32;
@@ -1454,6 +1510,12 @@ impl World {
         let near_cap = kill.level >= combat::MAX_LEVEL - 10;
         if kill.elite && (near_cap || self.state.level - kill.level <= 10) && self.rng.next_f32() < 0.05 * multiplier {
             self.add(Pickup::item(kill.pos + Vec2::new(-6.0, 4.0), "gemcutter_prism"));
+        }
+        if kill.boss && self.post_act_map() {
+            let first_clear = self.state.flags.insert(format!("cleared:{}:{}", self.map_id(), kill.def.id));
+            if !first_clear && self.rng.next_f32() < gear_mods::glyph_chance(kill.level) {
+                self.add(Pickup::item(kill.pos + Vec2::new(6.0, 4.0), gear_mods::GLYPH));
+            }
         }
         if (kill.elite || self.rng.next_f32() < 0.1) && !kill.boss {
             let amount = (self.state.max_hp() / 10).max(4);

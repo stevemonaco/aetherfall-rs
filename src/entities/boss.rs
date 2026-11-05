@@ -21,6 +21,10 @@ use crate::gameplay::element::Element;
 use crate::gameplay::game_data::EnemyDef;
 use crate::scenes::world::World;
 
+/// Life multiplier for every boss over its enemy definition, and the stronger one on Blighted maps.
+const BASE_HP: f32 = 2.0;
+const BLIGHT_HP: f32 = 3.0;
+
 /// Test-only multiplier on boss life (see `--boss-hp`), stored as f32 bits.
 pub static DEBUG_HP_SCALE: AtomicU32 = AtomicU32::new(0x3F80_0000);
 
@@ -101,6 +105,8 @@ pub struct BossCore {
     pub defeat_actions: Vec<String>,
     /// A Blighted remix of the boss: tougher, faster, and tinted by the blight.
     pub echo: bool,
+    /// The boss as it was before its fall, met in a past era through a memory crystal.
+    pub memory: bool,
     pub home: Vec2,
     pub time: f32,
     pub dying_time: f32,
@@ -117,6 +123,7 @@ impl BossCore {
             flag,
             defeat_actions,
             echo: false,
+            memory: false,
             home,
             time: 0.0,
             dying_time: -1.0,
@@ -173,11 +180,23 @@ impl BossCore {
     }
 
     pub fn tint(&self) -> Rgba {
-        if self.echo { Rgba::rgb(205, 165, 255) } else { Rgba::WHITE }
+        if self.echo {
+            Rgba::rgb(205, 165, 255)
+        } else if self.memory {
+            Rgba::rgb(255, 235, 190)
+        } else {
+            Rgba::WHITE
+        }
     }
 
     pub fn display_name(&self, def: &EnemyDef) -> String {
-        if self.echo { format!("Echo of {}", def.name) } else { def.name.clone() }
+        if self.echo {
+            format!("Echo of {}", def.name)
+        } else if self.memory {
+            format!("Memory of {}", def.name)
+        } else {
+            def.name.clone()
+        }
     }
 }
 
@@ -191,9 +210,24 @@ pub fn with_brain<R>(enemy: &mut Enemy, f: impl FnOnce(&mut dyn BossBrain, &mut 
     Some(result)
 }
 
-/// Builds a boss of the given kind from its map entry.
-pub fn create(def: &'static EnemyDef, pos: Vec2, flag: String, defeat: Vec<String>, echo: bool) -> Enemy {
-    let mut enemy = Enemy::new(def, pos, None);
+/// How a boss appears: as first met, as a Blighted echo, or as a memory from a past era.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum BossVariant {
+    Normal,
+    Echo,
+    Memory,
+}
+
+/// Builds a boss of the given kind from its map entry; `level` overrides the kind's own level.
+pub fn create(
+    def: &'static EnemyDef,
+    pos: Vec2,
+    flag: String,
+    defeat: Vec<String>,
+    variant: BossVariant,
+    level: Option<i32>,
+) -> Enemy {
+    let mut enemy = Enemy::new(def, pos, level);
     let brain: Box<dyn BossBrain> = match def.id.as_str() {
         "golem" => Box::new(super::golem::GolemBrain::new(&mut enemy)),
         "serpent" => Box::new(super::serpent::SerpentBrain::new(&mut enemy)),
@@ -204,7 +238,8 @@ pub fn create(def: &'static EnemyDef, pos: Vec2, flag: String, defeat: Vec<Strin
         _ => Box::new(super::warlock::WarlockState::new(pos)),
     };
     let mut core = BossCore::new(flag, defeat, pos, brain);
-    core.echo = echo;
+    core.echo = variant == BossVariant::Echo;
+    core.memory = variant == BossVariant::Memory;
     enemy.boss = Some(Box::new(core));
     enemy
 }
@@ -220,7 +255,8 @@ pub fn added(enemy: &mut Enemy, world: &mut World) {
     world.telemetry.start(&format!("boss:{}", boss.flag));
     audio::sfx(Sound::BossRoar);
     let echo = if boss.echo { 1.6 } else { 1.0 };
-    enemy.max_hp = ((enemy.max_hp as f32 * echo * debug_hp_scale()) as i32).max(1);
+    let tough = if world.map_blighted() { BLIGHT_HP } else { BASE_HP };
+    enemy.max_hp = ((enemy.max_hp as f32 * tough * echo * debug_hp_scale()) as i32).max(1);
     enemy.hp = enemy.max_hp;
     with_brain(enemy, |brain, enemy| brain.added(enemy, world));
 }

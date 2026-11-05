@@ -39,6 +39,8 @@ pub use affixes::{Affix, Detonation};
 
 /// Melee hits a shield takes before breaking; heavy hits count twice and plain bolts not at all.
 const SHIELD_HP: f32 = 6.0;
+/// Life multiplier for ordinary foes on Blighted maps.
+const BLIGHT_HP: f32 = 1.25;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Phase {
@@ -113,6 +115,7 @@ pub struct Enemy {
     champion_turn: u32,
     /// Set when this foe dies, e.g. to open a trial's reward chests.
     death_flag: Option<String>,
+    from_rift: bool,
 }
 
 impl Enemy {
@@ -180,6 +183,7 @@ impl Enemy {
             champion_beat: 3.0,
             champion_turn: 0,
             death_flag: None,
+            from_rift: false,
         }
     }
 
@@ -217,6 +221,12 @@ impl Enemy {
     pub fn hunting(mut self) -> Enemy {
         self.alerted = true;
         self.phase = Phase::Chase;
+        self
+    }
+
+    /// Marks a foe poured out of a rift, which pays reduced experience.
+    pub fn from_rift(mut self) -> Enemy {
+        self.from_rift = true;
         self
     }
 
@@ -1288,6 +1298,7 @@ impl Enemy {
             elite: self.is_elite,
             blighted: self.blighted,
             weakness: self.last_weak,
+            from_rift: self.from_rift,
         }
     }
 
@@ -1646,6 +1657,8 @@ impl Entity for Enemy {
         if world.map_blighted() && self.boss.is_none() {
             self.blighted = true;
             self.blight_mark = strongest_resist(self.def);
+            self.max_hp = (self.max_hp as f32 * BLIGHT_HP) as i32;
+            self.hp = self.max_hp;
         }
         if pacts::active(&world.state, "ironhide") {
             self.max_hp = (self.max_hp as f32 * 1.5) as i32;

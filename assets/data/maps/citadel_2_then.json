@@ -1,0 +1,237 @@
+{
+  "name": "Sky Citadel (memory)",
+  "theme": "citadel",
+  "music": "Retro-Mysterious1",
+  "weather": "clouds,motes",
+  "pair": "citadel_2",
+  "era": "then",
+  "level": 68,
+  "rows": [
+    "            ####################            ",
+    "            #__________________#            ",
+    "            #__++__________++__#            ",
+    "            #__++__________++__#            ",
+    "            #__________________#            ",
+    "            #__________________#            ",
+    "            #__________________#            ",
+    "            #__________________#            ",
+    "      ______#__________________#______      ",
+    "      ______#__________________#______      ",
+    "      ______#__________________#______      ",
+    "      ____###########__###########____      ",
+    " ____ ____##_________++_________##____ ____ ",
+    " ____ _______________++_______________ ____ ",
+    " ____________________++____________________ ",
+    " ____ __________##___++___##__________ ____ ",
+    " ____ __________##___++___##__________ ____ ",
+    " ____ _______________++_______________ ____ ",
+    "      _______________++_______________      ",
+    "      ____##_________++_________##____      ",
+    "      ____##_________++_________##____      ",
+    "      _______________++_______________      ",
+    "      _______________++_______________      ",
+    "      _______________++_______________      ",
+    "                     __             =       ",
+    "                     __      #######+#####  ",
+    "                ____________ #___________#  ",
+    "                ____________ #___________#  ",
+    "                ____________ #___________#  ",
+    "                ____________ #___________#  ",
+    "                ____________ #___________#  ",
+    "                ____________ #___________#  ",
+    "                     ##      #############  ",
+    "                                            "
+  ],
+  "entities": [
+    {
+      "type": "shard",
+      "x": 19.0,
+      "y": 27.0,
+      "key": "citadel"
+    },
+    {
+      "type": "save",
+      "x": 24.0,
+      "y": 28.0
+    },
+    {
+      "type": "sign",
+      "x": 23.0,
+      "y": 22.0,
+      "text": "Carved into the floor: \"Wind, flame, tide and storm. Light all four, and the treasury's keystone will listen.\""
+    },
+    {
+      "type": "crystal",
+      "x": 7.0,
+      "y": 8.0,
+      "element": "fire",
+      "flag": "memory_citadel_fire"
+    },
+    {
+      "type": "crystal",
+      "x": 36.0,
+      "y": 8.0,
+      "element": "wind",
+      "flag": "memory_citadel_wind"
+    },
+    {
+      "type": "crystal",
+      "x": 2.0,
+      "y": 12.0,
+      "element": "water",
+      "flag": "memory_citadel_water"
+    },
+    {
+      "type": "crystal",
+      "x": 41.0,
+      "y": 12.0,
+      "element": "thunder",
+      "flag": "memory_citadel_thunder"
+    },
+    {
+      "type": "gate",
+      "x": 35.0,
+      "y": 25.0,
+      "open": "memory_citadel_fire,memory_citadel_wind,memory_citadel_water,memory_citadel_thunder"
+    },
+    {
+      "type": "crystal",
+      "x": 35.0,
+      "y": 29.0,
+      "flag": "memory_citadel_vault"
+    },
+    {
+      "type": "decor",
+      "x": 30.0,
+      "y": 26.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 40.0,
+      "y": 26.0,
+      "kind": "torch"
+    },
+    {
+      "type": "gate",
+      "x": 21.0,
+      "y": 11.0,
+      "open": "!memory_arena:citadel"
+    },
+    {
+      "type": "gate",
+      "x": 22.0,
+      "y": 11.0,
+      "open": "!memory_arena:citadel"
+    },
+    {
+      "type": "trigger",
+      "x": 17.0,
+      "y": 9.0,
+      "w": 10,
+      "h": 1,
+      "flag": "memory_met:citadel",
+      "dialogue": "memory_citadel",
+      "if": "!memory:citadel"
+    },
+    {
+      "type": "boss",
+      "x": 22.0,
+      "y": 4.0,
+      "kind": "sovereign",
+      "memory": true,
+      "flag": "memory:citadel",
+      "defeat": [
+        "unflag:memory_arena:citadel"
+      ],
+      "unless": "memory:citadel",
+      "if": "memory_arena:citadel"
+    },
+    {
+      "type": "chest",
+      "x": 22.0,
+      "y": 4.0,
+      "item": "vael_signet",
+      "style": 3,
+      "if": "memory:citadel"
+    },
+    {
+      "type": "decor",
+      "x": 13.0,
+      "y": 1.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 30.0,
+      "y": 1.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 13.0,
+      "y": 10.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 30.0,
+      "y": 10.0,
+      "kind": "torch"
+    },
+    {
+      "type": "enemy",
+      "x": 14.0,
+      "y": 15.0,
+      "kind": "darkknight"
+    },
+    {
+      "type": "enemy",
+      "x": 29.0,
+      "y": 16.0,
+      "kind": "paladin"
+    },
+    {
+      "type": "enemy",
+      "x": 9.0,
+      "y": 20.0,
+      "kind": "magus"
+    },
+    {
+      "type": "enemy",
+      "x": 34.0,
+      "y": 20.0,
+      "kind": "hierophant"
+    },
+    {
+      "type": "enemy",
+      "x": 22.0,
+      "y": 18.0,
+      "kind": "warder"
+    },
+    {
+      "type": "enemy",
+      "x": 3.0,
+      "y": 16.0,
+      "kind": "sentry"
+    },
+    {
+      "type": "enemy",
+      "x": 40.0,
+      "y": 16.0,
+      "kind": "sentry"
+    },
+    {
+      "type": "enemy",
+      "x": 32.0,
+      "y": 29.0,
+      "kind": "drone"
+    },
+    {
+      "type": "enemy",
+      "x": 38.0,
+      "y": 28.0,
+      "kind": "warder"
+    }
+  ]
+}

@@ -1,0 +1,175 @@
+{
+  "name": "Storm Spire (memory)",
+  "theme": "tower",
+  "music": "Retro-Mysterious1",
+  "pair": "spire_3",
+  "era": "then",
+  "level": 64,
+  "rows": [
+    "############################",
+    "############################",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#####__________________#####",
+    "#############__#############",
+    "#############__#############",
+    "########_____mm_____########",
+    "########_____mm_____#___#__#",
+    "########_____mm_____#______#",
+    "########_____mm_____#____#_#",
+    "#______#_____mm____________#",
+    "#______#_____mm_____#______#",
+    "#____________mm_____#______#",
+    "#______#####################",
+    "#______#####################",
+    "#______#####################",
+    "############################"
+  ],
+  "entities": [
+    {
+      "type": "shard",
+      "x": 5.0,
+      "y": 18.0,
+      "key": "spire"
+    },
+    {
+      "type": "save",
+      "x": 2.0,
+      "y": 18.0
+    },
+    {
+      "type": "decor",
+      "x": 1.0,
+      "y": 17.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 17.0,
+      "kind": "torch"
+    },
+    {
+      "type": "stoneblock",
+      "x": 22.0,
+      "y": 16.0
+    },
+    {
+      "type": "plate",
+      "x": 26.0,
+      "y": 14.0,
+      "flag": "memory_spire_vault",
+      "heavy": true,
+      "latch": true
+    },
+    {
+      "type": "gate",
+      "x": 13.0,
+      "y": 11.0,
+      "open": "!memory_arena:spire"
+    },
+    {
+      "type": "gate",
+      "x": 14.0,
+      "y": 11.0,
+      "open": "!memory_arena:spire"
+    },
+    {
+      "type": "trigger",
+      "x": 9.0,
+      "y": 9.0,
+      "w": 10,
+      "h": 1,
+      "flag": "memory_met:spire",
+      "dialogue": "memory_spire",
+      "if": "!memory:spire"
+    },
+    {
+      "type": "boss",
+      "x": 14.0,
+      "y": 5.0,
+      "kind": "golem",
+      "memory": true,
+      "flag": "memory:spire",
+      "if": "memory_arena:spire",
+      "unless": "memory:spire",
+      "defeat": [
+        "unflag:memory_arena:spire"
+      ]
+    },
+    {
+      "type": "chest",
+      "x": 6.0,
+      "y": 9.0,
+      "item": "stormcaller_band",
+      "style": 3,
+      "if": "memory:spire"
+    },
+    {
+      "type": "decor",
+      "x": 6.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "decor",
+      "x": 21.0,
+      "y": 2.0,
+      "kind": "torch"
+    },
+    {
+      "type": "enemy",
+      "x": 10.0,
+      "y": 15.0,
+      "kind": "warder"
+    },
+    {
+      "type": "enemy",
+      "x": 17.0,
+      "y": 14.0,
+      "kind": "sentry"
+    },
+    {
+      "type": "enemy",
+      "x": 11.0,
+      "y": 18.0,
+      "kind": "drone"
+    },
+    {
+      "type": "enemy",
+      "x": 17.0,
+      "y": 18.0,
+      "kind": "stormcaller"
+    },
+    {
+      "type": "enemy",
+      "x": 9.0,
+      "y": 13.0,
+      "kind": "stormeye"
+    },
+    {
+      "type": "enemy",
+      "x": 15.0,
+      "y": 16.0,
+      "kind": "sentinel"
+    },
+    {
+      "type": "enemy",
+      "x": 25.0,
+      "y": 19.0,
+      "kind": "sentry"
+    },
+    {
+      "type": "enemy",
+      "x": 22.0,
+      "y": 14.0,
+      "kind": "drone"
+    }
+  ]
+}

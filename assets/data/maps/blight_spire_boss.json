@@ -64,7 +64,8 @@
       "kind": "golem",
       "defeat": [
         "unflag:run:arena:echo_golem",
-        "grade:inverted_spire"
+        "grade:inverted_spire",
+        "chance:20,give:aether_mote"
       ],
       "unless": "run:echo_golem",
       "if": "run:arena:echo_golem",

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::combat::{self, CombatStats};
 use super::element::{Element, MODES};
 use super::game_data::data;
+use super::gear_mods;
 use super::items::{self, AccessoryStats, ItemKind};
 use super::mastery;
 use super::skills::{self, SkillDef};
@@ -52,6 +53,8 @@ pub struct GameState {
     pub armor: Option<String>,
     pub shield: Option<String>,
     pub accessories: [Option<String>; 2],
+    /// The mod etched onto each piece of gear, by item id.
+    pub item_mods: BTreeMap<String, String>,
     pub learned_skills: BTreeSet<String>,
     /// The skill equipped in each mode, by mode key.
     pub equipped_skills: BTreeMap<String, String>,
@@ -102,6 +105,7 @@ impl Default for GameState {
             armor: None,
             shield: None,
             accessories: [None, None],
+            item_mods: BTreeMap::new(),
             learned_skills: BTreeSet::new(),
             equipped_skills: BTreeMap::new(),
             sockets: BTreeMap::new(),
@@ -146,6 +150,11 @@ impl GameState {
         for id in self.accessories.iter().flatten().chain(self.shield.iter()) {
             if let Some(item) = items::get(id) {
                 stats = AccessoryStats::combine(&stats, &item.accessory);
+            }
+        }
+        for id in self.accessories.iter().flatten().chain(self.shield.iter()).chain(self.armor.iter()) {
+            if let Some(m) = self.item_mods.get(id).and_then(|m| gear_mods::get(m)) {
+                stats = AccessoryStats::combine(&stats, &m.stats);
             }
         }
         stats
@@ -643,7 +652,13 @@ impl GameState {
     pub fn item_description(&self, id: &str) -> String {
         match supports::get(id) {
             Some(gem) => supports::describe(gem, self.gem_tier(id)),
-            None => items::get(id).map_or(String::new(), |i| i.description.to_string()),
+            None => {
+                let text = items::get(id).map_or(String::new(), |i| i.description.to_string());
+                match self.item_mods.get(id).and_then(|m| gear_mods::get(m)) {
+                    Some(m) => format!("{text} Etched: {}.", m.name),
+                    None => text,
+                }
+            }
         }
     }
 

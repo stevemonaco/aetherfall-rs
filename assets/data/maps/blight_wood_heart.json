@@ -51,7 +51,8 @@
       "restores": "an Echo, remembering",
       "id": "run_ww_heart",
       "do": [
-        "grade:witherwood"
+        "grade:witherwood",
+        "chance:20,give:aether_mote"
       ],
       "elite": "darkknight"
     },

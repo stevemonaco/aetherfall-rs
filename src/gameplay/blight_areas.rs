@@ -117,7 +117,16 @@ pub fn grade(seconds: f32, par: i32, damage: i32, max_hp: i32, heat: i32) -> &'s
     }
 }
 
-/// Hollow floors reached past an Echo boss, which the Blight Gate can start from (ungraded).
+/// Floors in each leg of the Hollow, each closed by an Echo boss (or the Concord on the last).
+pub const HOLLOW_LEG_FLOORS: i32 = 5;
+pub const HOLLOW_LEG_PAR: i32 = 180;
+
+/// The grade key for the Hollow leg starting at `floor`.
+pub fn hollow_leg_id(floor: i32) -> String {
+    format!("hollow@{floor}")
+}
+
+/// Hollow floors reached past an Echo boss, which the Blight Gate can start a leg from.
 pub fn hollow_checkpoints(state: &GameState) -> Vec<i32> {
     let mut floors: Vec<i32> =
         state.flags.iter().filter_map(|f| f.strip_prefix("hollow_cp:")).filter_map(|n| n.parse().ok()).collect();

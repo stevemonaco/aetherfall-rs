@@ -2,7 +2,7 @@
 
 use crate::entities::blight_hazards::{BlightGate, Cannon, StormGrid};
 use crate::entities::blocks::{AetherSeal, IceBlock, MemoryCrystal, PressurePlate, TetherLever, TetherPost};
-use crate::entities::boss;
+use crate::entities::boss::{self, BossVariant};
 use crate::entities::companion::DigSpot;
 use crate::entities::dummy::TrainingDummy;
 use crate::entities::enemy::Enemy;
@@ -22,6 +22,9 @@ use crate::gameplay::element::Element;
 use crate::gameplay::game_data::data;
 use crate::scenes::world::World;
 use crate::world::map::{EntityData, tile_feet};
+
+/// Levels a post-act boss sits above its area.
+const POST_ACT_BOSS_LEVELS: i32 = 3;
 
 pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> {
     let map_id = world.map_id().to_string();
@@ -105,7 +108,17 @@ pub fn create(world: &mut World, entry: &EntityData) -> Option<Box<dyn Entity>> 
                 return Some(Box::new(Enemy::new(def, pos, level)));
             }
             let flag = entry.str("flag").map(str::to_string).unwrap_or_else(|| format!("boss_{kind}"));
-            Box::new(boss::create(def, pos, flag, entry.strings("defeat"), entry.bool("echo", false)))
+            let variant = if entry.bool("memory", false) {
+                BossVariant::Memory
+            } else if entry.bool("echo", false) {
+                BossVariant::Echo
+            } else {
+                BossVariant::Normal
+            };
+            let level = level.or_else(|| {
+                world.post_act_map().then(|| def.level.max(world.data.level + POST_ACT_BOSS_LEVELS))
+            });
+            Box::new(boss::create(def, pos, flag, entry.strings("defeat"), variant, level))
         }
         _ => return None,
     };

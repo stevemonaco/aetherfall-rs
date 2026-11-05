@@ -264,6 +264,42 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
         )
         .with_acc(AccessoryStats { atk: 1.2, def: 1.2, hp: 1.2, blight_taken: 0.5, ..N }),
         item(
+            "mossheart_sigil",
+            "Mossheart Sigil",
+            Accessory,
+            0,
+            0,
+            "The Grotto's warden wore it before the moss. Regenerate 1.5% life per second, life +15%.",
+        )
+        .with_acc(AccessoryStats { regen: 0.015, hp: 1.15, ..N }),
+        item(
+            "tidewarden_seal",
+            "Tidewarden's Seal",
+            Accessory,
+            0,
+            0,
+            "The Temple's seal from before the flood. DEF +20%, wider perfect guard.",
+        )
+        .with_acc(AccessoryStats { def: 1.2, perfect_window: 0.06, ..N }),
+        item(
+            "stormcaller_band",
+            "Stormcaller Band",
+            Accessory,
+            0,
+            0,
+            "Worn by the Spire's keepers. The Aether meter fills 40% faster and locks after 2 seconds.",
+        )
+        .with_acc(AccessoryStats { aether: 1.4, aether_lock: 2.0, ..N }),
+        item(
+            "vael_signet",
+            "Vael's Signet",
+            Accessory,
+            0,
+            0,
+            "The Sovereign's ring, before the crown. ATK +20%, FOC +20%, SP gain +20%.",
+        )
+        .with_acc(AccessoryStats { atk: 1.2, foc: 1.2, sp_gain: 1.2, ..N }),
+        item(
             "guardian_charm",
             "Guardian Charm",
             Charm,
@@ -340,6 +376,14 @@ static ITEM_LIST: LazyLock<Vec<ItemDef>> = LazyLock::new(|| {
             3000,
             0,
             "Hones a support gem one tier: a fifth more upside, a third less drawback. Use it from Items.",
+        ),
+        item(
+            "aether_glyph",
+            "Aether Glyph",
+            Material,
+            0,
+            0,
+            "Etches a mod onto armor, a shield or an accessory, or rerolls the one it has. Use it from Items.",
         ),
         item("slime_gel", "Slime Gel", Material, 4, 0, "Wobbly. Smiths use it to temper blades."),
         item("beast_fang", "Beast Fang", Material, 8, 0, "A sharp fang. Good for edges."),

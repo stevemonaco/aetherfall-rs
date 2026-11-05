@@ -64,7 +64,8 @@
       "kind": "warlock",
       "defeat": [
         "unflag:run:arena:echo_warlock",
-        "grade:cinder_vault"
+        "grade:cinder_vault",
+        "chance:20,give:aether_mote"
       ],
       "unless": "run:echo_warlock",
       "if": "run:arena:echo_warlock",

@@ -82,7 +82,9 @@
       "defeat": [
         "unflag:run:arena:concord",
         "flag:concord_slain",
+        "leg:20",
         "grade:hollow",
+        "give:aether_mote",
         "say:The First Concord comes apart into four quiet lights, and the blight in the stone around you goes grey and still."
       ],
       "unless": "run:concord",

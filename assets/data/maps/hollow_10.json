@@ -85,7 +85,8 @@
       "kind": "wyrm",
       "defeat": [
         "unflag:run:arena:echo_wyrm",
-        "grade:hollow",
+        "leg:10",
+        "chance:20,give:aether_mote",
         "flag:hollow_cp:11"
       ],
       "unless": "run:echo_wyrm",

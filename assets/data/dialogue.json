@@ -505,6 +505,22 @@
     { "speaker": "Echo of Sovereign Vael", "lines": [ "Still... you climb... my stair. Down, now. Always down.", "Give me... the crystals..." ],
       "do": [ "flag:run:arena:echo_sovereign", "music:Boss-DangerousDuke" ] }
   ],
+  "memory_spire": [
+    { "speaker": "Storm Golem", "lines": [ "Warden-construct of the Concord, keeper of the high coil. The storm is held. The storm is kept.", "You bear no Concord seal. Stand down, or be grounded." ],
+      "do": [ "flag:memory_arena:spire", "music:Boss-ManAtArms" ] }
+  ],
+  "memory_citadel": [
+    { "speaker": "Regent Vael", "lines": [ "A stranger in the audience hall, with sky-dust on their boots. The Concord sends no envoys unannounced.", "This city floats because I hold it. Every stone, every wind, every soul who sleeps beneath these spires.", "Show me you could bear that weight, stranger. Or show me why no one else ever should." ],
+      "do": [ "flag:memory_arena:citadel", "music:Boss-DangerousDuke" ] }
+  ],
+  "memory_grotto": [
+    { "speaker": "Concord Warden", "lines": [ "(Water hums through bright Concord channels. A tall automaton turns, its four emitters burning clean.)", "WATERWORKS UNDER CONCORD KEEPING. YOUR WARRANT IS NOT ON RECORD.", "I KEEP THIS GROTTO. I WILL KEEP IT FOR A HUNDRED YEARS IF I MUST." ],
+      "do": [ "flag:memory_arena:grotto", "music:Boss-KnightFight" ] }
+  ],
+  "memory_temple": [
+    { "speaker": "The Tidewarden", "lines": [ "(The pool stirs, clear as glass. A great serpent rises, scales bright with Concord sigils.)", "Another thief come for the vault? The tide-bells have not rung. The stores stay sealed. Turn back, or be taken by the deep." ],
+      "do": [ "flag:memory_arena:temple", "music:Boss-BaronessBattle" ] }
+  ],
   "concord_intro": [
     { "speaker": "", "lines": [
         "At the bottom of the Hollow, a ring of white stone turns slowly in the dark. Four sockets. One heart, beating violet.",

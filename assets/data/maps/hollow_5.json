@@ -82,7 +82,8 @@
       "kind": "warden",
       "defeat": [
         "unflag:run:arena:echo_warden",
-        "grade:hollow",
+        "leg:5",
+        "chance:20,give:aether_mote",
         "flag:hollow_cp:6"
       ],
       "unless": "run:echo_warden",

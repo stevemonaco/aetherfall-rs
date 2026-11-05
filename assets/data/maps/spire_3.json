@@ -2,6 +2,8 @@
   "name": "Storm Spire",
   "theme": "tower",
   "music": "Action-EscapeTheTower",
+  "pair": "spire_3_then",
+  "era": "now",
   "level": 27,
   "rows": [
     "############################",
@@ -24,9 +26,9 @@
     "#______#__________________##",
     "#______#____________#_____##",
     "#___________________#_____##",
-    "#______#####################",
-    "#______#####################",
-    "#______#####################",
+    "#______########_############",
+    "#______#######___###########",
+    "#______#######___###########",
     "############################"
   ],
   "entities": [
@@ -122,6 +124,10 @@
     {"type": "shocklock", "x": 25.0, "y": 10.0, "flag": "spire_3_coil_e"},
     {"type": "gate", "x": 20.0, "y": 10.0, "open": "spire_3_fan"},
     {"type": "turbine", "x": 8.0, "y": 17.0, "flag": "spire_3_fan", "timer": 6},
-    {"type": "gate", "x": 13.0, "y": 5.0, "open": "spire_3_coil_w,spire_3_coil_e"}
+    {"type": "gate", "x": 13.0, "y": 5.0, "open": "spire_3_coil_w,spire_3_coil_e"},
+    {"type": "shard", "x": 5.0, "y": 18.0, "key": "spire"},
+    {"type": "gate", "x": 15.0, "y": 20.0, "open": "memory_spire_vault"},
+    {"type": "chest", "x": 15.0, "y": 22.0, "item": "blight_core", "count": 3, "style": 3},
+    {"type": "sign", "x": 17.0, "y": 19.0, "text": "A Concord seal, cold for a century. Its weight-glyph shows a stone resting on a plate, and the plate is empty."}
   ]
 }
